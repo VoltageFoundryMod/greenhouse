@@ -116,12 +116,12 @@ export const editorUiMethods = {
         if (draft) this.outputLine(`unsaved changes to ${draft.name} are kept; open it with edit to restore them`);
     },
 
-    // iii functions for the connected device: grid or arc, plus og_* on
-    // Open Grid firmware (known once a file was read: og_dump_file exists)
+    // iii functions for the connected device: grid, arc or achene, plus og_*
+    // on Open Grid firmware (known once a file was read: og_dump_file exists)
     currentApi() {
         const id = String(this.connectedDeviceLabel || '').toLowerCase();
         return apiFor({
-            deviceId: id === 'grid' || id === 'arc' ? id : null,
+            deviceId: id === 'grid' || id === 'arc' || id === 'achene' ? id : null,
             openGrid: Boolean(this.editorExactFiles || this.gridSupported)
         });
     },

@@ -2,7 +2,8 @@
 // iii's Lua API, for the editor's autocomplete and hover help and the offline
 // reference. Wording follows monome.org/docs/iii/code; functions the page
 // doesn't cover (fs_*, midi_tx, device_reset, og_*) are described from the
-// firmware. `device` limits an entry to grids, arcs or Open Grid firmware.
+// firmware. `device` limits an entry to grids, arcs, Open Grid firmware or
+// achene (its controls, key LEDs and screen; from achene's firmware help).
 
 /**
  * @typedef {object} ApiEntry
@@ -11,7 +12,7 @@
  * @property {string} doc one or two sentences
  * @property {string} group section in the reference
  * @property {'function' | 'event' | 'method' | 'property'} kind
- * @property {'grid' | 'arc' | 'og'} [device]
+ * @property {'grid' | 'arc' | 'og' | 'achene'} [device]
  */
 
 /** @type {ApiEntry[]} */
@@ -480,6 +481,230 @@ export const III_API = [
         name: 'og_rename_file',
         sig: 'og_rename_file(old, new)',
         doc: 'Renames a file in one step, replacing new if it exists.'
+    },
+    {
+        group: 'achene',
+        kind: 'event',
+        device: 'achene',
+        name: 'event_enc',
+        sig: 'event_enc(n, d)',
+        doc: 'Define this to handle encoder n (1-based) turning d detents; positive is clockwise. Steps are summed per main-loop pass, so a fast spin is one call with a bigger d.'
+    },
+    {
+        group: 'achene',
+        kind: 'event',
+        device: 'achene',
+        name: 'event_enc_key',
+        sig: 'event_enc_key(n, z)',
+        doc: "Define this to handle encoder n's push: z is 1 pressed, 0 released."
+    },
+    {
+        group: 'achene',
+        kind: 'event',
+        device: 'achene',
+        name: 'event_key',
+        sig: 'event_key(n, z)',
+        doc: 'Define this to handle key n (1-based): z is 1 pressed, 0 released.'
+    },
+    {
+        group: 'achene keys',
+        kind: 'function',
+        device: 'achene',
+        name: 'key_led',
+        sig: 'key_led(n, r, g, b)',
+        doc: "Sets key n's LED colour (0-255 each); shown at the next key_led_refresh()."
+    },
+    {
+        group: 'achene keys',
+        kind: 'function',
+        device: 'achene',
+        name: 'key_led_all',
+        sig: 'key_led_all(r, g, b)',
+        doc: 'Sets every key LED to one colour; shown at the next key_led_refresh().'
+    },
+    {
+        group: 'achene keys',
+        kind: 'function',
+        device: 'achene',
+        name: 'key_led_get',
+        sig: 'key_led_get(n)',
+        doc: "Returns key n's LED colour as r, g, b."
+    },
+    {
+        group: 'achene keys',
+        kind: 'function',
+        device: 'achene',
+        name: 'key_led_refresh',
+        sig: 'key_led_refresh()',
+        doc: 'Sends the key LED colours to the LEDs.'
+    },
+    {
+        group: 'achene keys',
+        kind: 'function',
+        device: 'achene',
+        name: 'key_led_budget',
+        sig: 'key_led_budget(mA)',
+        doc: "Sets the LEDs' current limit (they're dimmed to stay under it); returns the limit and the last frame's estimated draw, in mA."
+    },
+    {
+        group: 'achene screen',
+        kind: 'function',
+        device: 'achene',
+        name: 'screen_clear',
+        sig: 'screen_clear()',
+        doc: 'Clears the screen buffer; shown at the next screen_refresh().'
+    },
+    {
+        group: 'achene screen',
+        kind: 'function',
+        device: 'achene',
+        name: 'screen_pixel',
+        sig: 'screen_pixel(x, y, c)',
+        doc: 'Sets a pixel (0-based, 128x64): c is 1 on, 0 off, -1 invert (default 1).'
+    },
+    {
+        group: 'achene screen',
+        kind: 'function',
+        device: 'achene',
+        name: 'screen_line',
+        sig: 'screen_line(x0, y0, x1, y1, c)',
+        doc: 'Draws a line; c as for screen_pixel.'
+    },
+    {
+        group: 'achene screen',
+        kind: 'function',
+        device: 'achene',
+        name: 'screen_rect',
+        sig: 'screen_rect(x, y, w, h, c, fill)',
+        doc: "Draws a rectangle's outline, or fills it with fill true; c as for screen_pixel."
+    },
+    {
+        group: 'achene screen',
+        kind: 'function',
+        device: 'achene',
+        name: 'screen_text',
+        sig: 'screen_text(x, y, s, c)',
+        doc: "Draws text in an 8-row line from y down (the norns font's baseline is y + 6); returns the x after it. c as for screen_pixel."
+    },
+    {
+        group: 'achene screen',
+        kind: 'function',
+        device: 'achene',
+        name: 'screen_text_width',
+        sig: 'screen_text_width(s)',
+        doc: 'Width of s in pixels in the current font, including the 1 px gap after it.'
+    },
+    {
+        group: 'achene screen',
+        kind: 'function',
+        device: 'achene',
+        name: 'screen_font',
+        sig: 'screen_font(n)',
+        doc: 'Picks the font: 1 norns (default, proportional), 2 a fixed 5x7.'
+    },
+    {
+        group: 'achene screen',
+        kind: 'function',
+        device: 'achene',
+        name: 'screen_refresh',
+        sig: 'screen_refresh()',
+        doc: 'Shows what was drawn; only the pages that changed are sent to the OLED.'
+    },
+    {
+        group: 'achene screen',
+        kind: 'function',
+        device: 'achene',
+        name: 'screen_contrast',
+        sig: 'screen_contrast(v)',
+        doc: "Sets the OLED's contrast, 0-255."
+    },
+    {
+        group: 'achene screen',
+        kind: 'function',
+        device: 'achene',
+        name: 'screen_invert',
+        sig: 'screen_invert(on)',
+        doc: 'Inverts the whole OLED (hardware, no redraw).'
+    },
+    {
+        group: 'achene screen',
+        kind: 'function',
+        device: 'achene',
+        name: 'screen_type',
+        sig: 'screen_type(t)',
+        doc: 'Sets the OLED controller: "ssd1309" (the 2.42" module, default), "sh1106" or "ssd1306".'
+    },
+    {
+        group: 'achene screen',
+        kind: 'function',
+        device: 'achene',
+        name: 'screen_present',
+        sig: 'screen_present()',
+        doc: 'true if an OLED answered on its I2C bus.'
+    },
+    {
+        group: 'achene',
+        kind: 'function',
+        device: 'achene',
+        name: 'enc_count',
+        sig: 'enc_count()',
+        doc: 'How many encoders this build has (12; 4 on a XIAO breadboard).'
+    },
+    {
+        group: 'achene',
+        kind: 'function',
+        device: 'achene',
+        name: 'key_count',
+        sig: 'key_count()',
+        doc: 'How many keys this build has (16; 4 on a XIAO breadboard).'
+    },
+    {
+        group: 'achene',
+        kind: 'function',
+        device: 'achene',
+        name: 'ach_board',
+        sig: 'ach_board()',
+        doc: 'The board the firmware was built for, e.g. "pico2" or "xiao_rp2040".'
+    },
+    {
+        group: 'achene',
+        kind: 'function',
+        device: 'achene',
+        name: 'ach_enc',
+        sig: 'ach_enc(n, d)',
+        doc: "Injects an encoder turn, as if from the hardware (diii's achene view, tests)."
+    },
+    {
+        group: 'achene',
+        kind: 'function',
+        device: 'achene',
+        name: 'ach_enc_key',
+        sig: 'ach_enc_key(n, z)',
+        doc: 'Injects an encoder push or release, as if from the hardware.'
+    },
+    {
+        group: 'achene',
+        kind: 'function',
+        device: 'achene',
+        name: 'ach_key',
+        sig: 'ach_key(n, z)',
+        doc: 'Injects a key press or release, as if from the hardware.'
+    },
+    {
+        group: 'achene',
+        kind: 'function',
+        device: 'achene',
+        name: 'ach_inputs',
+        sig: 'ach_inputs()',
+        doc: 'Prints the raw input chain (1 = open) and the scan rate: the quickest wiring check.'
+    },
+    {
+        group: 'achene',
+        kind: 'function',
+        device: 'achene',
+        name: 'ach_mirror',
+        sig: 'ach_mirror(on)',
+        doc: "Streams the key LEDs and screen as ^^achled / ^^achscr lines (diii's achene view)."
     }
 ];
 
