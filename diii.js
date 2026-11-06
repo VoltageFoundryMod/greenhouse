@@ -79,7 +79,9 @@ class diiiApp {
         this.checkBrowserSupport();
         this.renderFileList();
 
-        this.outputLine('//// welcome. connect to an iii compatible grid or arc to begin.');
+        this.outputLine('//// welcome. connect to an iii compatible device to begin.');
+        // the opening page, until the first connection (or until closed)
+        if (this.elements.welcome) this.elements.welcome.hidden = false;
         this.restoreHistory();
         this.restoreMidiDrawer();
         this.restoreGridDrawer();
@@ -162,6 +164,10 @@ class diiiApp {
             gridReleaseBtn: document.getElementById('gridReleaseBtn'),
             gridCells: document.getElementById('gridCells'),
             acheneDrawer: document.getElementById('acheneDrawer'),
+            welcome: document.getElementById('welcome'),
+            welcomeConnectBtn: document.getElementById('welcomeConnectBtn'),
+            welcomeCloseBtn: document.getElementById('welcomeCloseBtn'),
+            welcomeReferenceBtn: document.getElementById('welcomeReferenceBtn'),
             acheneToggleBtn: document.getElementById('acheneToggleBtn'),
             acheneStatus: document.getElementById('acheneStatus'),
             acheneReleaseBtn: document.getElementById('acheneReleaseBtn'),
@@ -248,6 +254,9 @@ class diiiApp {
         on(this.elements.gridCells, 'contextmenu', (e) => e.preventDefault());
         on(this.elements.gridReleaseBtn, 'click', () => this.releaseAllGridKeys());
         on(this.elements.acheneToggleBtn, 'click', () => this.toggleAchenePanel());
+        on(this.elements.welcomeConnectBtn, 'click', () => this.toggleConnection());
+        on(this.elements.welcomeCloseBtn, 'click', () => this.hideWelcome());
+        on(this.elements.welcomeReferenceBtn, 'click', () => this.openReference());
         on(this.elements.acheneReleaseBtn, 'click', () => this.releaseAllAcheneKeys());
         on(this.elements.acheneHelpBtn, 'click', () => this.achenePanel?.toggleHelp());
         on(this.elements.acheneTint, 'change', (e) => this.setAcheneTint(e.target.value));

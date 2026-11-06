@@ -1,0 +1,194 @@
+/* The opening page: over the console until a device connects (js/device.js
+   hideWelcome). What diii is, a connect button, the devices it knows best
+   (with renders, linking to their pages) and where to start. */
+
+.welcome {
+    position: absolute;
+    inset: 0;
+    /* above the console's clean button */
+    z-index: 6;
+    overflow: auto;
+    padding: clamp(20px, 4vw, 48px) clamp(16px, 5vw, 64px) 32px;
+    background:
+        radial-gradient(1200px 500px at 15% -10%, rgba(10, 132, 255, 0.1), transparent 60%),
+        radial-gradient(900px 500px at 100% 0%, rgba(255, 190, 100, 0.06), transparent 60%), var(--bg-default);
+    font-family: var(--ui-font, system-ui, sans-serif);
+    color: var(--neutral-heavy);
+}
+
+.welcome[hidden] {
+    display: none;
+}
+
+.welcome-close {
+    position: absolute;
+    top: 10px;
+    right: 14px;
+    border: 0;
+    background: none;
+    color: var(--neutral-medium);
+    font-size: 1.4rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.welcome-close:hover {
+    color: var(--interactive-selected);
+}
+
+.welcome-hero {
+    max-width: 760px;
+}
+
+.welcome-title {
+    margin: 0 0 10px;
+    font-family: var(--mono-font, ui-monospace, monospace);
+    font-size: clamp(1.8rem, 4vw, 2.6rem);
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: var(--interactive-selected);
+}
+
+.welcome-lede {
+    margin: 0 0 20px;
+    font-size: 1.05rem;
+    line-height: 1.5;
+    color: var(--neutral-heavy);
+}
+
+.welcome-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px 16px;
+}
+
+.welcome-connect {
+    padding: 10px 22px;
+    border: 0;
+    border-radius: var(--radius, 6px);
+    background: var(--accent);
+    color: #fff;
+    font: inherit;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.welcome-connect:hover {
+    background: var(--accent-hover);
+}
+
+.welcome-note {
+    font-size: 0.85rem;
+    color: var(--neutral-medium);
+}
+
+.welcome-heading {
+    margin: 36px 0 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--neutral-medium);
+}
+
+.welcome-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 16px;
+    max-width: 1100px;
+}
+
+.welcome-card {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 12px 12px 14px;
+    border: 1px solid var(--neutral-trim);
+    border-radius: 10px;
+    background: var(--bg-surface);
+    color: inherit;
+    text-decoration: none;
+    transition:
+        border-color 120ms ease,
+        transform 120ms ease;
+}
+
+.welcome-card:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+}
+
+.welcome-card img {
+    display: block;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 16 / 10;
+    object-fit: contain;
+    margin-bottom: 4px;
+    border-radius: 6px;
+    background: #121416;
+}
+
+.welcome-card-sketch {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14%;
+    aspect-ratio: 16 / 10;
+    margin-bottom: 4px;
+    border-radius: 6px;
+    background: #121416;
+    color: #5b616a;
+}
+
+.welcome-card-sketch svg {
+    height: 46%;
+    width: auto;
+}
+
+.welcome-card-name {
+    font-weight: 600;
+    color: var(--interactive-selected);
+}
+
+.welcome-card-text {
+    font-size: 0.85rem;
+    line-height: 1.45;
+    color: var(--neutral-medium);
+}
+
+.welcome-links {
+    margin: 0;
+    padding-left: 18px;
+    line-height: 1.8;
+    font-size: 0.9rem;
+    color: var(--neutral-medium);
+}
+
+.welcome-links a,
+.welcome-credit a,
+.welcome-link-btn {
+    color: var(--accent-hover);
+}
+
+.welcome-link-btn {
+    padding: 0;
+    border: 0;
+    background: none;
+    font: inherit;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.welcome-links code {
+    font-family: var(--mono-font, ui-monospace, monospace);
+    color: var(--neutral-heavy);
+}
+
+.welcome-credit {
+    margin: 36px 0 0;
+    font-size: 0.8rem;
+    color: var(--neutral-medium);
+}

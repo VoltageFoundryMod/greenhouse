@@ -23,6 +23,7 @@
     <!-- visual refresh (experimental); ?classic shows the current look -->
     <link rel="stylesheet" href="refresh.css" id="refreshCss">
     <link rel="stylesheet" href="achene.css">
+    <link rel="stylesheet" href="welcome.css">
     <script>if (/[?&]classic\b/.test(location.search)) document.getElementById('refreshCss').remove();</script>
 </head>
 
@@ -156,6 +157,71 @@
                                 </div>
                             </section>
                             <div class="repl-output-area">
+                                <section id="welcome" class="welcome" aria-labelledby="welcomeTitle" hidden>
+                                    <button type="button" id="welcomeCloseBtn" class="welcome-close"
+                                        title="hide this page (it comes back on the next visit)">×</button>
+                                    <div class="welcome-hero">
+                                        <h2 id="welcomeTitle" class="welcome-title">//// diii</h2>
+                                        <p class="welcome-lede">Live-code iii devices from the browser: a REPL, the
+                                            scripts on the device, an editor with the device's API, and a view of
+                                            the device you can play.</p>
+                                        <div class="welcome-actions">
+                                            <button type="button" id="welcomeConnectBtn" class="welcome-connect">connect a
+                                                device</button>
+                                            <span class="welcome-note">over USB, in Chrome, Edge or Opera</span>
+                                        </div>
+                                    </div>
+                                    <h3 class="welcome-heading">devices</h3>
+                                    <div class="welcome-cards">
+                                        <a class="welcome-card" href="https://vfmod.com/achene" target="_blank"
+                                            rel="noopener noreferrer">
+                                            <img src="img/achene.webp" alt="the achene panel: 12 encoders, 16 lit keys and an OLED"
+                                                width="720" height="449" loading="lazy">
+                                            <span class="welcome-card-name">achene</span>
+                                            <span class="welcome-card-text">A MIDI controller: 12 encoders, 16 RGB keys and
+                                                a 2.42" OLED, on a desk or in a Eurorack case. diii shows its panel live
+                                                and plays it.</span>
+                                        </a>
+                                        <a class="welcome-card" href="https://vfmod.com/open-grid" target="_blank"
+                                            rel="noopener noreferrer">
+                                            <img src="img/open-grid.svg" alt="the Open Grid: a 16 by 8 grid of lit keys"
+                                                width="704" height="396" loading="lazy">
+                                            <span class="welcome-card-name">Open Grid</span>
+                                            <span class="welcome-card-text">A DIY 16×8 grid running iii. diii mirrors its
+                                                LEDs and presses its keys, and updates its firmware.</span>
+                                        </a>
+                                        <a class="welcome-card" href="https://monome.org/docs/iii" target="_blank"
+                                            rel="noopener noreferrer">
+                                            <span class="welcome-card-sketch" aria-hidden="true">
+                                                <svg viewBox="0 0 64 34" fill="none" stroke="currentColor" stroke-width="1.6">
+                                                    <rect x="1" y="1" width="62" height="32" rx="3" />
+                                                    <path d="M8 8h48M8 13h48M8 18h48M8 23h48M8 28h48" stroke-dasharray="3 3" />
+                                                </svg>
+                                                <svg viewBox="0 0 64 34" fill="none" stroke="currentColor" stroke-width="1.6">
+                                                    <rect x="1" y="1" width="62" height="32" rx="3" />
+                                                    <circle cx="17" cy="17" r="10" stroke-dasharray="2 2.2" />
+                                                    <circle cx="47" cy="17" r="10" stroke-dasharray="2 2.2" />
+                                                </svg>
+                                            </span>
+                                            <span class="welcome-card-name">monome grid and arc</span>
+                                            <span class="welcome-card-text">monome's own iii devices, with their stock
+                                                firmware: the REPL, files, editor and reference all work.</span>
+                                        </a>
+                                    </div>
+                                    <h3 class="welcome-heading">start</h3>
+                                    <ul class="welcome-links">
+                                        <li><a href="https://monome.org/docs/iii" target="_blank"
+                                                rel="noopener noreferrer">iii docs</a>: what iii is and how scripts work</li>
+                                        <li><button type="button" id="welcomeReferenceBtn" class="welcome-link-btn">reference</button>:
+                                            every function, offline too</li>
+                                        <li>drop a <code>.lua</code> file anywhere to upload it; type <code>help()</code> once
+                                            connected</li>
+                                    </ul>
+                                    <p class="welcome-credit">diii is a fork of monome's
+                                        <a href="https://github.com/monome/web-diii" target="_blank"
+                                            rel="noopener noreferrer">web-diii</a> (GPL-3.0), with device views and tools
+                                        by <a href="https://vfmod.com" target="_blank" rel="noopener noreferrer">vfmod</a>.</p>
+                                </section>
                                 <div id="output" class="repl-output"></div>
                                 <button type="button" id="clearBtn"
                                     class="repl-action-btn output-cleanup-btn">clean</button>

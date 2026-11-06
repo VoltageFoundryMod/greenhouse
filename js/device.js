@@ -156,8 +156,15 @@ export const deviceMethods = {
         this.renderFileList();
     },
 
+    // The opening page goes once a device connects; the console stays.
+    hideWelcome() {
+        if (this.elements.welcome) this.elements.welcome.hidden = true;
+    },
+
     handleConnectionChange(connected, error, detail = null) {
         if (!this.elements.connectionBtn || !this.elements.replStatusIndicator || !this.elements.replStatusText) return;
+        // a failed connection explains itself in the console: show it
+        if (error) this.hideWelcome();
 
         if (connected) {
             this.elements.connectionBtn.textContent = 'disconnect';
@@ -165,6 +172,7 @@ export const deviceMethods = {
             this.elements.replStatusText.textContent = this.connectedDeviceLabel || 'connected';
             this.elements.replInput?.focus();
             this.hasConnectedThisSession = true;
+            this.hideWelcome();
             this.isManualDisconnect = false;
             return;
         }
