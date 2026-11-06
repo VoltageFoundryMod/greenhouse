@@ -161,7 +161,7 @@ export const fileMethods = {
                         { label: 'edit', fn: () => this.editFile(entry.name) },
                         // a patch saved from the patch drawer opens back there
                         ...(this.acheneSupported && entry.name.endsWith('.lua')
-                            ? [{ label: 'patch', fn: () => this.openPatchFile(entry.name) }]
+                            ? [{ label: 'edit patch', fn: () => this.openPatchFile(entry.name) }]
                             : []),
                         { label: 'rename', fn: () => this.renameFile(entry.name) },
                         { label: 'download', fn: () => this.downloadFile(entry.name) },
