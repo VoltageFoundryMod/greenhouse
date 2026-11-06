@@ -36,7 +36,9 @@ split out with its history.
   `make format`, `make dist`, `make vendor`, `make upstream`. They only call node, npm and git.
 - `package.json` only holds development tools (Prettier, TypeScript, esbuild) and the code
   editor, which `npm run vendor` bundles into the committed `vendor/`.
-- `node tools/serve.mjs` serves it on localhost (Web Serial needs localhost or HTTPS);
+- `node tools/serve.mjs [port] [--watch]` serves it on localhost (Web Serial needs localhost or
+  HTTPS); `--watch` (what `make serve` uses) reloads pages on edits and swaps in a service worker
+  that caches nothing;
   `node tools/dist.mjs` copies the site into `dist/` and stamps the service worker's cache name
   with the commit, which is what `.github/workflows/pages.yml` publishes on every push to `main`.
 - `npm run check` type-checks the standalone modules listed in `tsconfig.json`.

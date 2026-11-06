@@ -62,14 +62,17 @@ No build step: the browser loads the files as they are. Node is only needed for 
 (`make` runs them; `make help` lists the targets).
 
 ```sh
-make serve          # http://localhost:8000 (Web Serial works on localhost); PORT=8080 to change
+make serve          # http://localhost:8000 (Web Serial works on localhost), reloading on every edit; PORT=8080 to change
 make test           # format check and type check, before a commit
 make format         # format the JS (Prettier)
 make dist           # the site into dist/, as GitHub Pages publishes it
 make vendor         # rebuild the code editor bundle in vendor/ (committed)
 ```
 
-The tools install themselves from `package-lock.json` the first time a target needs them.
+`make serve` watches the files: a CSS edit restyles the open page in place (the serial
+connection stays up), any other edit reloads it. In that mode the service worker caches nothing,
+so every load is what's on disk. The tools install themselves from `package-lock.json` the first
+time a target needs them.
 Without make, `node tools/serve.mjs` and `node tools/dist.mjs` need nothing installed. Pushing
 to `main` publishes the site (`.github/workflows/pages.yml`). See [AGENTS.md](AGENTS.md) for
 conventions.

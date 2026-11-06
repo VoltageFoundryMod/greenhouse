@@ -17,7 +17,7 @@ all: serve
 
 help:
 	@echo "Development:"
-	@echo "  make serve          serve diii at http://localhost:$(PORT) (Web Serial works on localhost)"
+	@echo "  make serve          serve diii at http://localhost:$(PORT), reloading on edits"
 	@echo "  make dist           the site into dist/, as GitHub Pages publishes it"
 	@echo "  make clean          remove dist/"
 	@echo "Tools (installed by the targets that need them):"
@@ -34,7 +34,7 @@ help:
 	@echo "Options: PORT=8080"
 
 serve:
-	$(NODE) tools/serve.mjs $(PORT)
+	$(NODE) tools/serve.mjs $(PORT) --watch
 
 dist:
 	$(NODE) tools/dist.mjs
