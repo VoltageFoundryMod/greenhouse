@@ -172,6 +172,7 @@ class diiiApp {
             patchRunBtn: document.getElementById('patchRunBtn'),
             patchStopBtn: document.getElementById('patchStopBtn'),
             patchSaveBtn: document.getElementById('patchSaveBtn'),
+            patchOpenSelect: document.getElementById('patchOpenSelect'),
             patchExampleBtn: document.getElementById('patchExampleBtn'),
             patchClearBtn: document.getElementById('patchClearBtn'),
             patchPalette: document.getElementById('patchPalette'),
@@ -270,6 +271,14 @@ class diiiApp {
         on(this.elements.patchRunBtn, 'click', () => this.runPatch());
         on(this.elements.patchStopBtn, 'click', () => this.stopPatch());
         on(this.elements.patchSaveBtn, 'click', () => this.savePatchToDevice());
+        // the list is the device's files as of now: fill it when it's about to open
+        on(this.elements.patchOpenSelect, 'pointerdown', () => this.fillPatchOpenList());
+        on(this.elements.patchOpenSelect, 'focus', () => this.fillPatchOpenList());
+        on(this.elements.patchOpenSelect, 'change', (e) => {
+            const name = e.target.value;
+            e.target.value = '';
+            if (name) this.openPatchFile(name);
+        });
         on(this.elements.patchExampleBtn, 'click', () => this.loadExamplePatch());
         on(this.elements.patchClearBtn, 'click', () => this.clearPatchCanvas());
         on(this.elements.welcomeConnectBtn, 'click', () => this.toggleConnection());

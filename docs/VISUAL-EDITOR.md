@@ -77,7 +77,9 @@ running patch live by sending one node or wire at a time.
 B.version                -- the runtime's version; diii uploads a newer one
 B.type(name, def)        -- registers a block type: def.inputs, def.outputs,
                          -- def.init(node), def.input(node, i, v),
-                         -- def.tick(node, dt), def.stop(node)
+                         -- def.tick(node, dt), def.stop(node), and
+                         -- def.start(node): its first value, sent once
+                         -- the patch is wired (a value block's start)
 B.clear()                -- stops and removes everything
 B.node(id, type, params) -- adds a node (or replaces the one with that id)
 B.wire(from, out, to, in)
@@ -117,7 +119,8 @@ B.patch{
 
 ### Round trip
 
-- diii opens a `.lua` file with `--@patch` lines as a patch.
+- diii opens a `.lua` file with `--@patch` lines as a patch: **open…** in the
+  drawer lists the device's scripts, and a script's file menu has **patch**.
 - **Custom code** goes in a **lua** node: its code is part of the patch and
   survives the round trip.
 - Editing the generated Lua by hand outside a lua node **detaches** the file:

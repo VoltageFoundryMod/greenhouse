@@ -79,9 +79,14 @@
                 patchMethods
             );
             app.initPatch();
+            // ?hidden builds the canvas while the drawer is hidden, as the app
+            // does before a device connects, then shows it
+            const hidden = location.search.includes('hidden');
+            if (hidden) $('patchDrawer').hidden = true;
             app.patchPanelOpen = true;
             app.showPatchDrawerState();
             await app.ensurePatchEditor();
+            if (hidden) setTimeout(() => ($('patchDrawer').hidden = false), 300);
             app.updatePatchStatus();
             $('patchRunBtn').addEventListener('click', () => app.runPatch());
             $('patchStopBtn').addEventListener('click', () => app.stopPatch());

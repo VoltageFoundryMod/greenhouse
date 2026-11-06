@@ -10,7 +10,8 @@ import {
     examplePatch,
     liveLines,
     luaParams,
-    patchFile
+    patchFile,
+    readPatchFile
 } from './patch-blocks.js';
 
 const DRAWER_KEY = 'webdiii.patchDrawer';
@@ -109,6 +110,18 @@ export const patchMethods = {
         editor.zoom_max = 1.6;
         editor.start();
         this.patchEditor = editor;
+        // Drawflow draws a wire from its blocks' positions on screen, which
+        // are all zero while the drawer is hidden: redraw them whenever the
+        // canvas changes size (hidden to shown, opened, resized)
+        let pending = false;
+        new ResizeObserver(() => {
+            if (pending) return;
+            pending = true;
+            requestAnimationFrame(() => {
+                pending = false;
+                this.redrawPatchWires();
+            });
+        }).observe(this.elements.patchCanvas);
 
         editor.on('nodeCreated', (id) => this.onPatchChange(() => this.sendPatchNode(Number(id))));
         editor.on('nodeRemoved', (id) => this.onPatchChange(() => this.sendPatchLine(`B.remove(${Number(id)})`)));
@@ -243,7 +256,65 @@ export const patchMethods = {
         editor.import({ drawflow: { Home: { data } } });
         const ids = Object.keys(data).map(Number);
         editor.nodeId = (ids.length ? Math.max(...ids) : 0) + 1;
+        requestAnimationFrame(() => this.redrawPatchWires());
         this.savePatchLocally();
+    },
+
+    /** Redraws every wire from where its blocks are now. */
+    redrawPatchWires() {
+        const editor = this.patchEditor;
+        if (!editor || !this.elements.patchCanvas?.offsetWidth) return;
+        const data = editor.export()?.drawflow?.Home?.data || {};
+        for (const id of Object.keys(data)) editor.updateConnectionNodes(`node-${id}`);
+    },
+
+    /**
+     * Opens a patch saved on the device (its --@patch lines) on the canvas.
+     * @param {string} name
+     */
+    async openPatchFile(name) {
+        if (!this.iiiDevice.isConnected) return;
+        let text;
+        try {
+            text = await this.readRemoteFile(name);
+        } catch (error) {
+            this.outputLine(`patch: couldn't read ${name} (${error.message})`);
+            return;
+        }
+        const patch = readPatchFile(text);
+        if (!patch) {
+            this.outputLine(`patch: ${name} isn't a patch (no --@patch lines); open it with edit instead`);
+            return;
+        }
+        if (!this.patchPanelOpen) await this.togglePatchPanel(true);
+        await this.ensurePatchEditor();
+        this.loadPatch(patch);
+        this.patchFileName = name;
+        this.outputLine(`patch: opened ${name}${this.patchRunning ? ' and running it' : ''}`);
+        if (this.patchRunning) for (const line of liveLines(this.exportPatch())) this.sendPatchLine(line);
+    },
+
+    /** The "open…" list: the device's own scripts (not the runtime's or iii's). */
+    fillPatchOpenList() {
+        const select = this.elements.patchOpenSelect;
+        if (!select) return;
+        const skip = new Set(['blocks.lua', 'lib.lua', 'init.lua']);
+        const names = (this.fileEntries || [])
+            .map((entry) => entry.name)
+            .filter((name) => name.endsWith('.lua') && !skip.has(name))
+            .sort();
+        select.replaceChildren();
+        const prompt = document.createElement('option');
+        prompt.value = '';
+        prompt.textContent = names.length ? 'open…' : 'open… (no scripts)';
+        select.appendChild(prompt);
+        for (const name of names) {
+            const option = document.createElement('option');
+            option.value = name;
+            option.textContent = name;
+            select.appendChild(option);
+        }
+        select.value = '';
     },
 
     savePatchLocally() {

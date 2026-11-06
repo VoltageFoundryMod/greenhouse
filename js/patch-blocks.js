@@ -4,7 +4,7 @@
 // outputs and parameters.
 
 /** Version of lua/blocks.lua this diii carries; the device gets it when older. */
-export const RUNTIME_VERSION = 1;
+export const RUNTIME_VERSION = 2;
 
 /**
  * @typedef {object} Param

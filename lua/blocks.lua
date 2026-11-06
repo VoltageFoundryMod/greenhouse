@@ -5,17 +5,21 @@
 -- with B.node / B.wire (live) or B.patch{...} (a saved patch file).
 
 B = B or {}
-B.version = 1
+B.version = 2
 B.types = {}
 
 local nodes = {}      -- id -> node
 local listeners = {}  -- event name -> list of nodes
 local tickers = {}    -- nodes with a tick
 local tick_metro = nil
+local running = false
 local TICK = 1 / 50
 
 -- ------------------------------------------------------------- core
 
+-- def.start(node), when given, runs once the patch is wired (B.start) and when
+-- the node is replaced while running: a block's first value, e.g. a value
+-- block's start, so displays and outputs don't wait for the first input
 function B.type(name, def)
   def.inputs = def.inputs or 0
   def.outputs = def.outputs or 0
@@ -68,6 +72,7 @@ function B.node(id, typename, params)
   node.listen = function(event) listen(node, event) end
   if def.init then def.init(node) end
   if def.tick then table.insert(tickers, node) end
+  if running and def.start then def.start(node) end
   return node
 end
 
@@ -117,11 +122,16 @@ function B.start()
     end, TICK)
   end
   if tick_metro then tick_metro:start() end
+  running = true
+  for _, node in pairs(nodes) do
+    if node.def.start then node.def.start(node) end
+  end
 end
 
 function B.clear()
   for id in pairs(nodes) do remove(id) end
   listeners, tickers = {}, {}
+  running = false
   if tick_metro then tick_metro:stop() end
   B.screen_clear()
   -- the tick that redraws is stopped: blank the screen now
@@ -212,6 +222,7 @@ B.type("lfo", {
 B.type("accum", {
   inputs = 1, outputs = 1,
   init = function(node) node.v = node.p.start or 64 end,
+  start = function(node) B.out(node, 1, node.v) end,
   input = function(node, _, d)
     node.v = clamp(node.v + d, node.p.lo or 0, node.p.hi or 127)
     B.out(node, 1, node.v)

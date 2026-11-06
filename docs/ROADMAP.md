@@ -15,8 +15,8 @@ details live in the linked documents; this is the list.
   to their pages, where to start, the credit to monome's web-diii.
 - **Visual editor, phase 1** ([VISUAL-EDITOR.md](VISUAL-EDITOR.md)): the
   patch drawer, the blocks runtime (`lua/blocks.lua`), ten blocks, live
-  editing, save as a script that runs on its own. Tested on an achene
-  (Pico 2).
+  editing, save as a script that runs on its own, and open it again (open…
+  in the drawer, or patch in a file's menu). Tested on an achene (Pico 2).
 
 ## Next
 
@@ -27,8 +27,7 @@ details live in the linked documents; this is the list.
   redirect diii.vfmod.com.
 - **Device pages on vfmod.com** (achene, Open Grid) for the opening page's
   cards to link to.
-- **Visual editor, phase 2**: open a saved patch file (the `--@patch`
-  lines), the lua node for custom code, more blocks (encoder push, MIDI in,
+- **Visual editor, phase 2**: the lua node for custom code, more blocks (encoder push, MIDI in,
   metro, clock, counter, random, quantize, slew), the grid's blocks, a rate
   limit for fast outputs.
 - **Visual editor, phases 3 and 4**: device palettes and dragging a control

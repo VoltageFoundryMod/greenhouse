@@ -159,6 +159,10 @@ export const fileMethods = {
                   : [
                         { label: 'run', fn: () => this.enqueueRunFile(entry.name) },
                         { label: 'edit', fn: () => this.editFile(entry.name) },
+                        // a patch saved from the patch drawer opens back there
+                        ...(this.acheneSupported && entry.name.endsWith('.lua')
+                            ? [{ label: 'patch', fn: () => this.openPatchFile(entry.name) }]
+                            : []),
                         { label: 'rename', fn: () => this.renameFile(entry.name) },
                         { label: 'download', fn: () => this.downloadFile(entry.name) },
                         this.firstBadgeFileNames.has(entry.name)
