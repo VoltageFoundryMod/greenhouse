@@ -1,2 +1,6 @@
 web-diii.code-workspace
 TODO
+node_modules/
+dist/
+# committed on purpose (diii has no build step); some global gitignores skip vendor/
+!vendor/
