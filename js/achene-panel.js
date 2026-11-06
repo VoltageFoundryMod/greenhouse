@@ -115,16 +115,6 @@ export class AchenePanel {
             node.style.top = `${(y / panel.h) * 100}%`;
         };
 
-        // rail slots, for the look
-        for (const [x, y] of [
-            [7.5, 3],
-            [panel.w - 7.5, 3],
-            [7.5, panel.h - 3],
-            [panel.w - 7.5, panel.h - 3]
-        ]) {
-            place(el('span', 'ach-slot', face), x, y);
-        }
-
         for (const jack of this.layout.jacks) {
             const node = el('span', 'ach-jack', face);
             place(node, jack.x, jack.y);
