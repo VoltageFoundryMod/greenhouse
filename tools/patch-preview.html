@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>patch preview</title>
+        <!-- Development page (not published): the patch drawer without a device.
+             js/patch.js runs on a stand-in app that logs the lines it would send
+             (B.node, B.wire, ...). Serve the repo and open /tools/patch-preview.html;
+             ?run starts it "running", so edits show their live lines. -->
+        <link rel="stylesheet" href="../style.css" />
+        <link rel="stylesheet" href="../refresh.css" />
+        <link rel="stylesheet" href="../vendor/drawflow.css" />
+        <link rel="stylesheet" href="../patch.css" />
+        <style>
+            body {
+                margin: 0;
+                background: var(--bg-default);
+                color: var(--neutral-heavy);
+                font:
+                    13px/1.4 system-ui,
+                    sans-serif;
+            }
+            #log {
+                margin: 8px 12px;
+                height: 22vh;
+                overflow: auto;
+                font:
+                    12px ui-monospace,
+                    monospace;
+                color: #9aa1a8;
+            }
+        </style>
+    </head>
+    <body>
+        <section id="patchDrawer" class="patch-drawer open">
+            <div class="midi-drawer-bar">
+                <span class="midi-toggle">patch (preview)</span>
+                <span id="patchStatus" class="midi-status"></span>
+                <div class="repl-actions-spacer"></div>
+                <div class="midi-controls patch-controls">
+                    <button type="button" id="patchRunBtn" class="repl-action-btn">run</button>
+                    <button type="button" id="patchStopBtn" class="repl-action-btn">stop</button>
+                    <button type="button" id="patchFileBtn" class="repl-action-btn">show file</button>
+                </div>
+            </div>
+            <div id="patchBody" class="patch-body">
+                <nav id="patchPalette" class="patch-palette" aria-label="blocks"></nav>
+                <div id="patchCanvas" class="patch-canvas"></div>
+            </div>
+        </section>
+        <pre id="log"></pre>
+        <script type="module">
+            import { patchMethods } from '../js/patch.js';
+            import { patchFile } from '../js/patch-blocks.js';
+
+            const log = document.getElementById('log');
+            const note = (text) => {
+                log.textContent = `${text}\n${log.textContent}`.slice(0, 6000);
+            };
+            const $ = (id) => document.getElementById(id);
+            const app = Object.assign(
+                {
+                    elements: {
+                        patchDrawer: $('patchDrawer'),
+                        patchStatus: $('patchStatus'),
+                        patchRunBtn: $('patchRunBtn'),
+                        patchPalette: $('patchPalette'),
+                        patchCanvas: $('patchCanvas')
+                    },
+                    iiiDevice: { isConnected: true },
+                    uploadInProgress: false,
+                    acheneSupported: true,
+                    outputLine: note,
+                    executeLua: async (line) => note(`> ${line}`),
+                    executeLuaCapture: async () => [String(99)],
+                    uploadChecked: async () => true
+                },
+                patchMethods
+            );
+            app.initPatch();
+            app.patchPanelOpen = true;
+            app.showPatchDrawerState();
+            await app.ensurePatchEditor();
+            app.updatePatchStatus();
+            $('patchRunBtn').addEventListener('click', () => app.runPatch());
+            $('patchStopBtn').addEventListener('click', () => app.stopPatch());
+            $('patchFileBtn').addEventListener('click', () => note(patchFile('preview', app.exportPatch())));
+            window.app = app;
+            if (location.search.includes('run')) await app.runPatch();
+            if (location.search.includes('file')) note(patchFile('preview', app.exportPatch()));
+        </script>
+    </body>
+</html>

@@ -43,6 +43,15 @@ split out with its history.
   with the commit, which is what `.github/workflows/pages.yml` publishes on every push to `main`.
 - `npm run check` type-checks the standalone modules listed in `tsconfig.json`.
 
+## Patch editor
+
+`js/patch.js` (the drawer, live sending), `js/patch-blocks.js` (the blocks as data, Lua
+generation), `lua/blocks.lua` (the runtime diii uploads to the device), `patch.css`, Drawflow in
+`vendor/` (bundled by `npm run vendor`). A block exists twice, in `patch-blocks.js` and as a
+`B.type` in `blocks.lua`: keep them in step, and bump `RUNTIME_VERSION` and `B.version` together
+when the runtime changes. `tools/patch-preview.html` runs the drawer without a device. Design:
+`docs/VISUAL-EDITOR.md`; plans: `docs/ROADMAP.md`.
+
 ## Device views
 
 - A view **detects its device** with a Lua probe (e.g. `print(og_mirror ~= nil and ...)`) and

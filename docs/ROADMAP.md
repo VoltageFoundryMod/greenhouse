@@ -1,0 +1,46 @@
+# Roadmap
+
+What's planned for this fork of diii, newest ideas last. Decisions and
+details live in the linked documents; this is the list.
+
+## Done
+
+- **Own repo** (November 2026), split out of Open-Grid-Controller with its
+  history, published at diii.vfmod.com from its own Pages workflow.
+- **Device views**: the Open Grid's virtual grid; the achene panel, drawn
+  from its PCB layout, with its LEDs and OLED live and its controls playable
+  (help, full screen, keyboard).
+- **achene's API** in the editor's autocomplete and the reference.
+- **Opening page**: what diii is, connect, the devices with renders linking
+  to their pages, where to start, the credit to monome's web-diii.
+- **Visual editor, phase 1** ([VISUAL-EDITOR.md](VISUAL-EDITOR.md)): the
+  patch drawer, the blocks runtime (`lua/blocks.lua`), ten blocks, live
+  editing, save as a script that runs on its own. Tested on an achene
+  (Pico 2).
+
+## Next
+
+- **A name of our own.** The tool now covers several devices and a patch
+  editor; "diii" is monome's name for their app. Broad names rather than
+  botanical ones; keep the credit to monome's web-diii (README, about box,
+  the opening page), the GPL-3.0 license and the upstream remote, and
+  redirect diii.vfmod.com.
+- **Device pages on vfmod.com** (achene, Open Grid) for the opening page's
+  cards to link to.
+- **Visual editor, phase 2**: open a saved patch file (the `--@patch`
+  lines), the lua node for custom code, more blocks (encoder push, MIDI in,
+  metro, clock, counter, random, quantize, slew), the grid's blocks, a rate
+  limit for fast outputs.
+- **Visual editor, phases 3 and 4**: device palettes and dragging a control
+  off the device view into the patch; block help; example patches in a
+  script library; the Monolit blocks (LFO with clock sync, motion recorder,
+  macro, key modifiers, arpeggiator, sequencer, pages); user block files.
+- **Firmware updates for achene** from its GitHub releases, as for the Open
+  Grid (`js/firmware.js` per device).
+
+## Ideas
+
+- Where the patch editor lives once it grows: a drawer, a tab beside the
+  code editor, or a page of its own.
+- The achene view playing a recorded demo on the opening page, before any
+  device is connected.

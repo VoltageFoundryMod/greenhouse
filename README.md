@@ -23,6 +23,12 @@ attached:
   keyboard plays them). **full screen** shows the panel alone, for playing. A XIAO breadboard
   build (4 encoders, 4 keys) greys out the rest.
 
+- a **patch** drawer (a prototype, with an achene connected): wire blocks (encoder, key, LFO,
+  value, scale, toggle, MIDI CC and note, key LED, display) into a script and play it live; every
+  edit goes to the device as you make it, and **save…** writes a script that runs on its own.
+  See [docs/VISUAL-EDITOR.md](docs/VISUAL-EDITOR.md), and [docs/ROADMAP.md](docs/ROADMAP.md) for
+  what's next.
+
 Also on top of upstream:
 
 - installs as an app (PWA) from any path; **update ready** in the header when a newer diii is

@@ -15,6 +15,7 @@ import { uploadMethods } from './js/uploads.js';
 import { fileMethods } from './js/files.js';
 import { gridMethods } from './js/grid.js';
 import { acheneMethods } from './js/achene.js';
+import { patchMethods } from './js/patch.js';
 import { backupUiMethods } from './js/backup-ui.js';
 import { editorUiMethods } from './js/editor-ui.js';
 import { firmwareUiMethods } from './js/firmware-ui.js';
@@ -86,6 +87,7 @@ class diiiApp {
         this.restoreMidiDrawer();
         this.restoreGridDrawer();
         this.initAchene();
+        this.initPatch();
         this.announceDraft();
     }
 
@@ -164,6 +166,16 @@ class diiiApp {
             gridReleaseBtn: document.getElementById('gridReleaseBtn'),
             gridCells: document.getElementById('gridCells'),
             acheneDrawer: document.getElementById('acheneDrawer'),
+            patchDrawer: document.getElementById('patchDrawer'),
+            patchToggleBtn: document.getElementById('patchToggleBtn'),
+            patchStatus: document.getElementById('patchStatus'),
+            patchRunBtn: document.getElementById('patchRunBtn'),
+            patchStopBtn: document.getElementById('patchStopBtn'),
+            patchSaveBtn: document.getElementById('patchSaveBtn'),
+            patchExampleBtn: document.getElementById('patchExampleBtn'),
+            patchClearBtn: document.getElementById('patchClearBtn'),
+            patchPalette: document.getElementById('patchPalette'),
+            patchCanvas: document.getElementById('patchCanvas'),
             welcome: document.getElementById('welcome'),
             welcomeConnectBtn: document.getElementById('welcomeConnectBtn'),
             welcomeCloseBtn: document.getElementById('welcomeCloseBtn'),
@@ -254,6 +266,12 @@ class diiiApp {
         on(this.elements.gridCells, 'contextmenu', (e) => e.preventDefault());
         on(this.elements.gridReleaseBtn, 'click', () => this.releaseAllGridKeys());
         on(this.elements.acheneToggleBtn, 'click', () => this.toggleAchenePanel());
+        on(this.elements.patchToggleBtn, 'click', () => this.togglePatchPanel());
+        on(this.elements.patchRunBtn, 'click', () => this.runPatch());
+        on(this.elements.patchStopBtn, 'click', () => this.stopPatch());
+        on(this.elements.patchSaveBtn, 'click', () => this.savePatchToDevice());
+        on(this.elements.patchExampleBtn, 'click', () => this.loadExamplePatch());
+        on(this.elements.patchClearBtn, 'click', () => this.clearPatchCanvas());
         on(this.elements.welcomeConnectBtn, 'click', () => this.toggleConnection());
         on(this.elements.welcomeCloseBtn, 'click', () => this.hideWelcome());
         on(this.elements.welcomeReferenceBtn, 'click', () => this.openReference());
@@ -316,6 +334,7 @@ Object.assign(
     fileMethods,
     gridMethods,
     acheneMethods,
+    patchMethods,
     backupUiMethods,
     editorUiMethods,
     firmwareUiMethods,

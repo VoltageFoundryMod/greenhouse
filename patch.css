@@ -1,0 +1,186 @@
+/* The patch drawer (js/patch.js): a palette of blocks beside a Drawflow
+   canvas. Drawflow's own stylesheet (vendor/drawflow.css) lays the canvas
+   out; this gives it diii's dark look. */
+
+.patch-drawer {
+    display: flex;
+    flex-direction: column;
+    flex: 0 1 auto;
+    min-height: 0;
+    border-bottom: 1px solid var(--neutral-trim);
+    background-color: var(--bg-default);
+}
+
+.patch-drawer.open {
+    min-height: 180px;
+}
+
+.patch-drawer .midi-drawer-bar {
+    flex: none;
+}
+
+.patch-drawer[hidden],
+.patch-drawer:not(.open) .patch-body,
+.patch-drawer:not(.open) .patch-controls {
+    display: none;
+}
+
+.patch-controls .active {
+    color: #fff;
+    background: var(--accent);
+}
+
+.patch-body {
+    display: flex;
+    height: min(440px, 55vh);
+    min-height: 160px;
+    max-height: 85vh;
+    resize: vertical;
+    overflow: hidden;
+}
+
+.patch-palette {
+    flex: none;
+    width: 118px;
+    overflow: auto;
+    padding: 6px 8px 10px;
+    border-right: 1px solid var(--neutral-trim);
+    background: var(--bg-surface);
+}
+
+.patch-palette-group {
+    margin: 8px 0 3px;
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--neutral-medium);
+}
+
+.patch-palette-group:first-child {
+    margin-top: 0;
+}
+
+.patch-palette-item {
+    display: block;
+    width: 100%;
+    margin: 2px 0;
+    padding: 3px 6px;
+    border: 1px solid var(--neutral-trim);
+    border-radius: 4px;
+    background: var(--bg-subdued);
+    color: var(--neutral-heavy);
+    font: inherit;
+    font-size: 0.8rem;
+    text-align: left;
+    cursor: pointer;
+}
+
+.patch-palette-item:hover {
+    border-color: var(--accent);
+}
+
+/* the canvas */
+.patch-canvas {
+    position: relative;
+    flex: 1;
+    min-width: 0;
+    background-color: #191a1c;
+    background-image: radial-gradient(circle, #2b2d31 1px, transparent 1px);
+    background-size: 22px 22px;
+}
+
+.patch-canvas .drawflow .drawflow-node {
+    width: auto;
+    min-width: 132px;
+    padding: 6px 10px 8px;
+    border: 1px solid #3a3d42;
+    border-radius: 6px;
+    background: #24262a;
+    color: var(--neutral-heavy);
+    font-size: 0.78rem;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.35);
+}
+
+.patch-canvas .drawflow .drawflow-node.selected {
+    border-color: var(--accent);
+    background: #26292e;
+}
+
+.patch-canvas .drawflow .drawflow-node .input,
+.patch-canvas .drawflow .drawflow-node .output {
+    width: 13px;
+    height: 13px;
+    border: 2px solid #5b616a;
+    background: #191a1c;
+}
+
+.patch-canvas .drawflow .drawflow-node .output:hover,
+.patch-canvas .drawflow .drawflow-node .input:hover {
+    border-color: var(--accent);
+}
+
+.patch-canvas .drawflow .connection .main-path {
+    stroke: #6b8fbf;
+    stroke-width: 3px;
+}
+
+.patch-canvas .drawflow .connection .main-path:hover,
+.patch-canvas .drawflow .connection .main-path.selected {
+    stroke: var(--accent-hover);
+}
+
+.patch-canvas .drawflow-delete {
+    border: 1px solid #5b616a;
+    background: #24262a;
+    color: var(--neutral-heavy);
+    line-height: 26px;
+}
+
+.pn-title {
+    margin-bottom: 4px;
+    font-family: var(--mono-font, ui-monospace, monospace);
+    font-weight: 600;
+    color: var(--interactive-selected);
+}
+
+/* colour by role: device blocks amber, sources green, outputs blue */
+.pn-encoder .pn-title,
+.pn-key .pn-title,
+.pn-key_led .pn-title,
+.pn-display .pn-title {
+    color: #ffbe64;
+}
+
+.pn-lfo .pn-title {
+    color: #7fdc9a;
+}
+
+.pn-midi_cc .pn-title,
+.pn-midi_note .pn-title {
+    color: #79b8ff;
+}
+
+.pn-field {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin: 2px 0;
+    color: var(--neutral-medium);
+}
+
+.pn-field input,
+.pn-field select {
+    width: 68px;
+    padding: 1px 4px;
+    border: 1px solid var(--neutral-trim);
+    border-radius: 3px;
+    background: #1b1c1f;
+    color: var(--neutral-heavy);
+    font: inherit;
+}
+
+.pn-field input[type='text'] {
+    width: 84px;
+}

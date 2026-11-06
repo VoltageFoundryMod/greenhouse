@@ -24,6 +24,8 @@
     <link rel="stylesheet" href="refresh.css" id="refreshCss">
     <link rel="stylesheet" href="achene.css">
     <link rel="stylesheet" href="welcome.css">
+    <link rel="stylesheet" href="vendor/drawflow.css">
+    <link rel="stylesheet" href="patch.css">
     <script>if (/[?&]classic\b/.test(location.search)) document.getElementById('refreshCss').remove();</script>
 </head>
 
@@ -113,6 +115,31 @@
                 <div id="workArea" class="work-area">
                     <div class="repl-pane full-width" id="replPane">
                         <div class="repl-content">
+                            <section id="patchDrawer" class="patch-drawer" aria-label="patch editor" hidden>
+                                <div class="midi-drawer-bar">
+                                    <button type="button" id="patchToggleBtn" class="midi-toggle" aria-expanded="false"
+                                        aria-controls="patchBody"
+                                        title="wire blocks into a script, and play it live (a prototype: docs/VISUAL-EDITOR.md)">patch ▸</button>
+                                    <span id="patchStatus" class="midi-status"></span>
+                                    <div class="repl-actions-spacer"></div>
+                                    <div class="midi-controls patch-controls">
+                                        <button type="button" id="patchRunBtn" class="repl-action-btn"
+                                            title="run the patch on the device; while it runs, every edit goes there live">run</button>
+                                        <button type="button" id="patchStopBtn" class="repl-action-btn"
+                                            title="stop the patch">stop</button>
+                                        <button type="button" id="patchSaveBtn" class="repl-action-btn"
+                                            title="save the patch on the device as a script that runs on its own">save…</button>
+                                        <button type="button" id="patchExampleBtn" class="repl-action-btn"
+                                            title="load the example patch">example</button>
+                                        <button type="button" id="patchClearBtn" class="repl-action-btn"
+                                            title="remove every block">clear</button>
+                                    </div>
+                                </div>
+                                <div id="patchBody" class="patch-body">
+                                    <nav id="patchPalette" class="patch-palette" aria-label="blocks"></nav>
+                                    <div id="patchCanvas" class="patch-canvas"></div>
+                                </div>
+                            </section>
                             <section id="acheneDrawer" class="ach-drawer" aria-label="achene" hidden>
                                 <div class="midi-drawer-bar">
                                     <button type="button" id="acheneToggleBtn" class="midi-toggle" aria-expanded="false"

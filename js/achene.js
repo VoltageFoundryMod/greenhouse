@@ -70,6 +70,7 @@ export const acheneMethods = {
         this.acheneSupported = Boolean(info);
         this.acheneInfo = info;
         if (this.elements.acheneDrawer) this.elements.acheneDrawer.hidden = !this.acheneSupported;
+        this.updatePatchAvailability?.();
         if (!info || !this.achenePanel) return;
 
         this.achenePanel.setCounts(info.encoders, info.keys);
@@ -206,6 +207,7 @@ export const acheneMethods = {
     acheneDisconnected() {
         this.achenePanel?.setOffline(true);
         this.acheneEncPending?.clear();
+        this.patchDisconnected?.();
         this.updateAcheneStatus();
     }
 };

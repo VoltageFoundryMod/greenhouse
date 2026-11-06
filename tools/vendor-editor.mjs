@@ -1,4 +1,4 @@
-// Bundles the parts of prism-code-editor diii uses into vendor/, which is
+// Bundles the parts of prism-code-editor diii uses, and Drawflow, into vendor/, which is
 // committed: diii itself has no build step, so the site and `make diii` work
 // without `npm install`. Rerun after changing the version in package.json:
 //
@@ -52,3 +52,23 @@ await writeFile(
 );
 await copyFile(join(pkgDir, 'LICENSE'), join(out, 'prism-code-editor.LICENSE'));
 console.log(`vendor/prism-code-editor.{js,css} from prism-code-editor ${version}`);
+
+// Drawflow, the node editor under the patch drawer (js/patch.js)
+const flowDir = join(root, 'node_modules', 'drawflow');
+const flow = JSON.parse(await readFile(join(flowDir, 'package.json'), 'utf8'));
+await build({
+    stdin: { contents: "export { default as Drawflow } from 'drawflow';", resolveDir: root, loader: 'js' },
+    bundle: true,
+    minify: true,
+    format: 'esm',
+    target: 'es2022',
+    legalComments: 'none',
+    banner: { js: `/* drawflow ${flow.version} (MIT), bundled by tools/vendor-editor.mjs */` },
+    outfile: join(out, 'drawflow.js')
+});
+await writeFile(
+    join(out, 'drawflow.css'),
+    `/* drawflow ${flow.version} (MIT) */\n${await readFile(join(flowDir, 'dist', 'drawflow.min.css'), 'utf8')}`
+);
+await copyFile(join(flowDir, 'LICENSE'), join(out, 'drawflow.LICENSE'));
+console.log(`vendor/drawflow.{js,css} from drawflow ${flow.version}`);
