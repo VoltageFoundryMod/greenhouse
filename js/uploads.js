@@ -30,6 +30,7 @@ export const uploadMethods = {
     async sendScriptTextToiii(fileName, text, options = {}) {
         // Anything sent between ^^s and ^^w would end up inside the file.
         this.releaseAllGridKeys();
+        this.releaseAllAcheneKeys();
         this.uploadInProgress = true;
         try {
             await this.sendScriptLinesToiii(fileName, text, options);

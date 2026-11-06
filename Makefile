@@ -11,7 +11,7 @@ PORT ?= 8000
 
 UPSTREAM ?= https://github.com/monome/web-diii
 
-.PHONY: all help serve dist clean install check format format-check vendor test upstream
+.PHONY: all help serve dist clean install check format format-check vendor test upstream achene-layout
 
 all: serve
 
@@ -27,6 +27,8 @@ help:
 	@echo "  make format-check   fail if anything is not formatted"
 	@echo "  make test           format-check and check, as before a commit"
 	@echo "  make vendor         rebuild vendor/ (the code editor bundle)"
+	@echo "Devices:"
+	@echo "  make achene-layout  copy achene's panel layout (../achene/hardware/layout.json) into js/"
 	@echo "Upstream:"
 	@echo "  make upstream       merge monome/web-diii main into the current branch"
 	@echo "Options: PORT=8080"
@@ -63,3 +65,8 @@ vendor: node_modules
 
 upstream:
 	git pull --no-rebase $(UPSTREAM) main
+
+# the achene view draws from achene's PCB layout; run after the PCB moves a part
+achene-layout: node_modules
+	$(NODE) tools/achene-layout.mjs
+	$(NPM) exec -- prettier --log-level warn --write js/achene-layout.js

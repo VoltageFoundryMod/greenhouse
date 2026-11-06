@@ -1,0 +1,366 @@
+/* achene: the controller's panel in a drawer at the top of the console
+   (js/achene.js, js/achene-panel.js). Everything on the panel is sized in
+   millimetres: --mm is one millimetre of the drawn panel, so it scales as a
+   whole and stays true to the PCB's layout. Knobs and keys follow norns-web's. */
+
+.ach-drawer {
+    display: flex;
+    flex-direction: column;
+    flex: 0 1 auto;
+    min-height: 0;
+    border-bottom: 1px solid var(--neutral-trim);
+    background-color: var(--bg-default);
+}
+
+.ach-drawer.open {
+    min-height: 170px;
+}
+
+.ach-drawer .midi-drawer-bar {
+    flex: none;
+}
+
+.ach-drawer[hidden],
+.ach-drawer:not(.open) .ach-body,
+.ach-drawer:not(.open) .ach-controls {
+    display: none;
+}
+
+.ach-controls [hidden] {
+    display: none;
+}
+
+.ach-hint {
+    font-size: 0.75rem;
+    color: var(--neutral-medium);
+}
+
+.ach-tint {
+    font: inherit;
+    font-size: 0.75rem;
+    color: var(--text-default, inherit);
+    background: var(--bg-subdued);
+    border: 1px solid var(--neutral-trim);
+    border-radius: 4px;
+    padding: 1px 4px;
+}
+
+/* resizable from its bottom edge; the panel scales to fit */
+.ach-body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex: 0 1 auto;
+    height: 340px;
+    min-height: 140px;
+    max-height: 80vh;
+    resize: vertical;
+    overflow: hidden;
+    padding: 8px 12px 12px;
+    container-type: size;
+}
+
+/* performance mode: the panel alone, as large as the screen allows */
+.ach-body:fullscreen {
+    height: 100vh;
+    max-height: none;
+    padding: 2vmin;
+    background: #08090a;
+    resize: none;
+}
+
+/* ------------------------------------------------------------------ panel */
+
+.ach-panel {
+    position: relative;
+    flex: none;
+    width: min(100cqw, calc(100cqh * var(--panel-w) / var(--panel-h)));
+    aspect-ratio: var(--panel-w) / var(--panel-h);
+    container-type: inline-size;
+    border-radius: 3px;
+    /* black anodised aluminium */
+    background:
+        linear-gradient(175deg, rgba(255, 255, 255, 0.05), transparent 40%),
+        repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.012) 0 1px, transparent 1px 3px), #1b1e22;
+    box-shadow:
+        0 0 0 1px #0b0c0e,
+        0 6px 18px -8px rgba(0, 0, 0, 0.7),
+        inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+    outline: none;
+}
+
+/* inside the panel, a millimetre is a share of the panel's own width */
+.ach-panel > * {
+    --mm: calc(100cqw / var(--panel-w));
+}
+
+.ach-panel:focus-visible {
+    box-shadow:
+        0 0 0 2px var(--accent),
+        0 6px 18px -8px rgba(0, 0, 0, 0.7);
+}
+
+.ach-panel.offline {
+    opacity: 0.45;
+    filter: saturate(0.4);
+}
+
+.ach-slot,
+.ach-jack,
+.ach-enc,
+.ach-key {
+    position: absolute;
+    transform: translate(-50%, -50%);
+}
+
+.ach-slot {
+    width: calc(5.5 * var(--mm));
+    height: calc(3.2 * var(--mm));
+    border-radius: calc(1.6 * var(--mm));
+    background: #070708;
+    box-shadow: inset 0 calc(0.3 * var(--mm)) calc(0.5 * var(--mm)) rgba(0, 0, 0, 0.9);
+}
+
+.ach-label {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: var(--font-mono, ui-monospace, monospace);
+    font-size: calc(2 * var(--mm));
+    line-height: 1;
+    letter-spacing: 0.08em;
+    white-space: nowrap;
+    color: #8d949c;
+    pointer-events: none;
+}
+
+/* a jack: a hex nut around a dark hole */
+.ach-jack {
+    width: calc(8 * var(--mm));
+    height: calc(8 * var(--mm));
+    border-radius: 50%;
+    background: radial-gradient(circle, #050505 0 34%, #2b2e31 36%, #4a4e52 52%, #2a2d30 70%, #3c4044 100%);
+    box-shadow: 0 calc(0.3 * var(--mm)) calc(0.6 * var(--mm)) rgba(0, 0, 0, 0.6);
+}
+
+.ach-jack-label {
+    bottom: calc(100% + 0.8 * var(--mm));
+    font-size: calc(1.7 * var(--mm));
+}
+
+/* the OLED: black glass in its window, the pixels in the bezel opening */
+.ach-oled {
+    position: absolute;
+    border-radius: calc(0.6 * var(--mm));
+    background: #050608;
+    box-shadow:
+        0 0 0 calc(0.3 * var(--mm)) #0a0b0c,
+        inset 0 calc(0.4 * var(--mm)) calc(1 * var(--mm)) rgba(0, 0, 0, 0.9);
+    overflow: hidden;
+}
+
+.ach-oled::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(165deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.015) 34%, transparent 35%);
+}
+
+.ach-oled-pixels {
+    position: absolute;
+    display: block;
+    aspect-ratio: 2 / 1;
+    image-rendering: pixelated;
+}
+
+/* ---------------------------------------------------------------- encoders */
+
+.ach-enc {
+    width: calc(var(--knob-d) * var(--mm));
+    height: calc(var(--knob-d) * var(--mm));
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: #070707;
+    box-shadow:
+        0 0 0 calc(0.4 * var(--mm)) rgba(0, 0, 0, 0.25),
+        0 calc(0.9 * var(--mm)) calc(1.4 * var(--mm)) rgba(0, 0, 0, 0.5),
+        0 calc(2.4 * var(--mm)) calc(3.6 * var(--mm)) calc(-1.6 * var(--mm)) rgba(0, 0, 0, 0.55);
+    cursor: ns-resize;
+    touch-action: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.ach-enc .ach-knurl {
+    position: absolute;
+    inset: 1px;
+    border-radius: 50%;
+    background: repeating-conic-gradient(#474a48 0deg, #1a1b1b 6.6deg, #0c0d0d 9.6deg, #474a48 12deg);
+    transform: rotate(var(--angle, 0deg));
+    transition: transform 70ms ease-out;
+    will-change: transform;
+}
+
+.ach-enc .ach-face {
+    position: absolute;
+    inset: 17%;
+    border-radius: 50%;
+    background:
+        repeating-radial-gradient(circle, rgba(255, 255, 255, 0.035) 0 1px, transparent 1px 2.5px),
+        radial-gradient(circle at 50% 45%, #2a2c2b, #1a1c1b 75%);
+    box-shadow:
+        0 0 0 1px #050505,
+        0 1px 0 1px rgba(255, 255, 255, 0.07),
+        inset 0 1px 1px rgba(255, 255, 255, 0.1);
+    transition: transform 60ms ease-out;
+}
+
+.ach-enc .ach-light {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    pointer-events: none;
+    background:
+        linear-gradient(170deg, rgba(255, 255, 255, 0.28), transparent 38%, transparent 62%, rgba(0, 0, 0, 0.45)),
+        conic-gradient(
+            from 300deg,
+            rgba(255, 255, 255, 0.18),
+            transparent 18%,
+            transparent 82%,
+            rgba(255, 255, 255, 0.18)
+        );
+    mix-blend-mode: soft-light;
+}
+
+.ach-enc .ach-label {
+    top: calc(100% + 1 * var(--mm));
+}
+
+.ach-enc.pushed .ach-face {
+    transform: scale(0.94);
+    filter: brightness(0.8);
+}
+
+.ach-enc.held {
+    box-shadow:
+        0 0 0 calc(0.6 * var(--mm)) var(--accent),
+        0 calc(0.9 * var(--mm)) calc(1.4 * var(--mm)) rgba(0, 0, 0, 0.5);
+}
+
+.ach-enc.turning {
+    cursor: grabbing;
+}
+
+/* -------------------------------------------------------------------- keys */
+
+/* an MX key: a matte cap; the switch's LED shines up south of its centre */
+.ach-key {
+    --led: transparent;
+    --glow: 0;
+    width: calc(var(--cap) * var(--mm));
+    height: calc(var(--cap) * var(--mm));
+    padding: 0;
+    border: 0;
+    border-radius: calc(1.4 * var(--mm));
+    background: transparent;
+    cursor: pointer;
+    touch-action: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* light around the cap, from the LED under it */
+.ach-key::before {
+    content: '';
+    position: absolute;
+    inset: calc(-1.2 * var(--mm));
+    border-radius: calc(2.4 * var(--mm));
+    background: radial-gradient(circle at var(--led-x, 50%) var(--led-y, 78%), var(--led), transparent 70%);
+    opacity: calc(var(--glow) * 0.75);
+    filter: blur(calc(1.4 * var(--mm)));
+    pointer-events: none;
+    transition: opacity 60ms linear;
+}
+
+.ach-key .ach-cap {
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background:
+        radial-gradient(
+            circle at var(--led-x, 50%) var(--led-y, 78%),
+            color-mix(in srgb, var(--led) calc(var(--glow) * 55%), transparent),
+            transparent 55%
+        ),
+        radial-gradient(ellipse at 50% 46%, rgba(0, 0, 0, 0.18), transparent 64%),
+        linear-gradient(180deg, #34373a, #24272a);
+    box-shadow:
+        0 calc(0.8 * var(--mm)) 0 #0d0e0f,
+        0 calc(1.2 * var(--mm)) calc(1.6 * var(--mm)) rgba(0, 0, 0, 0.55),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    transition:
+        transform 45ms ease-out,
+        box-shadow 45ms ease-out,
+        filter 45ms ease-out;
+}
+
+.ach-key .ach-legend {
+    position: absolute;
+    left: calc(1.6 * var(--mm));
+    top: calc(1.4 * var(--mm));
+    font-family: var(--font-mono, ui-monospace, monospace);
+    font-size: calc(1.9 * var(--mm));
+    line-height: 1;
+    color: #9aa1a8;
+    pointer-events: none;
+    transition: transform 45ms ease-out;
+}
+
+.ach-key.down .ach-cap,
+.ach-key.down .ach-legend {
+    transform: translateY(calc(0.6 * var(--mm)));
+}
+
+.ach-key.down .ach-cap {
+    box-shadow:
+        0 calc(0.2 * var(--mm)) 0 #0d0e0f,
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    filter: brightness(0.85);
+}
+
+.ach-key.held .ach-cap {
+    outline: calc(0.5 * var(--mm)) solid var(--accent);
+    outline-offset: calc(0.3 * var(--mm));
+}
+
+.ach-enc:focus-visible,
+.ach-key:focus-visible {
+    outline: calc(0.5 * var(--mm)) solid var(--accent);
+    outline-offset: calc(0.6 * var(--mm));
+}
+
+/* the firmware has fewer (a XIAO breadboard: E1-E4, K1-K4) */
+.ach-enc.absent,
+.ach-key.absent {
+    opacity: 0.22;
+    pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ach-enc .ach-knurl,
+    .ach-enc .ach-face,
+    .ach-key .ach-cap,
+    .ach-key .ach-legend,
+    .ach-key::before {
+        transition: none;
+    }
+}
+
+@media (max-width: 600px) {
+    .ach-hint {
+        display: none;
+    }
+}

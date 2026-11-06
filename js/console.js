@@ -346,6 +346,10 @@ export const consoleMethods = {
             this.handleGridFrame(cleaned);
             return;
         }
+        // the achene's key LEDs and screen pages (^^achled, ^^achscr): same
+        if (cleaned.startsWith('^^ach') && this.handleAcheneLine(cleaned)) {
+            return;
+        }
         // MIDI monitor reports: same, they can arrive in the middle of anything
         if (cleaned.startsWith('^^midi(')) {
             this.handleMidiLine(cleaned);
@@ -423,6 +427,9 @@ export const consoleMethods = {
         this.outputLine(' hc           clear the command history (kept across sessions)');
         this.outputLine(' Tab          complete a name (twice: list the options)');
         this.outputLine(' Cmd/Ctrl+Shift+C  connect/disconnect');
+        if (this.acheneSupported) {
+            this.outputLine(' achene ▸     (top of the console) the panel: play encoders and keys, see the screen');
+        }
         if (this.gridSupported) {
             this.outputLine(' grid ▸       (top of the console) show the LEDs and press keys from here');
         }

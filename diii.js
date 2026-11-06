@@ -14,6 +14,7 @@ import { luaMethods } from './js/lua.js';
 import { uploadMethods } from './js/uploads.js';
 import { fileMethods } from './js/files.js';
 import { gridMethods } from './js/grid.js';
+import { acheneMethods } from './js/achene.js';
 import { backupUiMethods } from './js/backup-ui.js';
 import { editorUiMethods } from './js/editor-ui.js';
 import { firmwareUiMethods } from './js/firmware-ui.js';
@@ -82,6 +83,7 @@ class diiiApp {
         this.restoreHistory();
         this.restoreMidiDrawer();
         this.restoreGridDrawer();
+        this.initAchene();
         this.announceDraft();
     }
 
@@ -159,6 +161,13 @@ class diiiApp {
             gridStatus: document.getElementById('gridStatus'),
             gridReleaseBtn: document.getElementById('gridReleaseBtn'),
             gridCells: document.getElementById('gridCells'),
+            acheneDrawer: document.getElementById('acheneDrawer'),
+            acheneToggleBtn: document.getElementById('acheneToggleBtn'),
+            acheneStatus: document.getElementById('acheneStatus'),
+            acheneReleaseBtn: document.getElementById('acheneReleaseBtn'),
+            acheneTint: document.getElementById('acheneTint'),
+            acheneFullscreenBtn: document.getElementById('acheneFullscreenBtn'),
+            acheneBody: document.getElementById('acheneBody'),
 
             fileInput: document.getElementById('fileInput'),
             uploadModal: document.getElementById('uploadModal'),
@@ -237,6 +246,10 @@ class diiiApp {
         // right-click holds a key (handleGridPointerDown), so no menu over the grid
         on(this.elements.gridCells, 'contextmenu', (e) => e.preventDefault());
         on(this.elements.gridReleaseBtn, 'click', () => this.releaseAllGridKeys());
+        on(this.elements.acheneToggleBtn, 'click', () => this.toggleAchenePanel());
+        on(this.elements.acheneReleaseBtn, 'click', () => this.releaseAllAcheneKeys());
+        on(this.elements.acheneTint, 'change', (e) => this.setAcheneTint(e.target.value));
+        on(this.elements.acheneFullscreenBtn, 'click', () => this.toggleAcheneFullscreen());
         on(window, 'pointerup', (e) => this.handleGridPointerUp(e));
         on(window, 'pointercancel', (e) => this.handleGridPointerUp(e));
         on(this.elements.fileInput, 'change', (e) => this.handleFileSelect(e));
@@ -291,6 +304,7 @@ Object.assign(
     uploadMethods,
     fileMethods,
     gridMethods,
+    acheneMethods,
     backupUiMethods,
     editorUiMethods,
     firmwareUiMethods,

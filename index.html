@@ -22,6 +22,7 @@
     <link rel="stylesheet" href="style.css">
     <!-- visual refresh (experimental); ?classic shows the current look -->
     <link rel="stylesheet" href="refresh.css" id="refreshCss">
+    <link rel="stylesheet" href="achene.css">
     <script>if (/[?&]classic\b/.test(location.search)) document.getElementById('refreshCss').remove();</script>
 </head>
 
@@ -111,6 +112,31 @@
                 <div id="workArea" class="work-area">
                     <div class="repl-pane full-width" id="replPane">
                         <div class="repl-content">
+                            <section id="acheneDrawer" class="ach-drawer" aria-label="achene" hidden>
+                                <div class="midi-drawer-bar">
+                                    <button type="button" id="acheneToggleBtn" class="midi-toggle" aria-expanded="false"
+                                        aria-controls="acheneBody"
+                                        title="the achene panel: see its keys and screen, play its encoders and keys from here">achene ▸</button>
+                                    <span id="acheneStatus" class="midi-status"></span>
+                                    <div class="repl-actions-spacer"></div>
+                                    <div class="midi-controls ach-controls">
+                                        <span class="ach-hint"
+                                            title="encoders: drag, scroll or arrow keys; click to push. keys: click or touch; shift-click or right-click holds. With the panel focused, the keyboard plays the keys: z x c v (K1-K4), y u i o p (K5-K9), h j k l ; (K10-K14), [ and ' (K15, K16)">drag or scroll a knob, click to push; shift-click holds</span>
+                                        <button type="button" id="acheneReleaseBtn" class="repl-action-btn" hidden
+                                            title="release the keys and pushes held with shift-click or right-click">release</button>
+                                        <select id="acheneTint" class="ach-tint" aria-label="OLED colour"
+                                            title="the OLED module's colour">
+                                            <option value="white">white</option>
+                                            <option value="blue">blue</option>
+                                            <option value="yellow">yellow</option>
+                                            <option value="green">green</option>
+                                        </select>
+                                        <button type="button" id="acheneFullscreenBtn" class="repl-action-btn"
+                                            title="performance mode: the panel alone, full screen (Esc to leave)">full screen</button>
+                                    </div>
+                                </div>
+                                <div id="acheneBody" class="ach-body"></div>
+                            </section>
                             <section id="gridDrawer" class="grid-drawer" aria-label="virtual grid" hidden>
                                 <div class="midi-drawer-bar">
                                     <button type="button" id="gridToggleBtn" class="midi-toggle" aria-expanded="false"

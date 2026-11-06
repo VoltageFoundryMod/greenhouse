@@ -16,8 +16,12 @@ attached:
 - [Open Grid Controller](https://github.com/carlosedp/Open-Grid-Controller): a **grid** drawer
   that shows the grid's LEDs live and lets you press keys from the browser. Shift-click or
   right-click holds a key down (click it again to let go).
-- achene, a MIDI controller on iii (planned, not published yet): the controller's panel, drawn
-  from its PCB layout, with the encoders, the keys' LEDs and the OLED.
+- achene, a MIDI controller on iii (not published yet): an **achene** drawer with the
+  controller's panel, drawn to scale from its PCB layout. It shows the keys' LEDs and the OLED
+  live, and plays the encoders (drag, scroll or arrow keys; click to push) and the keys (several
+  at once with touch; shift-click or right-click holds one; with the panel focused, the computer
+  keyboard plays them). **full screen** shows the panel alone, for playing. A XIAO breadboard
+  build (4 encoders, 4 keys) greys out the rest.
 
 Also on top of upstream:
 

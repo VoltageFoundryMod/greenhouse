@@ -78,6 +78,7 @@ export const deviceMethods = {
                 }
 
                 await this.detectVirtualGrid();
+                await this.detectAchene();
                 await this.detectFirmware();
                 await this.resumeMidiMonitor();
                 await this.requestFileListRefresh();
@@ -173,6 +174,7 @@ export const deviceMethods = {
         this.elements.gridCells?.classList.add('offline');
         this.releaseAllGridKeys({ send: false });
         this.updateGridStatus();
+        this.acheneDisconnected();
 
         const browserError = String(detail?.browserError || '').trim();
         const isConnectFailure = error === 'connection failed';
@@ -334,6 +336,7 @@ export const deviceMethods = {
             return;
         }
         this.releaseAllGridKeys();
+        this.releaseAllAcheneKeys();
         this.outputLine('> ^^i');
         this.iiiDevice.writeLine('^^i');
     },

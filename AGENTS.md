@@ -14,9 +14,16 @@ Devices and their firmware repos:
   `../Open-Grid-Controller`): the virtual grid (`js/grid.js`), firmware updates
   (`js/firmware.js`, from that repo's GitHub releases), the `og_*` tools.
 - **achene** (locally `../achene`, not published yet): a MIDI controller with 12 encoders, 16
-  RGB keys and a 128×64 OLED. Its view is planned (`../achene/docs/DESIGN.md` §9.5). The
-  firmware already streams `^^achled(...)` and `^^achscr(page, ...)` with `ach_mirror(true)`
-  and takes `ach_enc` / `ach_enc_key` / `ach_key` calls.
+  RGB keys and a 128×64 OLED. Its view: `js/achene.js` (the app side: detection, drawer,
+  mirror, sending), `js/achene-panel.js` (the panel, no serial; also runs in
+  `tools/achene-preview.html` with recorded frames from `tools/achene-fixture.txt`),
+  `js/oled.js` (the OLED renderer, ported from ForgeSeries' VCV Rack display) and
+  `achene.css`. Positions come from `js/achene-layout.js`, generated from achene's
+  `hardware/layout.json` by `make achene-layout` (`tools/achene-layout.mjs`). The firmware
+  streams `^^achled(<rrggbb per key>)` and `^^achscr(<page>,<256 hex>)` with
+  `ach_mirror(true)` and takes `ach_enc` / `ach_enc_key` / `ach_key` calls
+  (`../achene/docs/DESIGN.md` §9.5). Lines sent to the device must stay under 512 characters,
+  iii's line buffer.
 
 Until November 2026 this lived in Open-Grid-Controller as a git subtree at `diii/`; it was
 split out with its history.

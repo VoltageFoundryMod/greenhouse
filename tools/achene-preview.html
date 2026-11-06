@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>achene preview</title>
+        <!-- Development page (not published): the achene panel without a device.
+             It plays frames recorded from the firmware (achene-fixture.txt:
+             ^^achled/^^achscr lines, as ach_mirror(true) sends them) and lists
+             the calls the panel would send. Serve the repo (make serve) and open
+             /tools/achene-preview.html. -->
+        <link rel="stylesheet" href="../achene.css" />
+        <style>
+            :root {
+                --accent: #e8a33d;
+                --neutral-trim: #2c3036;
+                --neutral-medium: #8a9099;
+                --bg-default: #121416;
+                --bg-subdued: #1a1d20;
+                color-scheme: dark;
+            }
+            body {
+                margin: 0;
+                background: var(--bg-default);
+                color: #c9ced4;
+                font:
+                    13px/1.4 system-ui,
+                    sans-serif;
+            }
+            header {
+                display: flex;
+                gap: 12px;
+                align-items: center;
+                padding: 8px 12px;
+            }
+            .ach-body {
+                height: 72vh;
+            }
+            #log {
+                margin: 0 12px;
+                height: 18vh;
+                overflow: auto;
+                font:
+                    12px ui-monospace,
+                    monospace;
+                color: #9aa1a8;
+            }
+        </style>
+    </head>
+    <body>
+        <header>
+            <strong>achene preview</strong>
+            <span class="ach-hint">recorded frames; input is logged, not sent</span>
+            <select id="tint" class="ach-tint" aria-label="OLED colour">
+                <option>white</option>
+                <option>blue</option>
+                <option>yellow</option>
+                <option>green</option>
+            </select>
+            <label><input type="checkbox" id="xiao" /> XIAO (4 + 4)</label>
+        </header>
+        <div id="body" class="ach-body"></div>
+        <pre id="log"></pre>
+        <script type="module">
+            import { AchenePanel } from '../js/achene-panel.js';
+            import { ACHENE_LAYOUT } from '../js/achene-layout.js';
+
+            const log = document.getElementById('log');
+            const note = (text) => {
+                log.textContent = `${text}\n${log.textContent}`.slice(0, 4000);
+            };
+            const panel = new AchenePanel(document.getElementById('body'), ACHENE_LAYOUT, {
+                onEnc: (n, d) => note(`ach_enc(${n},${d})`),
+                onEncKey: (n, z) => note(`ach_enc_key(${n},${z})`),
+                onKey: (n, z) => note(`ach_key(${n},${z})`)
+            });
+            window.achenePanel = panel;
+
+            const text = await (await fetch('achene-fixture.txt')).text();
+            for (const line of text.split('\n')) {
+                const led = line.match(/^\^\^achled\(([0-9a-f]*)\)/i);
+                if (led) panel.setLeds(led[1]);
+                const scr = line.match(/^\^\^achscr\(([0-7]),([0-9a-f]{256})\)/i);
+                if (scr) panel.setScreenPage(Number(scr[1]), scr[2]);
+            }
+            document.getElementById('tint').addEventListener('change', (e) => panel.setTint(e.target.value));
+            document
+                .getElementById('xiao')
+                .addEventListener('change', (e) =>
+                    panel.setCounts(e.target.checked ? 4 : 12, e.target.checked ? 4 : 16)
+                );
+        </script>
+    </body>
+</html>
