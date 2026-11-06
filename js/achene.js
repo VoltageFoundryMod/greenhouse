@@ -33,6 +33,8 @@ export const acheneMethods = {
             onKey: (n, z) => this.sendAchene(`ach_key(${n},${z})`)
         });
         this.achenePanel.onHeldChange = (count) => this.updateAcheneHeld(count);
+        this.achenePanel.onHelpChange = (open) =>
+            this.elements.acheneHelpBtn?.setAttribute('aria-pressed', String(open));
         this.achenePanel.setOffline(true);
 
         let tint = 'white';

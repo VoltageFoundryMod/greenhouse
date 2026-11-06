@@ -60,6 +60,80 @@
     container-type: size;
 }
 
+.ach-body {
+    position: relative;
+}
+
+/* the quick help, over the panel's top right (so it works in full screen) */
+.ach-help {
+    position: absolute;
+    top: 8px;
+    right: 12px;
+    z-index: 2;
+    width: min(380px, calc(100% - 24px));
+    max-height: calc(100% - 16px);
+    overflow: auto;
+    padding: 10px 14px 12px;
+    border: 1px solid var(--neutral-trim);
+    border-radius: 6px;
+    background: color-mix(in srgb, var(--bg-default) 94%, transparent);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+    font-size: 0.78rem;
+    line-height: 1.35;
+}
+
+.ach-help[hidden] {
+    display: none;
+}
+
+.ach-help-close {
+    position: absolute;
+    top: 4px;
+    right: 6px;
+    border: 0;
+    background: none;
+    color: var(--neutral-medium);
+    font-size: 1.1rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.ach-help-title {
+    grid-column: 1 / -1;
+    margin: 8px 0 2px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--neutral-medium);
+}
+
+.ach-help-title:first-child {
+    margin-top: 0;
+}
+
+.ach-help-list {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 2px 12px;
+    margin: 0;
+}
+
+.ach-help-list dt {
+    font-family: var(--font-mono, ui-monospace, monospace);
+    white-space: nowrap;
+}
+
+.ach-help-list dd {
+    margin: 0;
+    color: var(--neutral-medium);
+}
+
+.ach-help-note {
+    margin: 10px 0 0;
+    color: var(--neutral-medium);
+}
+
 /* performance mode: the panel alone, as large as the screen allows */
 .ach-body:fullscreen {
     height: 100vh;

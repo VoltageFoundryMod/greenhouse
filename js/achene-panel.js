@@ -8,8 +8,10 @@
 //
 // Playing it:
 //   encoders  drag up/down (or right/left), scroll, or arrow keys when
-//             focused; a click without moving pushes it; shift-click or
-//             right-click holds the push until clicked again
+//             focused; a click without moving pushes it; held still for a
+//             moment it stays pushed until let go, and dragging then turns
+//             it pushed; shift-click or right-click holds the push until
+//             clicked again (HELP below has it all for the player)
 //   keys      press and hold like the real thing, several at once with touch;
 //             shift-click or right-click holds a key until clicked again;
 //             with the panel focused, the computer keyboard plays them
@@ -59,6 +61,7 @@ export const KEYBOARD_KEYS = /** @type {Record<string, number>} */ ({
 const DRAG_PX = 10; // pointer travel per detent
 const WHEEL_PX = 60; // trackpad travel per detent; a mouse notch is one
 const CLICK_PX = 3; // less movement than this is a push, not a turn
+const LONG_PRESS_MS = 300; // held still this long, the push stays down
 const DETENT_DEG = 15; // EC11, 24 detents a turn
 
 /** @param {string} tag @param {string} className @param {HTMLElement} [parent] */
@@ -94,6 +97,9 @@ export class AchenePanel {
         this.encCount = layout.encoders.length;
         this.keyCount = layout.keys.length;
         this.onHeldChange = /** @type {(count: number) => void} */ (() => {});
+        this.onHelpChange = /** @type {(open: boolean) => void} */ (() => {});
+        /** @type {HTMLElement | null} the quick help, built when first shown */
+        this.help = null;
         this.oled = this.build();
     }
 
@@ -238,7 +244,12 @@ export class AchenePanel {
 
     /** @param {HTMLElement} node @param {number} n */
     bindEncoder(node, n) {
-        /** @type {{ id: number, x: number, y: number, acc: number, travel: number } | null} */
+        /**
+         * One pointer on the knob. Moving turns it; staying still for
+         * LONG_PRESS_MS pushes it until let go, and moving after that turns it
+         * while pushed (as on a real EC11); a short still click is a tap.
+         * @type {{ id: number, x: number, y: number, acc: number, travel: number, long: boolean, timer: ReturnType<typeof setTimeout> | undefined } | null}
+         */
         let drag = null;
         node.addEventListener('pointerdown', (event) => {
             if (n > this.encCount) return;
@@ -249,7 +260,21 @@ export class AchenePanel {
                 return;
             }
             if (event.button !== 0) return;
-            drag = { id: event.pointerId, x: event.clientX, y: event.clientY, acc: 0, travel: 0 };
+            const press = {
+                id: event.pointerId,
+                x: event.clientX,
+                y: event.clientY,
+                acc: 0,
+                travel: 0,
+                long: false,
+                timer: /** @type {ReturnType<typeof setTimeout> | undefined} */ (undefined)
+            };
+            press.timer = setTimeout(() => {
+                if (drag !== press || press.travel >= CLICK_PX) return;
+                press.long = true;
+                this.pressPush(n, 'long');
+            }, LONG_PRESS_MS);
+            drag = press;
             node.setPointerCapture(event.pointerId);
             node.classList.add('turning');
         });
@@ -260,6 +285,8 @@ export class AchenePanel {
             drag.x = event.clientX;
             drag.y = event.clientY;
             drag.travel += Math.abs(dx) + Math.abs(dy);
+            // it moved before the long press: a plain turn
+            if (!drag.long && drag.travel >= CLICK_PX) clearTimeout(drag.timer);
             // up or right is clockwise
             drag.acc += dx - dy;
             while (Math.abs(drag.acc) >= DRAG_PX) {
@@ -270,10 +297,13 @@ export class AchenePanel {
         });
         const end = (/** @type {PointerEvent} */ event) => {
             if (!drag || event.pointerId !== drag.id) return;
-            const pushed = event.type === 'pointerup' && drag.travel < CLICK_PX;
+            clearTimeout(drag.timer);
+            const { long } = drag;
+            const tapped = !long && event.type === 'pointerup' && drag.travel < CLICK_PX;
             drag = null;
             node.classList.remove('turning');
-            if (pushed) this.tapPush(n);
+            if (long) this.releasePush(n, 'long');
+            else if (tapped) this.tapPush(n);
         };
         node.addEventListener('pointerup', end);
         node.addEventListener('pointercancel', end);
@@ -431,6 +461,16 @@ export class AchenePanel {
     bindKeyboard(face) {
         face.addEventListener('keydown', (event) => {
             if (event.ctrlKey || event.metaKey || event.altKey) return;
+            if (event.key === '?') {
+                event.preventDefault();
+                this.toggleHelp();
+                return;
+            }
+            if (event.key === 'Escape' && this.help && !this.help.hidden) {
+                event.preventDefault();
+                this.toggleHelp(false);
+                return;
+            }
             const n = KEYBOARD_KEYS[event.key.toLowerCase()];
             if (!n || n > this.keyCount) return;
             event.preventDefault();
@@ -447,6 +487,84 @@ export class AchenePanel {
                 for (const holder of [...holders]) if (holder.startsWith('k')) this.releaseKey(n, holder);
             }
         });
+    }
+
+    // ------------------------------------------------------------ help
+
+    /**
+     * The quick help: how to play the panel, over it (so it works in full
+     * screen too). Its keyboard rows come from KEYBOARD_KEYS.
+     * @param {boolean} [open] toggles when left out
+     */
+    toggleHelp(open) {
+        if (!this.help) this.help = this.buildHelp();
+        const show = open ?? this.help.hidden;
+        this.help.hidden = !show;
+        this.onHelpChange(show);
+        if (!show) this.face?.focus({ preventScroll: true });
+    }
+
+    /** @returns {HTMLElement} */
+    buildHelp() {
+        const box = el('div', 'ach-help', this.root);
+        box.hidden = true;
+        box.setAttribute('role', 'dialog');
+        box.setAttribute('aria-label', 'achene controls');
+        const close = /** @type {HTMLButtonElement} */ (el('button', 'ach-help-close', box));
+        close.type = 'button';
+        close.textContent = '×';
+        close.title = 'close (Esc or ?)';
+        close.addEventListener('click', () => this.toggleHelp(false));
+
+        // keyboard rows: consecutive keys on one line, e.g. "K1–K4  z x c v"
+        /** @type {[string, string][]} */
+        const keyboard = [];
+        const byKey = Object.entries(KEYBOARD_KEYS).sort((a, b) => a[1] - b[1]);
+        for (const [start, end] of [
+            [1, 4],
+            [5, 9],
+            [10, 14],
+            [15, 16]
+        ]) {
+            const keys = byKey.filter(([, n]) => n >= start && n <= end).map(([k]) => k);
+            const name = end - start === 1 ? `K${start}, K${end}` : `K${start}–K${end}`;
+            if (keys.length) keyboard.push([name, keys.join(' ')]);
+        }
+
+        /** @type {[string, [string, string][]][]} */
+        const sections = [
+            [
+                'encoders',
+                [
+                    ['drag up / down, or scroll', 'turn (right / left works too)'],
+                    ['click', 'push'],
+                    ['press and hold still', 'stays pushed until you let go; drag to turn it pushed'],
+                    ['shift-click or right-click', 'latch the push; click again to let go'],
+                    ['focused: arrow keys', 'turn; Enter or Space pushes']
+                ]
+            ],
+            [
+                'keys',
+                [
+                    ['click or touch', 'pressed while held; several at once with touch'],
+                    ['shift-click or right-click', 'latch it down; click again to let go'],
+                    ['release (in the bar)', 'lets go of every latched key and push']
+                ]
+            ],
+            ['keyboard (click the panel first)', [...keyboard, ['?', 'this help; Esc closes it']]]
+        ];
+        // one grid for every section, so the columns line up
+        const list = el('dl', 'ach-help-list', box);
+        for (const [title, rows] of sections) {
+            el('div', 'ach-help-title', list).textContent = title;
+            for (const [what, does] of rows) {
+                el('dt', '', list).textContent = what;
+                el('dd', '', list).textContent = does;
+            }
+        }
+        el('p', 'ach-help-note', box).textContent =
+            'Everything goes to the device as if played on it: ach_enc, ach_enc_key and ach_key.';
+        return box;
     }
 
     heldCount() {

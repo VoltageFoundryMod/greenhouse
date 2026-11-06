@@ -165,6 +165,7 @@ class diiiApp {
             acheneToggleBtn: document.getElementById('acheneToggleBtn'),
             acheneStatus: document.getElementById('acheneStatus'),
             acheneReleaseBtn: document.getElementById('acheneReleaseBtn'),
+            acheneHelpBtn: document.getElementById('acheneHelpBtn'),
             acheneTint: document.getElementById('acheneTint'),
             acheneFullscreenBtn: document.getElementById('acheneFullscreenBtn'),
             acheneBody: document.getElementById('acheneBody'),
@@ -248,6 +249,7 @@ class diiiApp {
         on(this.elements.gridReleaseBtn, 'click', () => this.releaseAllGridKeys());
         on(this.elements.acheneToggleBtn, 'click', () => this.toggleAchenePanel());
         on(this.elements.acheneReleaseBtn, 'click', () => this.releaseAllAcheneKeys());
+        on(this.elements.acheneHelpBtn, 'click', () => this.achenePanel?.toggleHelp());
         on(this.elements.acheneTint, 'change', (e) => this.setAcheneTint(e.target.value));
         on(this.elements.acheneFullscreenBtn, 'click', () => this.toggleAcheneFullscreen());
         on(window, 'pointerup', (e) => this.handleGridPointerUp(e));

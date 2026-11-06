@@ -51,6 +51,7 @@
         <header>
             <strong>achene preview</strong>
             <span class="ach-hint">recorded frames; input is logged, not sent</span>
+            <button type="button" id="help">? controls</button>
             <select id="tint" class="ach-tint" aria-label="OLED colour">
                 <option>white</option>
                 <option>blue</option>
@@ -75,6 +76,8 @@
                 onKey: (n, z) => note(`ach_key(${n},${z})`)
             });
             window.achenePanel = panel;
+            document.getElementById('help').addEventListener('click', () => panel.toggleHelp());
+            if (location.search.includes('help')) panel.toggleHelp(true);
 
             const text = await (await fetch('achene-fixture.txt')).text();
             for (const line of text.split('\n')) {
