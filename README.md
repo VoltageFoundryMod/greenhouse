@@ -54,19 +54,23 @@ The ⚠ and ❌ rows on stock firmware are limits of iii itself; the fixes are i
 
 ### development
 
-No build step: the browser loads the files as they are. Node is only needed for the tools.
+No build step: the browser loads the files as they are. Node is only needed for the tools
+(`make` runs them; `make help` lists the targets).
 
 ```sh
-node tools/serve.mjs        # http://localhost:8000 (Web Serial works on localhost)
-node tools/dist.mjs         # the site into dist/, as GitHub Pages publishes it
-npm ci --ignore-scripts     # then: npm run check | format | format:check | vendor
+make serve          # http://localhost:8000 (Web Serial works on localhost); PORT=8080 to change
+make test           # format check and type check, before a commit
+make format         # format the JS (Prettier)
+make dist           # the site into dist/, as GitHub Pages publishes it
+make vendor         # rebuild the code editor bundle in vendor/ (committed)
 ```
 
-`npm run vendor` rebuilds the code editor bundle in `vendor/` (committed). Pushing to `main`
-publishes the site (`.github/workflows/pages.yml`). See [AGENTS.md](AGENTS.md) for conventions.
+The tools install themselves from `package-lock.json` the first time a target needs them.
+Without make, `node tools/serve.mjs` and `node tools/dist.mjs` need nothing installed. Pushing
+to `main` publishes the site (`.github/workflows/pages.yml`). See [AGENTS.md](AGENTS.md) for
+conventions.
 
-**Upstream:** `git remote add upstream https://github.com/monome/web-diii`, then
-`git pull upstream main` to merge monome's changes. Fixes that suit every iii device go to
+**Upstream:** `make upstream` merges monome's `main`. Fixes that suit every iii device go to
 monome as pull requests, from a branch based on `upstream/main`; device views stay here.
 
 ### history

@@ -3,7 +3,8 @@
 // gives the service worker a cache name per commit, so installed copies (PWA)
 // switch to each release. No dependencies, so it runs without `npm install`.
 //
-//   node tools/dist.mjs
+//   node tools/dist.mjs           build dist/
+//   node tools/dist.mjs --clean   remove dist/
 
 import { execFileSync } from 'node:child_process';
 import { cp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
@@ -21,6 +22,7 @@ const skip = new Set([
     '.clang-format',
     '.prettierrc.json',
     'AGENTS.md',
+    'Makefile',
     'README.md',
     'TODO',
     'dist',
@@ -44,6 +46,7 @@ function revision() {
 }
 
 await rm(out, { recursive: true, force: true });
+if (process.argv.includes('--clean')) process.exit(0);
 for (const name of await readdir(root)) {
     if (!skip.has(name)) await cp(join(root, name), join(out, name), { recursive: true });
 }

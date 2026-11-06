@@ -25,6 +25,8 @@ split out with its history.
 
 - **No build step**: the browser loads the files as they are. `diii.js` is the app class;
   features are mixins in `js/` (native ES modules). `index.html`, `style.css`, `refresh.css`.
+- `make help` lists the tasks: `make serve`, `make test` (format check + type check),
+  `make format`, `make dist`, `make vendor`, `make upstream`. They only call node, npm and git.
 - `package.json` only holds development tools (Prettier, TypeScript, esbuild) and the code
   editor, which `npm run vendor` bundles into the committed `vendor/`.
 - `node tools/serve.mjs` serves it on localhost (Web Serial needs localhost or HTTPS);
@@ -43,7 +45,7 @@ split out with its history.
 ## Conventions
 
 - **Formatting**: Prettier (`.prettierrc.json`: 4 spaces, single quotes, 120 columns); run
-  `npm run format` before committing, `npm run format:check` must pass.
+  `make format` before committing; `make test` must pass.
 - **Commits**: small, one topic, imperative subject with a scope prefix (`diii:`, `docs:`,
   `build:`, `tools:`). The body says what and why.
 - Keep generic fixes separate from device-specific work, so they can go to monome/web-diii as
