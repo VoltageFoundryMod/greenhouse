@@ -6,6 +6,74 @@ A web-based live-coding and management interface for iii devices, available [her
 
 This repo has the source code for this static web app. For docs, go [here](https://monome.org/docs/iii/diii).
 
+## this fork
+
+A fork of [monome/web-diii](https://github.com/monome/web-diii) (GPL-3.0), published at
+**[diii.vfmod.com](https://diii.vfmod.com)**. It works with any iii device, and adds views and
+tools for devices whose firmware supports them, so scripts can be tried without the hardware
+attached:
+
+- [Open Grid Controller](https://github.com/carlosedp/Open-Grid-Controller): a **grid** drawer
+  that shows the grid's LEDs live and lets you press keys from the browser. Shift-click or
+  right-click holds a key down (click it again to let go).
+- achene, a MIDI controller on iii (planned, not published yet): the controller's panel, drawn
+  from its PCB layout, with the encoders, the keys' LEDs and the OLED.
+
+Also on top of upstream:
+
+- installs as an app (PWA) from any path; **update ready** in the header when a newer diii is
+  published;
+- **edit** in a file's menu opens a code editor next to the console (Ctrl+S, save as, run,
+  autocomplete and help for iii functions, clickable errors, line wrap); Tab completes names in
+  the REPL; **+** creates a script, **rename** renames one; drag files in to upload several;
+- **backup** downloads every file on the device as one zip, **restore** uploads it again;
+- a **midi** drawer with the MIDI the device sends and receives;
+- **device ▾ → firmware** shows the firmware version and offers Open Grid updates.
+
+The extras that need a device's own firmware hide themselves or say so:
+
+|                                                                                               | Stock iii firmware                                             | Open Grid firmware                               |
+| --------------------------------------------------------------------------------------------- | -------------------------------------------------------------- | ------------------------------------------------ |
+| REPL, history, Tab completion, uploads (several at once), run, new, delete, first / not first | ✅                                                             | ✅                                               |
+| Editor: autocomplete, hover help, reference, drafts, clickable errors, line wrap              | ✅                                                             | ✅                                               |
+| Read, edit, download, backup: files come back exactly (blank lines and all)                   | ✅ slower: read in 3 KB pieces                                 | ✅ fast (`og_dump_file`, og-0.3.4+)              |
+| Rename                                                                                        | ✅ copy, then delete                                           | ✅ one atomic step (`og_rename_file`, og-0.3.5+) |
+| Save from the editor with a syntax error                                                      | ⚠ the device's copy is deleted (your text stays in the editor) | ✅ the device keeps the old file                 |
+| Scripts bigger than 32 KB                                                                     | ❌ stock iii's upload limit                                    | ✅                                               |
+| Memory in the explorer footer                                                                 | Lua's share only                                               | ✅ Lua and the C heap (`og_mem`)                 |
+| Virtual grid drawer (LEDs, press keys from the browser)                                       | ❌ hidden                                                      | ✅ (`og_mirror`, `og_key`)                       |
+| MIDI monitor list                                                                             | ❌ says it needs og-0.3.8                                      | ✅ og-0.3.8+                                     |
+| MIDI counts and clock tempo with the drawer closed                                            | ❌                                                             | ✅ og-0.3.9+                                     |
+| Firmware update dialog                                                                        | shows the version; no Open Grid updates offered                | ✅ newest release for your board                 |
+
+achene's firmware carries the same `og_` tools (it started from Open Grid's), so the Open Grid
+column applies to it too, except firmware updates.
+
+The ⚠ and ❌ rows on stock firmware are limits of iii itself; the fixes are in the
+[iii pull requests](https://codeberg.org/tehn/iii/pulls) (#10–#12).
+
+### development
+
+No build step: the browser loads the files as they are. Node is only needed for the tools.
+
+```sh
+node tools/serve.mjs        # http://localhost:8000 (Web Serial works on localhost)
+node tools/dist.mjs         # the site into dist/, as GitHub Pages publishes it
+npm ci --ignore-scripts     # then: npm run check | format | format:check | vendor
+```
+
+`npm run vendor` rebuilds the code editor bundle in `vendor/` (committed). Pushing to `main`
+publishes the site (`.github/workflows/pages.yml`). See [AGENTS.md](AGENTS.md) for conventions.
+
+**Upstream:** `git remote add upstream https://github.com/monome/web-diii`, then
+`git pull upstream main` to merge monome's changes. Fixes that suit every iii device go to
+monome as pull requests, from a branch based on `upstream/main`; device views stay here.
+
+### history
+
+Developed inside Open-Grid-Controller as a git subtree at `diii/` until November 2026, then
+split out with its history (`git subtree split`), so the commits here are the same work.
+
 ## requirements
 
 Uses the Web Serial API that is only available in chromium-based browsers like Chrome, Chromium, Edge, and Opera.
