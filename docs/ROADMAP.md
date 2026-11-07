@@ -17,6 +17,11 @@ details live in the linked documents; this is the list.
   patch drawer, the blocks runtime (`lua/blocks.lua`), ten blocks, live
   editing, save as a script that runs on its own, and open it again (open…
   in the drawer, or patch in a file's menu). Tested on an achene (Pico 2).
+- **Visual editor, phase 2**: 24 blocks (MIDI in and clock in, metro,
+  counter, random, quantize, slew, gate, print, encoder push, the grid's
+  keys and LEDs), the lua block for custom code, a send limit for fast
+  outputs, a palette that follows the connected device (any iii device
+  gets the drawer), port names, and a sequencer example.
 
 ## Next
 
@@ -27,9 +32,9 @@ details live in the linked documents; this is the list.
   redirect diii.vfmod.com.
 - **Device pages on vfmod.com** (achene, Open Grid) for the opening page's
   cards to link to.
-- **Visual editor, phase 2**: the lua node for custom code, more blocks (encoder push, MIDI in,
-  metro, clock, counter, random, quantize, slew), the grid's blocks, a rate
-  limit for fast outputs.
+- **Visual editor, next blocks**: probability, curve, sample & hold,
+  stepped values, a clock out, grid rows; user block files for code longer
+  than the lua block takes.
 - **Visual editor, phases 3 and 4**: device palettes and dragging a control
   off the device view into the patch; block help; example patches in a
   script library; the Monolit blocks (LFO with clock sync, motion recorder,

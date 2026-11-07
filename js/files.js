@@ -160,7 +160,7 @@ export const fileMethods = {
                         { label: 'run', fn: () => this.enqueueRunFile(entry.name) },
                         { label: 'edit', fn: () => this.editFile(entry.name) },
                         // a patch saved from the patch drawer opens back there
-                        ...(this.acheneSupported && entry.name.endsWith('.lua')
+                        ...(this.patchCaps && entry.name.endsWith('.lua')
                             ? [{ label: 'edit patch', fn: () => this.openPatchFile(entry.name) }]
                             : []),
                         { label: 'rename', fn: () => this.renameFile(entry.name) },

@@ -79,6 +79,7 @@ export const deviceMethods = {
 
                 await this.detectVirtualGrid();
                 await this.detectAchene();
+                await this.detectPatchCaps();
                 await this.detectFirmware();
                 await this.resumeMidiMonitor();
                 await this.requestFileListRefresh();
@@ -183,6 +184,7 @@ export const deviceMethods = {
         this.releaseAllGridKeys({ send: false });
         this.updateGridStatus();
         this.acheneDisconnected();
+        this.patchDisconnected();
 
         const browserError = String(detail?.browserError || '').trim();
         const isConnectFailure = error === 'connection failed';

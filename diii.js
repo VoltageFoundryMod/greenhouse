@@ -173,7 +173,7 @@ class diiiApp {
             patchStopBtn: document.getElementById('patchStopBtn'),
             patchSaveBtn: document.getElementById('patchSaveBtn'),
             patchOpenSelect: document.getElementById('patchOpenSelect'),
-            patchExampleBtn: document.getElementById('patchExampleBtn'),
+            patchExampleSelect: document.getElementById('patchExampleSelect'),
             patchClearBtn: document.getElementById('patchClearBtn'),
             patchPalette: document.getElementById('patchPalette'),
             patchCanvas: document.getElementById('patchCanvas'),
@@ -279,7 +279,11 @@ class diiiApp {
             e.target.value = '';
             if (name) this.openPatchFile(name);
         });
-        on(this.elements.patchExampleBtn, 'click', () => this.loadExamplePatch());
+        on(this.elements.patchExampleSelect, 'change', (e) => {
+            const name = e.target.value;
+            e.target.value = '';
+            if (name) this.loadExamplePatch(name);
+        });
         on(this.elements.patchClearBtn, 'click', () => this.clearPatchCanvas());
         on(this.elements.welcomeConnectBtn, 'click', () => this.toggleConnection());
         on(this.elements.welcomeCloseBtn, 'click', () => this.hideWelcome());

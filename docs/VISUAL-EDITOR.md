@@ -1,6 +1,6 @@
 # Visual editor: patching iii scripts
 
-Status: **design + first prototype** (November 2026). The prototype is the
+Status: **design + prototype, phase 2** (November 2026). The prototype is the
 **patch** drawer (`js/patch.js`, `lua/blocks.lua`); this document is where
 the design lives and changes.
 
@@ -148,31 +148,53 @@ B.patch{
 
 ## Blocks
 
-**First set (the prototype):**
+**The blocks so far** (runtime v3). Device blocks show in the palette only
+when that device is connected:
 
-| block                                             | does                                                    |
-| ------------------------------------------------- | ------------------------------------------------------- |
-| encoder _n_                                       | a turn's delta (achene)                                 |
-| key _n_                                           | 1 pressed, 0 released (achene)                          |
-| lfo _rate, shape_                                 | 0..1, sine / triangle / saw / square, on the tick       |
-| accum _lo, hi, start_                             | adds deltas, clamped: an encoder becomes a value        |
-| scale _in lo/hi, out lo/hi_                       | maps a range                                            |
-| toggle                                            | flips 0 / 1 on each press                               |
-| midi cc _cc, ch_                                  | sends the value (0..127, rounded; repeats skipped)      |
-| midi note _note, vel, ch_                         | note on for non-zero, off for zero                      |
-| key led _n, colour_                               | lights key n at the value's brightness (0..1)           |
-| display _label, slot_                             | a labelled bar on the screen, in one of eight slots     |
+| block                           | does                                                                               |
+| ------------------------------- | ---------------------------------------------------------------------------------- |
+| encoder _n_ (achene)            | a turn's steps                                                                     |
+| enc push _n_ (achene)           | 1 pushed, 0 released                                                               |
+| key _n_ (achene)                | 1 pressed, 0 released                                                              |
+| key led _n, colour_ (achene)    | lights key n at the value's brightness (0..1)                                      |
+| display _label, place_ (achene) | a labelled bar on the screen, in one of eight places                               |
+| grid key _x, y_ (grid)          | 1 pressed, 0 released                                                              |
+| grid led _x, y_ (grid)          | lights a key at the value's level (0..1 to 0..15)                                  |
+| lfo _rate, shape_               | 0..1, sine / triangle / saw / square, 50 times a second                            |
+| metro _ms_                      | a gate: 1 on each beat, 0 halfway; its input stops (0) and starts it               |
+| clock in _div_                  | MIDI clock in: a gate every _div_ clocks; output 2 is 1 on start, 0 on stop        |
+| midi in cc _cc, ch_             | an incoming CC's value                                                             |
+| midi in note _ch_               | output 1 the note number, output 2 1 on / 0 off                                    |
+| value _lo, hi, start_           | adds what comes in, clamped: encoder steps become a value; sends its start         |
+| scale _in lo/hi, out lo/hi_     | maps a range                                                                       |
+| toggle                          | flips 0 / 1 on each press                                                          |
+| counter _lo, hi, step_          | input 1 steps (the first step is lo), input 2 resets; wraps                        |
+| random _lo, hi_                 | a whole number in the range for each non-zero input                                |
+| quantize _scale, root_          | the nearest note of the scale                                                      |
+| slew _time_                     | glides to each new value                                                           |
+| gate                            | passes input 1 while input 2 is open (not 0)                                       |
+| midi cc _cc, ch_                | sends the value (0..127, rounded; repeats skipped)                                 |
+| midi note _note, vel, ch_       | input 1: note on / off; input 2 sets the note number                               |
+| print _label_                   | prints to diii's console, at most 10 a second                                      |
+| lua _code_                      | your code, for each message: `i`, `v`, `out(n, value)`, and `s` kept between calls |
 
-**Next**: encoder push, MIDI in (CC / note), metro, clock (MIDI clock and
-sync in), counter, random, probability, quantize to scale, slew, curve,
-gate / switch, sample & hold, stepped values, grid key and grid LED, print.
+Gates (metro, clock in) go 1 then 0, so a note retriggers and a toggle or
+counter counts only the 1s. Outputs (MIDI, LEDs) send at most once a tick:
+a value that comes sooner is held and the latest goes out next tick, so an
+LFO can't flood MIDI and a knob still answers at once.
+
+The lua block's code travels as one Lua string in one line, so it's capped
+at 360 characters (iii reads 512 per line). Longer code belongs in a user
+block file (below).
+
+**Next**: probability, curve, sample & hold, stepped values, a clock out,
+grid key rows and LED rows, the achene's screen beyond bars.
 
 **From the Monolit list** (achene's DESIGN.md §9.4): LFO with clock sync and
 min/max, motion recorder, macro (one to many), key modifiers (freeze,
 override), arpeggiator, step sequencer, page / bank, randomize a page.
 
-**Custom**: the lua node (inputs, outputs and code typed in the node), and
-later user block files: a `.lua` that calls `B.type` and shows up in the
+**Custom**: beyond the lua block, user block files: a `.lua` that calls `B.type` and shows up in the
 palette.
 
 ## Memory and timing

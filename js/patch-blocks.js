@@ -4,11 +4,11 @@
 // outputs and parameters.
 
 /** Version of lua/blocks.lua this diii carries; the device gets it when older. */
-export const RUNTIME_VERSION = 2;
+export const RUNTIME_VERSION = 3;
 
 /**
  * @typedef {object} Param
- * @property {'int' | 'number' | 'text' | 'select'} type
+ * @property {'int' | 'number' | 'text' | 'select' | 'code'} type
  * @property {string} label shown in the node
  * @property {number | string} default
  * @property {number} [min]
@@ -18,7 +18,8 @@ export const RUNTIME_VERSION = 2;
  *
  * @typedef {object} Block
  * @property {string} label
- * @property {'achene' | 'source' | 'process' | 'output'} group palette section
+ * @property {'achene' | 'grid' | 'source' | 'process' | 'output' | 'custom'} group palette section;
+ *   achene and grid blocks show only for those devices
  * @property {number} inputs
  * @property {number} outputs
  * @property {string} doc one line, for the palette's tooltip
@@ -103,9 +104,9 @@ export const BLOCKS = {
     midi_note: {
         label: 'midi note',
         group: 'output',
-        inputs: 1,
+        inputs: 2,
         outputs: 0,
-        doc: 'note on when the value is not 0, note off when it is',
+        doc: 'input 1: note on when not 0, off when 0; input 2 (optional) sets the note number',
         params: {
             note: { type: 'int', label: 'note', default: 60, min: 0, max: 127 },
             vel: { type: 'int', label: 'vel', default: 100, min: 1, max: 127 },
@@ -135,6 +136,144 @@ export const BLOCKS = {
             lo: { type: 'number', label: 'lo', default: 0 },
             hi: { type: 'number', label: 'hi', default: 127 }
         }
+    },
+    enc_push: {
+        label: 'enc push',
+        group: 'achene',
+        inputs: 0,
+        outputs: 1,
+        doc: "an achene encoder's push: 1 pressed, 0 released",
+        params: { n: { type: 'int', label: 'E', default: 1, min: 1, max: 12 } }
+    },
+    grid_key: {
+        label: 'grid key',
+        group: 'grid',
+        inputs: 0,
+        outputs: 1,
+        doc: 'a grid key: 1 pressed, 0 released',
+        params: {
+            x: { type: 'int', label: 'x', default: 1, min: 1, max: 16 },
+            y: { type: 'int', label: 'y', default: 1, min: 1, max: 16 }
+        }
+    },
+    grid_led: {
+        label: 'grid led',
+        group: 'grid',
+        inputs: 1,
+        outputs: 0,
+        doc: 'lights a grid key: the value (0..1) is the level',
+        params: {
+            x: { type: 'int', label: 'x', default: 1, min: 1, max: 16 },
+            y: { type: 'int', label: 'y', default: 1, min: 1, max: 16 }
+        }
+    },
+    metro: {
+        label: 'metro',
+        group: 'source',
+        inputs: 1,
+        outputs: 1,
+        doc: 'a steady beat: 1 on each beat, 0 halfway; input: 0 stops it, anything else starts it',
+        params: { ms: { type: 'int', label: 'ms', default: 500, min: 20, max: 10000 } }
+    },
+    clock: {
+        label: 'clock in',
+        group: 'source',
+        inputs: 0,
+        outputs: 2,
+        doc: 'MIDI clock in: output 1 beats every div clocks (24 = a quarter); output 2 is 1 on start, 0 on stop',
+        params: {
+            div: { type: 'select', label: 'div', default: '24', options: ['96', '48', '24', '12', '6', '3'] }
+        }
+    },
+    midi_in_cc: {
+        label: 'midi in cc',
+        group: 'source',
+        inputs: 0,
+        outputs: 1,
+        doc: 'an incoming CC: its value, 0..127',
+        params: {
+            cc: { type: 'int', label: 'cc', default: 74, min: 0, max: 127 },
+            ch: { type: 'int', label: 'ch', default: 1, min: 1, max: 16 }
+        }
+    },
+    midi_in_note: {
+        label: 'midi in note',
+        group: 'source',
+        inputs: 0,
+        outputs: 2,
+        doc: 'incoming notes: output 1 the note number, output 2 1 on and 0 off',
+        params: { ch: { type: 'int', label: 'ch', default: 1, min: 1, max: 16 } }
+    },
+    counter: {
+        label: 'counter',
+        group: 'process',
+        inputs: 2,
+        outputs: 1,
+        doc: 'input 1 (not 0): the next step, wrapping; input 2 (not 0): back to lo',
+        params: {
+            lo: { type: 'int', label: 'lo', default: 1 },
+            hi: { type: 'int', label: 'hi', default: 8 },
+            step: { type: 'int', label: 'step', default: 1 }
+        }
+    },
+    random: {
+        label: 'random',
+        group: 'process',
+        inputs: 1,
+        outputs: 1,
+        doc: 'a whole number from lo to hi each time the input is not 0',
+        params: {
+            lo: { type: 'int', label: 'lo', default: 48 },
+            hi: { type: 'int', label: 'hi', default: 72 }
+        }
+    },
+    quantize: {
+        label: 'quantize',
+        group: 'process',
+        inputs: 1,
+        outputs: 1,
+        doc: 'the nearest note of a scale',
+        params: {
+            scale: {
+                type: 'select',
+                label: 'scale',
+                default: 'major',
+                options: ['major', 'minor', 'dorian', 'pentatonic', 'minor pent.', 'chromatic']
+            },
+            root: { type: 'int', label: 'root', default: 0, min: 0, max: 11 }
+        }
+    },
+    slew: {
+        label: 'slew',
+        group: 'process',
+        inputs: 1,
+        outputs: 1,
+        doc: 'glides to each new value over a time (seconds)',
+        params: { time: { type: 'number', label: 's', default: 0.5, min: 0, max: 30, step: 0.1 } }
+    },
+    gate: {
+        label: 'gate',
+        group: 'process',
+        inputs: 2,
+        outputs: 1,
+        doc: 'passes input 1 while input 2 is open (not 0); starts open',
+        params: {}
+    },
+    print: {
+        label: 'print',
+        group: 'output',
+        inputs: 1,
+        outputs: 0,
+        doc: "prints values in diii's console, at most 10 a second",
+        params: { label: { type: 'text', label: 'label', default: 'value' } }
+    },
+    lua: {
+        label: 'lua',
+        group: 'custom',
+        inputs: 2,
+        outputs: 2,
+        doc: 'your own code, run for each message: i (the input), v (the value), out(n, value), s (kept between calls)',
+        params: { code: { type: 'code', label: 'code', default: 'out(1, v * 2)' } }
     }
 };
 
@@ -161,11 +300,32 @@ export function luaParam(param, value) {
         if (param.type === 'int') n = Math.round(n);
         return String(n);
     }
+    if (param.type === 'code') return luaCode(value ?? param.default);
     let text = String(value ?? param.default);
     if (param.type === 'select' && !param.options?.includes(text)) text = String(param.default);
+    if (param.type === 'select' && /^\d+$/.test(text)) return text;
     // printable ASCII without quotes or backslashes, so it's always valid Lua
     text = text.replace(/[^ -~]|["\\]/g, '').slice(0, 20);
     return `"${text}"`;
+}
+
+/** Longest code a lua block takes: its B.node line must stay under iii's 512. */
+export const CODE_MAX = 360;
+
+/**
+ * Code for a lua block as one Lua string: newlines and tabs as escapes,
+ * quotes and backslashes escaped, other control characters dropped.
+ * @param {unknown} value
+ */
+export function luaCode(value) {
+    const code = String(value).replace(/\r\n?/g, '\n').slice(0, CODE_MAX);
+    const escaped = code
+        .replace(/\\/g, '\\\\')
+        .replace(/"/g, '\\"')
+        .replace(/\n/g, '\\n')
+        .replace(/\t/g, '\\t')
+        .replace(/[\x00-\x1f\x7f]/g, '');
+    return `"${escaped}"`;
 }
 
 /**
@@ -275,3 +435,47 @@ export function examplePatch() {
         ]
     };
 }
+
+/**
+ * A step sequencer: a metro steps a counter through 8 steps; a lua block
+ * turns each step into a note of an arpeggio, transposed by E5; quantize
+ * keeps it in C minor; the metro's beat plays it.
+ * @returns {Patch}
+ */
+export function sequencerPatch() {
+    const code = [
+        'if i == 2 then s.t = v return end',
+        'local arp = {0, 3, 7, 10, 12, 10, 7, 3}',
+        'out(1, 48 + (s.t or 0) + arp[v])'
+    ].join('\n');
+    return {
+        nodes: [
+            { id: 1, type: 'metro', params: { ms: 250 }, x: 30, y: 40 },
+            { id: 2, type: 'counter', params: { lo: 1, hi: 8, step: 1 }, x: 230, y: 40 },
+            { id: 3, type: 'lua', params: { code }, x: 450, y: 30 },
+            { id: 4, type: 'quantize', params: { scale: 'minor', root: 0 }, x: 760, y: 40 },
+            { id: 5, type: 'midi_note', params: { note: 60, vel: 100, ch: 1 }, x: 980, y: 40 },
+            { id: 6, type: 'encoder', params: { n: 5 }, x: 30, y: 300 },
+            { id: 7, type: 'accum', params: { lo: 0, hi: 12, start: 0 }, x: 230, y: 280 },
+            { id: 8, type: 'display', params: { label: 'step', slot: 1, lo: 1, hi: 8 }, x: 760, y: 220 },
+            { id: 9, type: 'display', params: { label: 'transpose', slot: 2, lo: 0, hi: 12 }, x: 450, y: 300 }
+        ],
+        wires: [
+            [1, 1, 2, 1],
+            [1, 1, 5, 1],
+            [2, 1, 3, 1],
+            [2, 1, 8, 1],
+            [3, 1, 4, 1],
+            [4, 1, 5, 2],
+            [6, 1, 7, 1],
+            [7, 1, 3, 2],
+            [7, 1, 9, 1]
+        ]
+    };
+}
+
+/** The examples the drawer offers, by name. */
+export const EXAMPLES = /** @type {Record<string, () => Patch>} */ ({
+    basics: examplePatch,
+    sequencer: sequencerPatch
+});

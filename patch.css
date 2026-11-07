@@ -184,3 +184,117 @@
 .pn-field input[type='text'] {
     width: 84px;
 }
+
+/* the lua block's code: under its label, as wide as the block */
+.pn-code {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 2px;
+}
+
+.pn-code textarea {
+    width: 210px;
+    min-height: 60px;
+    padding: 3px 5px;
+    border: 1px solid var(--neutral-trim);
+    border-radius: 3px;
+    background: #1b1c1f;
+    color: #c9e0ff;
+    font-family: var(--mono-font, ui-monospace, monospace);
+    font-size: 0.75rem;
+    resize: vertical;
+}
+
+.pn-grid_key .pn-title,
+.pn-grid_led .pn-title,
+.pn-enc_push .pn-title {
+    color: #ffbe64;
+}
+
+.pn-metro .pn-title,
+.pn-clock .pn-title,
+.pn-midi_in_cc .pn-title,
+.pn-midi_in_note .pn-title {
+    color: #7fdc9a;
+}
+
+.pn-print .pn-title {
+    color: #79b8ff;
+}
+
+.pn-lua .pn-title {
+    color: #d7a6ff;
+}
+
+/* names for the ports of blocks with more than one, just outside the port */
+.drawflow-node .input,
+.drawflow-node .output {
+    position: relative;
+}
+
+.drawflow-node .input::after,
+.drawflow-node .output::after {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.6rem;
+    color: var(--neutral-medium);
+    white-space: nowrap;
+    pointer-events: none;
+}
+
+/* outside the block, so they never cover its fields */
+.drawflow-node .input::after {
+    right: 16px;
+}
+
+.drawflow-node .output::after {
+    left: 16px;
+}
+
+.pn-midi_note .input_1::after,
+.pn-gate .input_1::after {
+    content: 'in';
+}
+
+.pn-midi_note .input_2::after {
+    content: 'note';
+}
+
+.pn-counter .input_1::after {
+    content: 'step';
+}
+
+.pn-counter .input_2::after {
+    content: 'reset';
+}
+
+.pn-gate .input_2::after {
+    content: 'open';
+}
+
+.pn-clock .output_1::after {
+    content: 'beat';
+}
+
+.pn-clock .output_2::after {
+    content: 'run';
+}
+
+.pn-midi_in_note .output_1::after {
+    content: 'note';
+}
+
+.pn-midi_in_note .output_2::after {
+    content: 'on';
+}
+
+.pn-lua .input_1::after,
+.pn-lua .output_1::after {
+    content: '1';
+}
+
+.pn-lua .input_2::after,
+.pn-lua .output_2::after {
+    content: '2';
+}

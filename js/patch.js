@@ -5,6 +5,8 @@
 
 import {
     BLOCKS,
+    CODE_MAX,
+    EXAMPLES,
     RUNTIME_VERSION,
     defaultParams,
     examplePatch,
@@ -18,9 +20,11 @@ const DRAWER_KEY = 'webdiii.patchDrawer';
 const SAVED_KEY = 'webdiii.patch';
 const GROUPS = [
     ['achene', 'achene'],
+    ['grid', 'grid'],
     ['source', 'sources'],
     ['process', 'process'],
-    ['output', 'outputs']
+    ['output', 'outputs'],
+    ['custom', 'custom']
 ];
 
 /** @param {string} text */
@@ -39,6 +43,12 @@ function nodeHtml(type) {
                 input = `<select ${attrs}>${options}</select>`;
             } else if (p.type === 'text') {
                 input = `<input type="text" maxlength="20" ${attrs}>`;
+            } else if (p.type === 'code') {
+                // its own row: code wants the width
+                return (
+                    `<label class="pn-field pn-code"><span>${escapeHtml(p.label)}</span>` +
+                    `<textarea rows="4" spellcheck="false" maxlength="${CODE_MAX}" ${attrs}></textarea></label>`
+                );
             } else {
                 const range = [
                     p.min !== undefined ? `min="${p.min}"` : '',
@@ -69,11 +79,18 @@ export const patchMethods = {
         this.showPatchDrawerState();
     },
 
+    /**
+     * The palette: shared blocks always, a device's own blocks when that
+     * device is connected (all of them while offline, to look around).
+     */
     buildPatchPalette() {
         const palette = this.elements.patchPalette;
         if (!palette) return;
         palette.replaceChildren();
+        const caps = this.patchCaps;
         for (const [group, title] of GROUPS) {
+            if (caps && group === 'achene' && !caps.achene) continue;
+            if (caps && group === 'grid' && !caps.grid) continue;
             const heading = document.createElement('div');
             heading.className = 'patch-palette-group';
             heading.textContent = title;
@@ -161,10 +178,28 @@ export const patchMethods = {
         this.showPatchDrawerState();
     },
 
-    /** The patch drawer shows for devices with blocks (achene for now). */
+    /**
+     * After connecting: what the device can do (achene's keys and screen, a
+     * grid's LEDs), for the palette. Any iii device gets the drawer: the
+     * shared blocks only need iii itself.
+     */
+    async detectPatchCaps() {
+        let caps = { achene: false, grid: false };
+        try {
+            const lines = await this.executeLuaCapture('print((key_led and "a" or "-") .. (grid_led and "g" or "-"))');
+            const flags = lines.map((l) => String(l).trim()).join('');
+            caps = { achene: flags.includes('a'), grid: flags.includes('g') };
+        } catch {
+            // not answering: shared blocks only
+        }
+        this.patchCaps = caps;
+        this.buildPatchPalette();
+        if (this.elements.patchDrawer) this.elements.patchDrawer.hidden = false;
+        this.updatePatchStatus();
+    },
+
+    /** Kept for js/achene.js: availability now comes from detectPatchCaps. */
     updatePatchAvailability() {
-        if (this.elements.patchDrawer) this.elements.patchDrawer.hidden = !this.acheneSupported;
-        if (!this.acheneSupported) this.patchRunning = false;
         this.updatePatchStatus();
     },
 
@@ -438,10 +473,12 @@ export const patchMethods = {
         this.requestFileListRefresh?.();
     },
 
-    loadExamplePatch() {
-        if (!this.patchEditor) return;
-        if (!window.confirm('Replace the canvas with the example patch?')) return;
-        this.loadPatch(examplePatch());
+    /** @param {string} name one of EXAMPLES */
+    loadExamplePatch(name) {
+        const make = EXAMPLES[name];
+        if (!this.patchEditor || !make) return;
+        if (!window.confirm(`Replace the canvas with the ${name} example?`)) return;
+        this.loadPatch(make());
         if (this.patchRunning) for (const line of liveLines(this.exportPatch())) this.sendPatchLine(line);
     },
 

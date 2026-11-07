@@ -52,7 +52,7 @@
         <pre id="log"></pre>
         <script type="module">
             import { patchMethods } from '../js/patch.js';
-            import { patchFile } from '../js/patch-blocks.js';
+            import { EXAMPLES, patchFile } from '../js/patch-blocks.js';
 
             const log = document.getElementById('log');
             const note = (text) => {
@@ -92,6 +92,9 @@
             $('patchStopBtn').addEventListener('click', () => app.stopPatch());
             $('patchFileBtn').addEventListener('click', () => note(patchFile('preview', app.exportPatch())));
             window.app = app;
+            // ?example=sequencer loads an example
+            const example = new URLSearchParams(location.search).get('example');
+            if (example) app.loadPatch(EXAMPLES[example]());
             if (location.search.includes('run')) await app.runPatch();
             if (location.search.includes('file')) note(patchFile('preview', app.exportPatch()));
         </script>
