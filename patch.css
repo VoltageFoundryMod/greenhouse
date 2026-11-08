@@ -25,6 +25,25 @@
     display: none;
 }
 
+/* open… and examples…: menus, so they look like the buttons beside them */
+.patch-controls .patch-select {
+    padding: 2px 6px;
+    font-size: 0.78rem;
+    color-scheme: dark;
+}
+
+.patch-controls .patch-select:hover {
+    color: var(--interactive-selected);
+    border-color: var(--neutral-medium);
+}
+
+/* edits waiting: apply stands out */
+.patch-controls #patchApplyBtn:not(:disabled) {
+    color: #fff;
+    border-color: #c98a1b;
+    background: #8a5a0c;
+}
+
 .patch-controls .active {
     color: #fff;
     background: var(--accent);
@@ -36,7 +55,6 @@
     height: min(440px, 55vh);
     min-height: 160px;
     max-height: 85vh;
-    resize: vertical;
     overflow: hidden;
 }
 
@@ -75,6 +93,10 @@
     font-size: 0.8rem;
     text-align: left;
     cursor: pointer;
+}
+
+.patch-palette-item:active {
+    cursor: grabbing;
 }
 
 .patch-palette-item:hover {
@@ -230,6 +252,18 @@
     color: var(--neutral-medium);
 }
 
+/* dark spinners and dropdowns, like the rest of the page */
+.pn-field input,
+.pn-field select,
+.pn-field textarea {
+    color-scheme: dark;
+}
+
+/* the arrows against the right edge */
+.pn-field input[type='number'] {
+    padding-right: 0;
+}
+
 .pn-field input,
 .pn-field select {
     width: 68px;
@@ -262,7 +296,9 @@
     color: #c9e0ff;
     font-family: var(--mono-font, ui-monospace, monospace);
     font-size: 0.75rem;
-    resize: vertical;
+    /* the corner grows the code, and the block with it */
+    min-width: 150px;
+    resize: both;
 }
 
 .pn-grid_key .pn-title,

@@ -54,7 +54,6 @@
     height: min(520px, 62vh);
     min-height: 140px;
     max-height: 85vh;
-    resize: vertical;
     overflow: hidden;
     padding: 8px 12px 12px;
     container-type: size;

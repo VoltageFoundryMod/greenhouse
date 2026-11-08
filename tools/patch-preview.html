@@ -58,6 +58,7 @@
         <pre id="log"></pre>
         <script type="module">
             import { patchMethods } from '../js/patch.js';
+            import { dividerMethods } from '../js/dividers.js';
             import { EXAMPLES, patchFile } from '../js/patch-blocks.js';
 
             const log = document.getElementById('log');
@@ -84,9 +85,11 @@
                     executeLuaCapture: async () => [String(99)],
                     uploadChecked: async () => true
                 },
-                patchMethods
+                patchMethods,
+                dividerMethods
             );
             app.initPatch();
+            app.bindPaneDividers();
             // ?hidden builds the canvas while the drawer is hidden, as the app
             // does before a device connects, then shows it
             const hidden = location.search.includes('hidden');

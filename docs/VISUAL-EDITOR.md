@@ -134,10 +134,15 @@ B.patch{
 - A **patch** drawer, like the achene and grid drawers: the canvas, a
   palette of blocks, and **run / stop / save**. Later it may become a view
   of its own next to the editor.
-- **Live**: while running, every change goes straight to the device as
-  `B.node`, `B.wire`, `B.set` lines; the device's view shows the result and
-  plays it. **save** writes the patch file; **run** on a saved file does
-  `fs_run_file`.
+- **Live**: **run** starts the patch on the device, and it keeps running
+  while you edit. With **live** on (the default), every change goes
+  straight to it as `B.node`, `B.wire`, `B.set` lines; the device's view
+  shows the result and plays it. With live off, changes wait and
+  **apply (n)** sends them together (several changes to one block go as
+  one), without restarting the patch. **save** writes the patch file; **run**
+  on a saved file does `fs_run_file`.
+- **Patch files** start with `-- diii patch:`; the file list marks them with
+  a **patch** tag, and **open…** lists only them.
 - The runtime is uploaded when missing or older than the one diii carries.
 - **Device palettes**: the palette shows the connected device's own blocks
   (achene: encoders, pushes, keys, key LEDs, screen; grid: keys, LEDs) next
@@ -204,14 +209,16 @@ palette.
 
 ## Editing
 
-As in most node editors: the wheel zooms around the pointer (the buttons
-too, and **fit** shows the whole patch); a drag on empty space draws a
-selection box (shift adds to it); a click selects a block, shift- or
-ctrl-click adds or removes one; dragging a selected block moves the whole
-selection; space + drag or the middle button pans; Delete removes the
-selection, Esc lets go. Drawflow pans on a plain drag, zooms on ctrl+wheel
-only and has no group selection, so js/patch.js handles these first and
-wraps its drag handler to move the rest of a selection.
+Blocks come from the palette by a click (near the middle of the view) or a
+drag (where they are dropped). Hovering a block's title, a field or a port
+tells what it does. As in most node editors: the wheel zooms around the
+pointer (the buttons too, and **fit** shows the whole patch); a drag on
+empty space draws a selection box (shift adds to it); a click selects a
+block, shift- or ctrl-click adds or removes one; dragging a selected block
+moves the whole selection; space + drag or the middle button pans; Delete
+removes the selection, Esc lets go. Drawflow pans on a plain drag, zooms on
+ctrl+wheel only and has no group selection, so js/patch.js handles these
+first and wraps its drag handler to move the rest of a selection.
 
 ## Memory and timing
 

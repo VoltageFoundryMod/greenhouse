@@ -8,6 +8,7 @@
 
 import { iiiConnection } from './js/connection.js';
 import { layoutMethods } from './js/layout.js';
+import { dividerMethods } from './js/dividers.js';
 import { consoleMethods } from './js/console.js';
 import { deviceMethods } from './js/device.js';
 import { luaMethods } from './js/lua.js';
@@ -88,6 +89,7 @@ class diiiApp {
         this.restoreGridDrawer();
         this.initAchene();
         this.initPatch();
+        this.bindPaneDividers();
         this.announceDraft();
     }
 
@@ -171,6 +173,8 @@ class diiiApp {
             patchStatus: document.getElementById('patchStatus'),
             patchRunBtn: document.getElementById('patchRunBtn'),
             patchStopBtn: document.getElementById('patchStopBtn'),
+            patchLiveBtn: document.getElementById('patchLiveBtn'),
+            patchApplyBtn: document.getElementById('patchApplyBtn'),
             patchSaveBtn: document.getElementById('patchSaveBtn'),
             patchOpenSelect: document.getElementById('patchOpenSelect'),
             patchExampleSelect: document.getElementById('patchExampleSelect'),
@@ -277,6 +281,8 @@ class diiiApp {
             if (how) this.zoomPatch(how);
         });
         on(this.elements.patchStopBtn, 'click', () => this.stopPatch());
+        on(this.elements.patchLiveBtn, 'click', () => this.setPatchLive(!this.patchLive));
+        on(this.elements.patchApplyBtn, 'click', () => this.applyPatchEdits());
         on(this.elements.patchSaveBtn, 'click', () => this.savePatchToDevice());
         // the list is the device's files as of now: fill it when it's about to open
         on(this.elements.patchOpenSelect, 'pointerdown', () => this.fillPatchOpenList());
@@ -347,6 +353,7 @@ class diiiApp {
 Object.assign(
     diiiApp.prototype,
     layoutMethods,
+    dividerMethods,
     consoleMethods,
     deviceMethods,
     luaMethods,

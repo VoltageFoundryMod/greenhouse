@@ -311,6 +311,12 @@ select,
     padding: 3px 6px;
 }
 
+/* a script made in the patch editor */
+.file-patch-pill {
+    background-color: #c48bff26;
+    color: #d7a6ff;
+}
+
 .file-space-footer {
     font-size: 11px;
     line-height: 1.5;

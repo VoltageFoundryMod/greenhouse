@@ -18,6 +18,9 @@ import {
 
 const DRAWER_KEY = 'webdiii.patchDrawer';
 const SAVED_KEY = 'webdiii.patch';
+/** what a palette block carries while it's dragged onto the canvas */
+const DRAG_TYPE = 'application/x-diii-block';
+const LIVE_KEY = 'webdiii.patchLive';
 const GROUPS = [
     ['achene', 'achene'],
     ['grid', 'grid'],
@@ -38,7 +41,15 @@ function nodeHtml(type) {
     const block = BLOCKS[type];
     const fields = Object.entries(block.params)
         .map(([key, p]) => {
-            const attrs = `df-${key} title="${escapeHtml(p.label)}"`;
+            const how =
+                p.type === 'select'
+                    ? 'pick one'
+                    : p.type === 'text'
+                      ? 'type a name'
+                      : p.type === 'code'
+                        ? 'Lua; drag the corner to resize'
+                        : 'type a number or use the arrows';
+            const attrs = `df-${key} title="${escapeHtml(`${p.label}: ${how}`)}"`;
             let input;
             if (p.type === 'select') {
                 const options = (p.options || []).map((o) => `<option>${escapeHtml(o)}</option>`).join('');
@@ -62,7 +73,8 @@ function nodeHtml(type) {
             return `<label class="pn-field"><span>${escapeHtml(p.label)}</span>${input}</label>`;
         })
         .join('');
-    return `<div class="pn-title">${escapeHtml(block.label)}</div>${fields}`;
+    const tip = `${block.doc} (drag the title to move; click to select)`;
+    return `<div class="pn-title" title="${escapeHtml(tip)}">${escapeHtml(block.label)}</div>${fields}`;
 }
 
 export const patchMethods = {
@@ -72,8 +84,15 @@ export const patchMethods = {
         /** @type {Map<number, ReturnType<typeof setTimeout>>} */
         this.patchSendTimers = new Map();
         this.patchPanelOpen = false;
+        /** live: edits go to the running patch at once; otherwise they wait for apply */
+        this.patchLive = true;
+        /** edits waiting for apply, in order; a key makes repeated edits to one block one */
+        /** @type {Map<string, () => void>} */
+        this.patchPending = new Map();
+        this.patchPendingSeq = 0;
         try {
             this.patchPanelOpen = window.localStorage.getItem(DRAWER_KEY) === 'open';
+            this.patchLive = window.localStorage.getItem(LIVE_KEY) !== 'off';
         } catch {
             // storage blocked
         }
@@ -103,8 +122,14 @@ export const patchMethods = {
                 button.type = 'button';
                 button.className = 'patch-palette-item';
                 button.textContent = block.label;
-                button.title = `${block.doc} (click to add)`;
+                button.title = `${block.doc} (click to add, or drag it onto the canvas)`;
+                button.draggable = true;
                 button.addEventListener('click', () => this.addPatchNode(type));
+                button.addEventListener('dragstart', (event) => {
+                    if (!event.dataTransfer) return;
+                    event.dataTransfer.setData(DRAG_TYPE, type);
+                    event.dataTransfer.effectAllowed = 'copy';
+                });
                 palette.appendChild(button);
             }
         }
@@ -125,6 +150,8 @@ export const patchMethods = {
         const { Drawflow } = await import('../vendor/drawflow.js');
         const editor = new Drawflow(this.elements.patchCanvas);
         editor.reroute = false;
+        // a drag on a field is for the field (select text, resize the code)
+        editor.draggable_inputs = false;
         editor.zoom_min = 0.3;
         editor.zoom_max = 2;
         /** blocks selected together (ids): moved and deleted as a group */
@@ -158,6 +185,8 @@ export const patchMethods = {
         editor.start();
         this.patchEditor = editor;
         this.bindPatchSelection(editor);
+        this.bindPatchDrop(editor);
+        this.bindPatchPortTips();
         editor.on('zoom', () => this.updatePatchZoomLabel());
         // Drawflow draws a wire from its blocks' positions on screen, which
         // are all zero while the drawer is hidden: redraw them whenever the
@@ -172,14 +201,20 @@ export const patchMethods = {
             });
         }).observe(this.elements.patchCanvas);
 
-        editor.on('nodeCreated', (id) => this.onPatchChange(() => this.sendPatchNode(Number(id))));
+        editor.on('nodeCreated', (id) => this.onPatchChange(() => this.sendPatchNode(Number(id)), `node:${id}`));
         editor.on('nodeRemoved', (id) => {
             this.patchSelection.delete(Number(id));
             this.onPatchChange(() => this.sendPatchLine(`B.remove(${Number(id)})`));
         });
         editor.on('connectionCreated', (c) => this.onPatchChange(() => this.sendPatchWire('wire', c)));
         editor.on('connectionRemoved', (c) => this.onPatchChange(() => this.sendPatchWire('unwire', c)));
-        editor.on('nodeDataChanged', (id) => this.onPatchChange(() => this.queuePatchNode(Number(id))));
+        editor.on('nodeDataChanged', (id) =>
+            this.onPatchChange(
+                () => this.queuePatchNode(Number(id)),
+                `node:${id}`,
+                () => this.sendPatchNode(Number(id))
+            )
+        );
         editor.on('nodeMoved', () => this.savePatchLocally());
 
         let saved = null;
@@ -240,23 +275,54 @@ export const patchMethods = {
 
     updatePatchStatus() {
         const status = this.elements.patchStatus;
-        if (status) status.textContent = this.patchRunning ? 'running · edits go live' : 'stopped';
+        const waiting = this.patchPending?.size || 0;
+        if (status) {
+            status.textContent = !this.patchRunning
+                ? 'stopped'
+                : this.patchLive
+                  ? 'running · live: edits go to the device as you make them'
+                  : waiting
+                    ? `running · ${waiting} edit${waiting === 1 ? '' : 's'} waiting for apply`
+                    : 'running · edits wait for apply';
+        }
         this.elements.patchRunBtn?.classList.toggle('active', this.patchRunning);
+        const live = this.elements.patchLiveBtn;
+        if (live) {
+            live.classList.toggle('active', this.patchLive);
+            live.setAttribute('aria-pressed', String(this.patchLive));
+        }
+        const apply = this.elements.patchApplyBtn;
+        if (apply) {
+            apply.hidden = this.patchLive || !this.patchRunning;
+            apply.disabled = !waiting;
+            apply.textContent = waiting ? `apply (${waiting})` : 'apply';
+        }
     },
 
     // ------------------------------------------------------------ the patch
 
-    /** @param {string} type */
-    addPatchNode(type) {
+    /**
+     * Adds a block: at (clientX, clientY) when dropped there, otherwise near
+     * the middle of what's visible, a little apart from the last one.
+     * @param {string} type @param {number} [clientX] @param {number} [clientY]
+     */
+    addPatchNode(type, clientX, clientY) {
         const editor = this.patchEditor;
         const block = BLOCKS[type];
         if (!editor || !block) return;
-        // near the middle of what's visible, a little apart from the last one
-        const rect = this.elements.patchCanvas.getBoundingClientRect();
-        const zoom = editor.zoom || 1;
-        this.patchAddCount = ((this.patchAddCount || 0) + 1) % 6;
-        const x = (rect.width / 2 - editor.canvas_x) / zoom - 80 + this.patchAddCount * 18;
-        const y = (rect.height / 2 - editor.canvas_y) / zoom - 40 + this.patchAddCount * 18;
+        let x;
+        let y;
+        if (clientX !== undefined && clientY !== undefined) {
+            [x, y] = this.patchCanvasPoint(clientX, clientY);
+            x -= 20;
+            y -= 12;
+        } else {
+            const rect = this.elements.patchCanvas.getBoundingClientRect();
+            this.patchAddCount = ((this.patchAddCount || 0) + 1) % 6;
+            [x, y] = this.patchCanvasPoint(rect.left + rect.width / 2, rect.top + rect.height / 2);
+            x += -80 + this.patchAddCount * 18;
+            y += -40 + this.patchAddCount * 18;
+        }
         editor.addNode(type, block.inputs, block.outputs, x, y, `pn-${type}`, defaultParams(type), nodeHtml(type));
     },
 
@@ -492,6 +558,61 @@ export const patchMethods = {
     },
 
     /**
+     * A point on screen as canvas coordinates (where a block's pos_x/pos_y
+     * would put its corner). Drawflow scales around the canvas's centre.
+     * @param {number} clientX @param {number} clientY
+     * @returns {[number, number]}
+     */
+    patchCanvasPoint(clientX, clientY) {
+        const editor = this.patchEditor;
+        const box = editor.precanvas.getBoundingClientRect();
+        return [(clientX - box.left) / editor.zoom, (clientY - box.top) / editor.zoom];
+    },
+
+    /** Blocks dragged from the palette land where they're dropped. */
+    bindPatchDrop(editor) {
+        const canvas = this.elements.patchCanvas;
+        canvas.addEventListener('dragover', (event) => {
+            if (!event.dataTransfer?.types.includes(DRAG_TYPE)) return;
+            event.preventDefault();
+            event.dataTransfer.dropEffect = 'copy';
+        });
+        // a code field resized from its corner moves its block's ports
+        canvas.addEventListener('mouseup', (event) => {
+            const target = /** @type {Element} */ (event.target);
+            const node = target.closest?.('.drawflow-node');
+            if (node && target.matches('textarea')) requestAnimationFrame(() => editor.updateConnectionNodes(node.id));
+        });
+        canvas.addEventListener('drop', (event) => {
+            const type = event.dataTransfer?.getData(DRAG_TYPE);
+            if (!type || !BLOCKS[type] || !editor) return;
+            event.preventDefault();
+            this.addPatchNode(type, event.clientX, event.clientY);
+        });
+    },
+
+    /**
+     * Ports get their tooltip on first hover: which input or output it is
+     * (the name patch.css draws beside it) and how to wire it.
+     */
+    bindPatchPortTips() {
+        this.elements.patchCanvas.addEventListener('mouseover', (event) => {
+            const port = /** @type {Element} */ (event.target).closest?.('.input, .output');
+            if (!port || port.hasAttribute('title')) return;
+            const isInput = port.classList.contains('input');
+            const n = [...port.classList].map((c) => /^(?:input|output)_(\d+)$/.exec(c)?.[1]).find(Boolean) || '1';
+            const name = getComputedStyle(port, '::after').content.replace(/^["']|["']$/g, '');
+            const label = `${isInput ? 'input' : 'output'} ${n}${name && name !== 'none' ? ` (${name})` : ''}`;
+            port.setAttribute(
+                'title',
+                isInput
+                    ? `${label}: drag from an output to here to wire them; click a wire and press Delete to remove it`
+                    : `${label}: drag from here to an input to wire them; one output can feed many inputs`
+            );
+        });
+    },
+
+    /**
      * Zooms to `zoom`, keeping the canvas point under (clientX, clientY)
      * where it is. Drawflow scales around the canvas's centre.
      * @param {number} zoom @param {number} clientX @param {number} clientY
@@ -628,8 +749,8 @@ export const patchMethods = {
         await this.ensurePatchEditor();
         this.loadPatch(patch);
         this.patchFileName = name;
-        this.outputLine(`patch: opened ${name}${this.patchRunning ? ' and running it' : ''}`);
-        if (this.patchRunning) for (const line of liveLines(this.exportPatch())) this.sendPatchLine(line);
+        this.outputLine(`patch: opened ${name}`);
+        this.replacePatchOnDevice(liveLines(this.exportPatch()));
     },
 
     /** The "open…" list: the device's own scripts (not the runtime's or iii's). */
@@ -640,11 +761,12 @@ export const patchMethods = {
         const names = (this.fileEntries || [])
             .map((entry) => entry.name)
             .filter((name) => name.endsWith('.lua') && !skip.has(name))
+            .filter((name) => !this.patchFileNames || this.patchFileNames.has(name))
             .sort();
         select.replaceChildren();
         const prompt = document.createElement('option');
         prompt.value = '';
-        prompt.textContent = names.length ? 'open…' : 'open… (no scripts)';
+        prompt.textContent = names.length ? 'open…' : 'open… (no patches saved)';
         select.appendChild(prompt);
         for (const name of names) {
             const option = document.createElement('option');
@@ -664,11 +786,61 @@ export const patchMethods = {
         }
     },
 
-    /** Every edit: remember it, and while running send it to the device. */
-    /** @param {() => void} send */
-    onPatchChange(send) {
+    /**
+     * Every edit: remember it and, while the patch runs, send it to the
+     * device: at once when live, otherwise when apply is pressed. Edits with
+     * the same key (one block's fields) wait as one, in the place of the
+     * first, and `later` is what's sent then.
+     * @param {() => void} send @param {string} [key] @param {() => void} [later]
+     */
+    onPatchChange(send, key, later = send) {
         this.savePatchLocally();
-        if (this.patchRunning) send();
+        if (!this.patchRunning) return;
+        if (this.patchLive) {
+            send();
+            return;
+        }
+        const k = key || `edit:${this.patchPendingSeq++}`;
+        if (!this.patchPending.has(k)) this.patchPending.set(k, later);
+        this.updatePatchStatus();
+    },
+
+    /** A whole new patch on the canvas (opened, an example, cleared). */
+    /** @param {string[]} lines */
+    replacePatchOnDevice(lines) {
+        if (!this.patchRunning) return;
+        const send = () => {
+            for (const line of lines) this.sendPatchLine(line);
+        };
+        if (this.patchLive) {
+            send();
+            return;
+        }
+        this.patchPending.clear();
+        this.patchPending.set('all', send);
+        this.updatePatchStatus();
+    },
+
+    /** Sends the edits that waited, in order. */
+    applyPatchEdits() {
+        const edits = [...this.patchPending.values()];
+        this.patchPending.clear();
+        if (this.patchRunning) for (const send of edits) send();
+        this.updatePatchStatus();
+        if (edits.length) this.outputLine(`patch: applied ${edits.length} edit${edits.length === 1 ? '' : 's'}`);
+    },
+
+    /** @param {boolean} on */
+    setPatchLive(on) {
+        this.patchLive = on;
+        try {
+            window.localStorage.setItem(LIVE_KEY, on ? 'on' : 'off');
+        } catch {
+            // storage blocked
+        }
+        // going live: what waited goes now
+        if (on && this.patchPending.size) this.applyPatchEdits();
+        this.updatePatchStatus();
     },
 
     // ------------------------------------------------------------ the device
@@ -681,7 +853,9 @@ export const patchMethods = {
 
     /** @param {number} id */
     sendPatchNode(id) {
-        const node = this.patchEditor?.getNodeFromId(id);
+        // gone already (added, then deleted before apply)
+        if (!this.patchEditor?.drawflow.drawflow[this.patchEditor.module].data[id]) return;
+        const node = this.patchEditor.getNodeFromId(id);
         if (!node || !BLOCKS[node.name]) return;
         // B.node replaces a node and keeps its wires
         this.sendPatchLine(`B.node(${id}, "${node.name}", ${luaParams(node.name, node.data)})`);
@@ -746,13 +920,19 @@ export const patchMethods = {
         }
         for (const line of liveLines(this.exportPatch())) this.sendPatchLine(line);
         this.patchRunning = true;
+        this.patchPending.clear();
         this.updatePatchStatus();
-        this.outputLine('patch: running; edits go to the device as you make them');
+        this.outputLine(
+            this.patchLive
+                ? 'patch: running; live, so edits go to the device as you make them'
+                : 'patch: running; edits wait until you press apply'
+        );
     },
 
     stopPatch() {
         if (this.patchRunning) this.sendPatchLine('B.clear()');
         this.patchRunning = false;
+        this.patchPending.clear();
         this.updatePatchStatus();
     },
 
@@ -782,7 +962,7 @@ export const patchMethods = {
         if (!this.patchEditor || !make) return;
         if (!window.confirm(`Replace the canvas with the ${name} example?`)) return;
         this.loadPatch(make());
-        if (this.patchRunning) for (const line of liveLines(this.exportPatch())) this.sendPatchLine(line);
+        this.replacePatchOnDevice(liveLines(this.exportPatch()));
     },
 
     clearPatchCanvas() {
@@ -790,11 +970,12 @@ export const patchMethods = {
         if (!window.confirm('Remove every block from the canvas?')) return;
         this.loadPatch({ nodes: [], wires: [] });
         // still running: blocks added next need the tick and the handlers
-        if (this.patchRunning) for (const line of ['B.clear()', 'B.start()']) this.sendPatchLine(line);
+        this.replacePatchOnDevice(['B.clear()', 'B.start()']);
     },
 
     patchDisconnected() {
         this.patchRunning = false;
+        this.patchPending.clear();
         this.updatePatchStatus();
     }
 };

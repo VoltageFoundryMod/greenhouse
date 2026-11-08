@@ -123,6 +123,16 @@ export const fileMethods = {
 
             main.appendChild(label);
 
+            const isPatch = Boolean(this.patchFileNames?.has(entry.name));
+            if (isPatch) {
+                const patchBadge = document.createElement('span');
+                patchBadge.className = 'file-first-pill file-patch-pill';
+                patchBadge.textContent = 'patch';
+                patchBadge.title = 'made in the patch editor: ⋯ → edit patch opens it there';
+                patchBadge.setAttribute('aria-label', `${entry.name} is a patch`);
+                main.appendChild(patchBadge);
+            }
+
             if (entry.name !== 'init.lua' && this.firstBadgeFileNames.has(entry.name)) {
                 const firstBadge = document.createElement('span');
                 firstBadge.className = 'file-first-pill';
@@ -160,7 +170,7 @@ export const fileMethods = {
                         { label: 'run', fn: () => this.enqueueRunFile(entry.name) },
                         { label: 'edit', fn: () => this.editFile(entry.name) },
                         // a patch saved from the patch drawer opens back there
-                        ...(this.patchCaps && entry.name.endsWith('.lua')
+                        ...(this.patchCaps && (isPatch || (!this.patchFileNames && entry.name.endsWith('.lua')))
                             ? [{ label: 'edit patch', fn: () => this.openPatchFile(entry.name) }]
                             : []),
                         { label: 'rename', fn: () => this.renameFile(entry.name) },
@@ -224,6 +234,11 @@ export const fileMethods = {
 
             this.fileEntries = entries;
 
+            try {
+                await this.refreshPatchFileNames(entries);
+            } catch {
+                this.patchFileNames = null;
+            }
             try {
                 await this.refreshFirstBadgeFileNames(entries);
             } catch {
@@ -318,6 +333,27 @@ export const fileMethods = {
         const free = valid(heapFree);
         const total = valid(heapTotal);
         return { lua: valid(lua), heapFree: free != null && total ? free : null, heapTotal: total };
+    },
+
+    /**
+     * Scripts saved from the patch drawer start with "-- diii patch:"; ask
+     * the device which do (small files only: each is read whole into RAM).
+     * @param {{ name: string, size?: number }[]} entries
+     */
+    async refreshPatchFileNames(entries) {
+        if (!entries.some((entry) => entry.name.endsWith('.lua'))) {
+            this.patchFileNames = new Set();
+            return;
+        }
+        const lines = await this.executeLuaCapture(
+            'for _, n in ipairs(fs_list_files()) do if n:match("%.lua$") and (fs_file_size(n) or 0) < 32768 then local s = fs_read_file(n) if s and s:find("^%-%- diii patch:") then print("__webdiii_patch\\t" .. n) end s = nil end end collectgarbage()'
+        );
+        this.patchFileNames = new Set(
+            lines
+                .map((line) => String(line).split('\t'))
+                .filter((parts) => parts[0] === '__webdiii_patch' && parts[1])
+                .map((parts) => parts[1].trim())
+        );
     },
 
     async refreshFirstBadgeFileNames(entries) {

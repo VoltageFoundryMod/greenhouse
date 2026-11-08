@@ -125,17 +125,21 @@
                                     <div class="repl-actions-spacer"></div>
                                     <div class="midi-controls patch-controls">
                                         <button type="button" id="patchRunBtn" class="repl-action-btn"
-                                            title="run the patch on the device; while it runs, every edit goes there live">run</button>
+                                            title="start the patch on the device (from scratch); it keeps running while you edit">run</button>
                                         <button type="button" id="patchStopBtn" class="repl-action-btn"
-                                            title="stop the patch">stop</button>
-                                        <select id="patchOpenSelect" class="ach-tint"
+                                            title="stop the patch on the device">stop</button>
+                                        <button type="button" id="patchLiveBtn" class="repl-action-btn" aria-pressed="true"
+                                            title="live: while the patch runs, each edit goes to the device as you make it; off: edits wait for apply">live</button>
+                                        <button type="button" id="patchApplyBtn" class="repl-action-btn" hidden
+                                            title="send the edits made since the last apply to the running patch">apply</button>
+                                        <select id="patchOpenSelect" class="repl-action-btn patch-select"
                                             aria-label="open a patch from the device"
                                             title="open a patch saved on the device (a script with --@patch lines)">
                                             <option value="">open…</option>
                                         </select>
                                         <button type="button" id="patchSaveBtn" class="repl-action-btn"
                                             title="save the patch on the device as a script that runs on its own">save…</button>
-                                        <select id="patchExampleSelect" class="ach-tint" aria-label="load an example patch"
+                                        <select id="patchExampleSelect" class="repl-action-btn patch-select" aria-label="load an example patch"
                                             title="replace the canvas with an example">
                                             <option value="">examples…</option>
                                             <option value="basics">basics</option>
