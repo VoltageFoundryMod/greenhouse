@@ -22,6 +22,9 @@ details live in the linked documents; this is the list.
   keys and LEDs), the lua block for custom code, a send limit for fast
   outputs, a palette that follows the connected device (any iii device
   gets the drawer), port names, and a sequencer example.
+- **Visual editor, math and memory**: math, function, change, memory and
+  shared variables (set var / get var); zoom buttons and fit; selecting
+  several blocks (shift-drag, shift-click) to move or delete them together.
 
 ## Next
 

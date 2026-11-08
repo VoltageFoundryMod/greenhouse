@@ -177,6 +177,9 @@ class diiiApp {
             patchClearBtn: document.getElementById('patchClearBtn'),
             patchPalette: document.getElementById('patchPalette'),
             patchCanvas: document.getElementById('patchCanvas'),
+            patchBody: document.getElementById('patchBody'),
+            patchZoom: document.getElementById('patchZoom'),
+            patchZoomLabel: document.getElementById('patchZoomLabel'),
             welcome: document.getElementById('welcome'),
             welcomeConnectBtn: document.getElementById('welcomeConnectBtn'),
             welcomeCloseBtn: document.getElementById('welcomeCloseBtn'),
@@ -269,6 +272,10 @@ class diiiApp {
         on(this.elements.acheneToggleBtn, 'click', () => this.toggleAchenePanel());
         on(this.elements.patchToggleBtn, 'click', () => this.togglePatchPanel());
         on(this.elements.patchRunBtn, 'click', () => this.runPatch());
+        on(this.elements.patchZoom, 'click', (e) => {
+            const how = e.target.closest('[data-zoom]')?.dataset.zoom;
+            if (how) this.zoomPatch(how);
+        });
         on(this.elements.patchStopBtn, 'click', () => this.stopPatch());
         on(this.elements.patchSaveBtn, 'click', () => this.savePatchToDevice());
         // the list is the device's files as of now: fill it when it's about to open

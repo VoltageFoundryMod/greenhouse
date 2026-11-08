@@ -47,6 +47,12 @@
             <div id="patchBody" class="patch-body">
                 <nav id="patchPalette" class="patch-palette" aria-label="blocks"></nav>
                 <div id="patchCanvas" class="patch-canvas"></div>
+                <div class="patch-zoom" id="patchZoom" role="group" aria-label="zoom">
+                    <button type="button" data-zoom="out">−</button>
+                    <button type="button" id="patchZoomLabel" data-zoom="reset">100%</button>
+                    <button type="button" data-zoom="in">+</button>
+                    <button type="button" data-zoom="fit">fit</button>
+                </div>
             </div>
         </section>
         <pre id="log"></pre>
@@ -66,7 +72,9 @@
                         patchStatus: $('patchStatus'),
                         patchRunBtn: $('patchRunBtn'),
                         patchPalette: $('patchPalette'),
-                        patchCanvas: $('patchCanvas')
+                        patchCanvas: $('patchCanvas'),
+                        patchBody: $('patchBody'),
+                        patchZoomLabel: $('patchZoomLabel')
                     },
                     iiiDevice: { isConnected: true },
                     uploadInProgress: false,
@@ -89,6 +97,10 @@
             if (hidden) setTimeout(() => ($('patchDrawer').hidden = false), 300);
             app.updatePatchStatus();
             $('patchRunBtn').addEventListener('click', () => app.runPatch());
+            $('patchZoom').addEventListener('click', (e) => {
+                const how = e.target.closest('[data-zoom]')?.dataset.zoom;
+                if (how) app.zoomPatch(how);
+            });
             $('patchStopBtn').addEventListener('click', () => app.stopPatch());
             $('patchFileBtn').addEventListener('click', () => note(patchFile('preview', app.exportPatch())));
             window.app = app;

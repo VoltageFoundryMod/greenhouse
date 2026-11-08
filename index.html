@@ -147,7 +147,14 @@
                                 </div>
                                 <div id="patchBody" class="patch-body">
                                     <nav id="patchPalette" class="patch-palette" aria-label="blocks"></nav>
-                                    <div id="patchCanvas" class="patch-canvas"></div>
+                                    <div id="patchCanvas" class="patch-canvas"
+                                        title="wheel zooms; drag on empty space selects (shift adds); click a block to select it, shift- or ctrl-click adds or removes; dragging a selected block moves them all; space + drag or the middle button pans; Delete removes, Esc lets go"></div>
+                                    <div class="patch-zoom" id="patchZoom" role="group" aria-label="zoom">
+                                        <button type="button" data-zoom="out" title="zoom out (wheel)">−</button>
+                                        <button type="button" id="patchZoomLabel" data-zoom="reset" title="back to 100%">100%</button>
+                                        <button type="button" data-zoom="in" title="zoom in (wheel)">+</button>
+                                        <button type="button" data-zoom="fit" title="show the whole patch">fit</button>
+                                    </div>
                                 </div>
                             </section>
                             <section id="acheneDrawer" class="ach-drawer" aria-label="achene" hidden>

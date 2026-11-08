@@ -23,6 +23,8 @@ const GROUPS = [
     ['grid', 'grid'],
     ['source', 'sources'],
     ['process', 'process'],
+    ['math', 'math'],
+    ['memory', 'memory'],
     ['output', 'outputs'],
     ['custom', 'custom']
 ];
@@ -123,10 +125,40 @@ export const patchMethods = {
         const { Drawflow } = await import('../vendor/drawflow.js');
         const editor = new Drawflow(this.elements.patchCanvas);
         editor.reroute = false;
-        editor.zoom_min = 0.4;
-        editor.zoom_max = 1.6;
+        editor.zoom_min = 0.3;
+        editor.zoom_max = 2;
+        /** blocks selected together (ids): moved and deleted as a group */
+        this.patchSelection = new Set();
+        // Drawflow moves only the block being dragged; move the rest of the
+        // selection by the same amount. Its handler is bound in start(), so
+        // wrap it before.
+        const position = editor.position.bind(editor);
+        editor.position = (event) => {
+            const el = editor.drag ? editor.ele_selected : null;
+            const id = el ? Number(String(el.id).replace('node-', '')) : NaN;
+            const data = editor.drawflow.drawflow[editor.module].data;
+            const before = this.patchSelection.has(id) ? { x: data[id].pos_x, y: data[id].pos_y } : null;
+            position(event);
+            if (!before || this.patchSelection.size < 2) return;
+            const dx = data[id].pos_x - before.x;
+            const dy = data[id].pos_y - before.y;
+            if (!dx && !dy) return;
+            for (const other of this.patchSelection) {
+                if (other === id || !data[other]) continue;
+                data[other].pos_x += dx;
+                data[other].pos_y += dy;
+                const node = document.getElementById(`node-${other}`);
+                if (node) {
+                    node.style.left = `${data[other].pos_x}px`;
+                    node.style.top = `${data[other].pos_y}px`;
+                }
+                editor.updateConnectionNodes(`node-${other}`);
+            }
+        };
         editor.start();
         this.patchEditor = editor;
+        this.bindPatchSelection(editor);
+        editor.on('zoom', () => this.updatePatchZoomLabel());
         // Drawflow draws a wire from its blocks' positions on screen, which
         // are all zero while the drawer is hidden: redraw them whenever the
         // canvas changes size (hidden to shown, opened, resized)
@@ -141,7 +173,10 @@ export const patchMethods = {
         }).observe(this.elements.patchCanvas);
 
         editor.on('nodeCreated', (id) => this.onPatchChange(() => this.sendPatchNode(Number(id))));
-        editor.on('nodeRemoved', (id) => this.onPatchChange(() => this.sendPatchLine(`B.remove(${Number(id)})`)));
+        editor.on('nodeRemoved', (id) => {
+            this.patchSelection.delete(Number(id));
+            this.onPatchChange(() => this.sendPatchLine(`B.remove(${Number(id)})`));
+        });
         editor.on('connectionCreated', (c) => this.onPatchChange(() => this.sendPatchWire('wire', c)));
         editor.on('connectionRemoved', (c) => this.onPatchChange(() => this.sendPatchWire('unwire', c)));
         editor.on('nodeDataChanged', (id) => this.onPatchChange(() => this.queuePatchNode(Number(id))));
@@ -257,6 +292,7 @@ export const patchMethods = {
     loadPatch(patch) {
         const editor = this.patchEditor;
         if (!editor) return;
+        this.clearPatchSelection();
         /** @type {Record<string, any>} */
         const data = {};
         for (const n of patch.nodes) {
@@ -293,6 +329,273 @@ export const patchMethods = {
         editor.nodeId = (ids.length ? Math.max(...ids) : 0) + 1;
         requestAnimationFrame(() => this.redrawPatchWires());
         this.savePatchLocally();
+    },
+
+    // ------------------------------------------------------------ zoom
+
+    /** @param {'in' | 'out' | 'reset' | 'fit'} how */
+    zoomPatch(how) {
+        const editor = this.patchEditor;
+        if (!editor) return;
+        if (how === 'in') editor.zoom_in();
+        else if (how === 'out') editor.zoom_out();
+        else if (how === 'reset') editor.zoom_reset();
+        else this.fitPatch();
+        this.updatePatchZoomLabel();
+    },
+
+    /** Zooms and pans so the whole patch fits the canvas. */
+    fitPatch() {
+        const editor = this.patchEditor;
+        const canvas = this.elements.patchCanvas;
+        const data = editor?.drawflow.drawflow[editor.module].data || {};
+        const ids = Object.keys(data);
+        if (!editor || !canvas || !ids.length) return;
+        let x0 = Infinity;
+        let y0 = Infinity;
+        let x1 = -Infinity;
+        let y1 = -Infinity;
+        for (const id of ids) {
+            const el = document.getElementById(`node-${id}`);
+            const w = el?.offsetWidth || 150;
+            const h = el?.offsetHeight || 80;
+            x0 = Math.min(x0, data[id].pos_x);
+            y0 = Math.min(y0, data[id].pos_y);
+            x1 = Math.max(x1, data[id].pos_x + w);
+            y1 = Math.max(y1, data[id].pos_y + h);
+        }
+        const W = editor.precanvas.clientWidth || canvas.clientWidth;
+        const H = editor.precanvas.clientHeight || canvas.clientHeight;
+        const pad = 40;
+        const zoom = Math.max(
+            editor.zoom_min,
+            Math.min(editor.zoom_max, 1, (W - pad) / (x1 - x0), (H - pad) / (y1 - y0))
+        );
+        // Drawflow scales around the canvas's centre: put the patch's centre there
+        editor.zoom = zoom;
+        editor.zoom_last_value = zoom;
+        editor.canvas_x = -((x0 + x1) / 2 - W / 2) * zoom;
+        editor.canvas_y = -((y0 + y1) / 2 - H / 2) * zoom;
+        editor.precanvas.style.transform = `translate(${editor.canvas_x}px, ${editor.canvas_y}px) scale(${zoom})`;
+        editor.dispatch('zoom', zoom);
+    },
+
+    updatePatchZoomLabel() {
+        const label = this.elements.patchZoomLabel;
+        if (label && this.patchEditor) label.textContent = `${Math.round(this.patchEditor.zoom * 100)}%`;
+    },
+
+    // ------------------------------------------------------------ selection
+
+    /**
+     * The canvas's mouse, as in most node editors:
+     * - wheel: zoom, anchored at the pointer;
+     * - drag on empty space: a selection box (shift adds to the selection);
+     * - click a block: select it; shift- or ctrl-click adds or removes it;
+     *   dragging a selected block moves them all (editor.position, above);
+     * - pan: hold space and drag, or drag with the middle button;
+     * - Delete removes the selection, Esc lets go.
+     * Drawflow pans on a plain drag and zooms on ctrl+wheel only, so these
+     * listeners run first (capture) and stop it where they take over.
+     * @param {any} editor
+     */
+    bindPatchSelection(editor) {
+        const canvas = this.elements.patchCanvas;
+        const body = this.elements.patchBody || canvas.parentElement;
+        const isField = (/** @type {Element | null} */ el) => Boolean(el?.closest('input, textarea, select'));
+        const nodeOf = (/** @type {Element | null} */ el) => el?.closest('.drawflow-node') || null;
+        const idOf = (/** @type {Element} */ node) => Number(String(node.id).replace('node-', ''));
+        let spaceHeld = false;
+
+        // wheel: zoom around the pointer (a code field still scrolls)
+        body.addEventListener(
+            'wheel',
+            (event) => {
+                const target = /** @type {Element} */ (event.target);
+                if (!canvas.contains(target)) return;
+                const area = target.closest('textarea');
+                if (area && area.scrollHeight > area.clientHeight) return;
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                const factor = Math.exp(-event.deltaY * (event.deltaMode === 1 ? 0.05 : 0.0015));
+                this.zoomPatchAt(editor.zoom * factor, event.clientX, event.clientY);
+            },
+            { capture: true, passive: false }
+        );
+
+        canvas.addEventListener(
+            'mousedown',
+            (event) => {
+                const target = /** @type {Element} */ (event.target);
+                if (isField(target)) return;
+                // pan: the middle button anywhere, or space + drag
+                if (event.button === 1 || (event.button === 0 && spaceHeld)) {
+                    event.stopPropagation();
+                    event.preventDefault();
+                    this.startPatchPan(event);
+                    return;
+                }
+                if (event.button !== 0) return;
+                const node = nodeOf(target);
+                const onPort = Boolean(target.closest('.input, .output'));
+                if (node && !onPort) {
+                    const id = idOf(node);
+                    if (event.shiftKey || event.ctrlKey || event.metaKey) {
+                        // add or remove it, and keep Drawflow from dragging it
+                        event.stopPropagation();
+                        event.preventDefault();
+                        this.togglePatchSelected(id);
+                    } else if (!this.patchSelection.has(id)) {
+                        // a block outside the selection: it alone (Drawflow drags it)
+                        this.clearPatchSelection();
+                        this.togglePatchSelected(id);
+                    }
+                    return;
+                }
+                if (!node) {
+                    event.stopPropagation();
+                    event.preventDefault();
+                    if (!event.shiftKey) this.clearPatchSelection();
+                    this.startPatchBox(event, body);
+                }
+            },
+            true
+        );
+
+        // space held: the next drag pans (and the page doesn't scroll)
+        document.addEventListener('keydown', (event) => {
+            if (event.key !== ' ' || !this.patchPanelOpen || isField(document.activeElement)) return;
+            if (!canvas.matches(':hover')) return;
+            event.preventDefault();
+            if (!spaceHeld) {
+                spaceHeld = true;
+                canvas.classList.add('pn-panning');
+            }
+        });
+        document.addEventListener('keyup', (event) => {
+            if (event.key !== ' ') return;
+            spaceHeld = false;
+            canvas.classList.remove('pn-panning');
+        });
+
+        document.addEventListener('keydown', (event) => {
+            if (!this.patchSelection.size || !this.patchPanelOpen || isField(document.activeElement)) return;
+            if (event.key === 'Escape') {
+                this.clearPatchSelection();
+            } else if (event.key === 'Delete' || event.key === 'Backspace') {
+                event.preventDefault();
+                const data = editor.drawflow.drawflow[editor.module].data;
+                for (const id of [...this.patchSelection]) if (data[id]) editor.removeNodeId(`node-${id}`);
+                this.clearPatchSelection();
+            }
+        });
+    },
+
+    /**
+     * Zooms to `zoom`, keeping the canvas point under (clientX, clientY)
+     * where it is. Drawflow scales around the canvas's centre.
+     * @param {number} zoom @param {number} clientX @param {number} clientY
+     */
+    zoomPatchAt(zoom, clientX, clientY) {
+        const editor = this.patchEditor;
+        if (!editor) return;
+        const z = Math.min(editor.zoom_max, Math.max(editor.zoom_min, zoom));
+        const box = editor.precanvas.parentElement.getBoundingClientRect();
+        const ox = editor.precanvas.clientWidth / 2;
+        const oy = editor.precanvas.clientHeight / 2;
+        const mx = clientX - box.left;
+        const my = clientY - box.top;
+        // the canvas point under the pointer, then where it must stay
+        const px = ox + (mx - editor.canvas_x - ox) / editor.zoom;
+        const py = oy + (my - editor.canvas_y - oy) / editor.zoom;
+        editor.zoom = z;
+        editor.zoom_last_value = z;
+        editor.canvas_x = mx - ox - (px - ox) * z;
+        editor.canvas_y = my - oy - (py - oy) * z;
+        editor.precanvas.style.transform = `translate(${editor.canvas_x}px, ${editor.canvas_y}px) scale(${z})`;
+        editor.dispatch('zoom', z);
+        this.updatePatchZoomLabel();
+    },
+
+    /** Pans the canvas while the mouse moves (middle button, or space + drag). */
+    /** @param {MouseEvent} start */
+    startPatchPan(start) {
+        const editor = this.patchEditor;
+        if (!editor) return;
+        let x = start.clientX;
+        let y = start.clientY;
+        this.elements.patchCanvas.classList.add('pn-panning-now');
+        const move = (/** @type {MouseEvent} */ e) => {
+            editor.canvas_x += e.clientX - x;
+            editor.canvas_y += e.clientY - y;
+            x = e.clientX;
+            y = e.clientY;
+            editor.precanvas.style.transform = `translate(${editor.canvas_x}px, ${editor.canvas_y}px) scale(${editor.zoom})`;
+        };
+        const up = () => {
+            window.removeEventListener('mousemove', move);
+            window.removeEventListener('mouseup', up);
+            this.elements.patchCanvas.classList.remove('pn-panning-now');
+        };
+        window.addEventListener('mousemove', move);
+        window.addEventListener('mouseup', up);
+    },
+
+    /** @param {number} id */
+    togglePatchSelected(id) {
+        const el = document.getElementById(`node-${id}`);
+        if (this.patchSelection.delete(id)) el?.classList.remove('pn-picked');
+        else {
+            this.patchSelection.add(id);
+            el?.classList.add('pn-picked');
+        }
+    },
+
+    clearPatchSelection() {
+        for (const id of this.patchSelection) document.getElementById(`node-${id}`)?.classList.remove('pn-picked');
+        this.patchSelection?.clear();
+    },
+
+    /**
+     * The selection box: from where the drag starts to where it ends;
+     * every block it touches joins the selection.
+     * @param {MouseEvent} start @param {HTMLElement} body
+     */
+    startPatchBox(start, body) {
+        const box = document.createElement('div');
+        box.className = 'patch-select-box';
+        body.appendChild(box);
+        const origin = body.getBoundingClientRect();
+        const rect = { x0: start.clientX, y0: start.clientY, x1: start.clientX, y1: start.clientY };
+        const draw = () => {
+            box.style.left = `${Math.min(rect.x0, rect.x1) - origin.left}px`;
+            box.style.top = `${Math.min(rect.y0, rect.y1) - origin.top}px`;
+            box.style.width = `${Math.abs(rect.x1 - rect.x0)}px`;
+            box.style.height = `${Math.abs(rect.y1 - rect.y0)}px`;
+        };
+        draw();
+        const move = (/** @type {MouseEvent} */ e) => {
+            rect.x1 = e.clientX;
+            rect.y1 = e.clientY;
+            draw();
+        };
+        const up = () => {
+            window.removeEventListener('mousemove', move);
+            window.removeEventListener('mouseup', up);
+            box.remove();
+            const l = Math.min(rect.x0, rect.x1);
+            const r = Math.max(rect.x0, rect.x1);
+            const t = Math.min(rect.y0, rect.y1);
+            const b = Math.max(rect.y0, rect.y1);
+            for (const node of this.elements.patchCanvas.querySelectorAll('.drawflow-node')) {
+                const n = node.getBoundingClientRect();
+                if (n.right < l || n.left > r || n.bottom < t || n.top > b) continue;
+                const id = Number(String(node.id).replace('node-', ''));
+                if (!this.patchSelection.has(id)) this.togglePatchSelected(id);
+            }
+        };
+        window.addEventListener('mousemove', move);
+        window.addEventListener('mouseup', up);
     },
 
     /** Redraws every wire from where its blocks are now. */

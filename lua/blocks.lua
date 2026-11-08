@@ -5,10 +5,11 @@
 -- with B.node / B.wire (live) or B.patch{...} (a saved patch file).
 
 B = B or {}
-B.version = 3
+B.version = 4
 B.types = {}
 
 local nodes = {}      -- id -> node
+local vars = {}       -- name -> value, for set var / get var
 local listeners = {}  -- event name -> list of nodes
 local tickers = {}    -- nodes with a tick
 local pending = {}    -- node -> {value, send}: held by the send limit
@@ -166,7 +167,7 @@ end
 
 function B.clear()
   for id in pairs(nodes) do remove(id) end
-  listeners, tickers, pending = {}, {}, {}
+  listeners, tickers, pending, vars = {}, {}, {}, {}
   running = false
   if tick_metro then tick_metro:stop() end
   B.screen_clear()
@@ -494,6 +495,110 @@ B.type("lua", {
       node.failed = true
       print("lua block " .. node.id .. ": " .. tostring(err))
     end
+  end,
+})
+
+-- ------------------------------------------------------------- math
+
+local function truth(c) return c and 1 or 0 end
+
+local OPS = {
+  ["+"] = function(a, b) return a + b end,
+  ["-"] = function(a, b) return a - b end,
+  ["*"] = function(a, b) return a * b end,
+  ["/"] = function(a, b) return b ~= 0 and a / b or 0 end,
+  ["mod"] = function(a, b) return b ~= 0 and a % b or 0 end,
+  ["min"] = function(a, b) return math.min(a, b) end,
+  ["max"] = function(a, b) return math.max(a, b) end,
+  ["pow"] = function(a, b) return a ^ b end,
+  [">"] = function(a, b) return truth(a > b) end,
+  ["<"] = function(a, b) return truth(a < b) end,
+  ["="] = function(a, b) return truth(a == b) end,
+}
+
+-- two numbers: input 1 computes and sends (a op b); input 2 sets b without
+-- sending; until it does, b is the parameter (as in Max)
+B.type("math", {
+  inputs = 2, outputs = 1,
+  init = function(node) node.b = node.p.b or 0 end,
+  input = function(node, i, v)
+    if i == 2 then
+      node.b = v
+      return
+    end
+    local op = OPS[node.p.op or "+"] or OPS["+"]
+    B.out(node, 1, op(v, node.b))
+  end,
+})
+
+local FUNCS = {
+  sin = math.sin, cos = math.cos, tan = math.tan, abs = math.abs,
+  neg = function(v) return -v end,
+  sqrt = function(v) return math.sqrt(math.abs(v)) end,
+  exp = math.exp,
+  log = function(v) return v > 0 and math.log(v) or 0 end,
+  floor = math.floor, ceil = math.ceil,
+  round = function(v) return math.floor(v + 0.5) end,
+}
+
+-- one number in, one out; angles in radians (an LFO's 0..1 times 6.2832
+-- is a full turn)
+B.type("func", {
+  inputs = 1, outputs = 1,
+  input = function(node, _, v)
+    local f = FUNCS[node.p.op or "sin"] or FUNCS.sin
+    B.out(node, 1, f(v))
+  end,
+})
+
+-- passes a value only when it differs from the last one
+B.type("change", {
+  inputs = 1, outputs = 1,
+  input = function(node, _, v)
+    if v == node.last then return end
+    node.last = v
+    B.out(node, 1, v)
+  end,
+})
+
+-- ------------------------------------------------------------- memory
+
+-- input 1 stores and sends; input 2 stores without sending; input 3 (not 0)
+-- sends what's stored
+B.type("memory", {
+  inputs = 3, outputs = 1,
+  init = function(node) node.v = node.p.start or 0 end,
+  input = function(node, i, v)
+    if i == 1 then
+      node.v = v
+      B.out(node, 1, v)
+    elseif i == 2 then
+      node.v = v
+    elseif v ~= 0 then
+      B.out(node, 1, node.v)
+    end
+  end,
+})
+
+-- named values shared by the whole patch, without wires: set var stores
+-- and every get var of the same name sends it on
+B.type("var_set", {
+  inputs = 1,
+  input = function(node, _, v)
+    local name = node.p.name or "x"
+    vars[name] = v
+    for _, n in ipairs(listeners["var"] or {}) do
+      if (n.p.name or "x") == name then B.out(n, 1, v) end
+    end
+  end,
+})
+
+B.type("var_get", {
+  outputs = 1,
+  init = function(node) node.listen("var") end,
+  start = function(node)
+    local v = vars[node.p.name or "x"]
+    if v ~= nil then B.out(node, 1, v) end
   end,
 })
 

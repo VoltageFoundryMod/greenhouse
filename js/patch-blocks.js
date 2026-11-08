@@ -4,7 +4,7 @@
 // outputs and parameters.
 
 /** Version of lua/blocks.lua this diii carries; the device gets it when older. */
-export const RUNTIME_VERSION = 3;
+export const RUNTIME_VERSION = 4;
 
 /**
  * @typedef {object} Param
@@ -18,7 +18,7 @@ export const RUNTIME_VERSION = 3;
  *
  * @typedef {object} Block
  * @property {string} label
- * @property {'achene' | 'grid' | 'source' | 'process' | 'output' | 'custom'} group palette section;
+ * @property {'achene' | 'grid' | 'source' | 'process' | 'math' | 'memory' | 'output' | 'custom'} group palette section;
  *   achene and grid blocks show only for those devices
  * @property {number} inputs
  * @property {number} outputs
@@ -258,6 +258,69 @@ export const BLOCKS = {
         outputs: 1,
         doc: 'passes input 1 while input 2 is open (not 0); starts open',
         params: {}
+    },
+    math: {
+        label: 'math',
+        group: 'math',
+        inputs: 2,
+        outputs: 1,
+        doc: 'two numbers: input 1 computes and sends (a op b), input 2 sets b without sending; until then b is the field',
+        params: {
+            op: {
+                type: 'select',
+                label: 'op',
+                default: '+',
+                options: ['+', '-', '*', '/', 'mod', 'min', 'max', 'pow', '>', '<', '=']
+            },
+            b: { type: 'number', label: 'b', default: 1 }
+        }
+    },
+    func: {
+        label: 'function',
+        group: 'math',
+        inputs: 1,
+        outputs: 1,
+        doc: 'one number in, one out; sin/cos/tan take radians (an LFO times 6.2832 is a full turn)',
+        params: {
+            op: {
+                type: 'select',
+                label: 'fn',
+                default: 'sin',
+                options: ['sin', 'cos', 'tan', 'abs', 'neg', 'sqrt', 'exp', 'log', 'floor', 'ceil', 'round']
+            }
+        }
+    },
+    change: {
+        label: 'change',
+        group: 'math',
+        inputs: 1,
+        outputs: 1,
+        doc: 'passes a value only when it differs from the last one',
+        params: {}
+    },
+    memory: {
+        label: 'memory',
+        group: 'memory',
+        inputs: 3,
+        outputs: 1,
+        doc: 'input 1 stores and sends; input 2 stores quietly; input 3 (not 0) sends what is stored',
+        params: { start: { type: 'number', label: 'start', default: 0 } }
+    },
+    var_set: {
+        label: 'set var',
+        group: 'memory',
+        inputs: 1,
+        outputs: 0,
+        doc: 'stores a value under a name; every get var with that name sends it on (no wire needed)',
+        params: { name: { type: 'text', label: 'name', default: 'x' } }
+    },
+    var_get: {
+        label: 'get var',
+        group: 'memory',
+        inputs: 0,
+        outputs: 1,
+        doc: 'sends the value each time a set var with the same name stores one',
+        params: { name: { type: 'text', label: 'name', default: 'x' } }
     },
     print: {
         label: 'print',
