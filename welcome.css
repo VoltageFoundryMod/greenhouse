@@ -192,3 +192,71 @@
     font-size: 0.8rem;
     color: var(--neutral-medium);
 }
+
+/* what iii and diii are, side by side */
+.welcome-what {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 4px 28px;
+}
+
+/* iii and diii keep their lowercase */
+.welcome-what .welcome-heading {
+    text-transform: none;
+    letter-spacing: 0.02em;
+}
+
+.welcome-what p {
+    margin: 0;
+    font-size: 0.9rem;
+    line-height: 1.55;
+    color: var(--neutral-medium);
+}
+
+.welcome-what a {
+    color: var(--accent-hover);
+}
+
+/* what diii does with each device */
+.welcome-table {
+    width: 100%;
+    margin: 14px 0 4px;
+    border-collapse: collapse;
+    font-size: 0.82rem;
+    color: var(--neutral-medium);
+}
+
+.welcome-table caption {
+    margin-bottom: 4px;
+    text-align: left;
+    font-size: 0.75rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.welcome-table th,
+.welcome-table td {
+    padding: 5px 10px 5px 0;
+    border-bottom: 1px solid var(--neutral-trim);
+    text-align: left;
+    vertical-align: top;
+}
+
+.welcome-table thead th {
+    font-weight: 500;
+    color: var(--neutral-medium);
+}
+
+.welcome-table tbody th {
+    font-weight: 600;
+    color: var(--neutral-heavy);
+    white-space: nowrap;
+}
+
+/* narrow screens: the table scrolls inside itself, not the page */
+@media (max-width: 640px) {
+    .welcome-table {
+        display: block;
+        overflow-x: auto;
+    }
+}

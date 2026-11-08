@@ -153,7 +153,7 @@ B.patch{
 
 ## Blocks
 
-**The blocks so far** (runtime v4). Device blocks show in the palette only
+**The blocks so far** (runtime v5). Device blocks show in the palette only
 when that device is connected:
 
 | block                           | does                                                                                           |
@@ -172,12 +172,13 @@ when that device is connected:
 | midi in note _ch_               | output 1 the note number, output 2 1 on / 0 off                                                |
 | value _lo, hi, start_           | adds what comes in, clamped: encoder steps become a value; sends its start                     |
 | scale _in lo/hi, out lo/hi_     | maps a range                                                                                   |
-| toggle                          | flips 0 / 1 on each press                                                                      |
+| toggle                          | flips 0 / 1 on each press; sends its state (0) at the start too                                |
 | counter _lo, hi, step_          | input 1 steps (the first step is lo), input 2 resets; wraps                                    |
 | random _lo, hi_                 | a whole number in the range for each non-zero input                                            |
 | quantize _scale, root_          | the nearest note of the scale                                                                  |
 | slew _time_                     | glides to each new value                                                                       |
 | gate                            | passes input 1 while input 2 is open (not 0)                                                   |
+| route                           | input 1 out of output 1 while input 2 is 0, out of output 2 otherwise (one control, two jobs)  |
 | midi cc _cc, ch_                | sends the value (0..127, rounded; repeats skipped)                                             |
 | midi note _note, vel, ch_       | input 1: note on / off; input 2 sets the note number                                           |
 | math _op, b_                    | two numbers: + − × ÷ mod min max pow > < =; input 1 computes and sends, input 2 sets b quietly |
@@ -185,6 +186,7 @@ when that device is connected:
 | change                          | passes a value only when it differs from the last                                              |
 | memory _start_                  | input 1 stores and sends, input 2 stores quietly, input 3 recalls                              |
 | set var / get var _name_        | a named value shared by the whole patch, without wires (Max's send/receive)                    |
+| watch                           | passes values on and shows them on the block: the latest and a graph (10 a second)             |
 | print _label_                   | prints to diii's console, at most 10 a second                                                  |
 | lua _code_                      | your code, for each message: `i`, `v`, `out(n, value)`, and `s` kept between calls             |
 
@@ -193,12 +195,92 @@ counter counts only the 1s. Outputs (MIDI, LEDs) send at most once a tick:
 a value that comes sooner is held and the latest goes out next tick, so an
 LFO can't flood MIDI and a knob still answers at once.
 
+### The screen
+
+achene's screen is the centre of the patch: the **screen** blocks share a
+grid that matches the panel. Its four columns of 32 px sit under E1–E4 and
+over K1–K4, and its rows are **top** (9 px: what the encoders above do),
+**middle** (44 px, or its **middle top** and **middle bottom** halves) and
+**bottom** (9 px: what the keys below do). Each block takes a row, a
+column and a width in columns:
+
+```text
+ ┌ E1 ──┬ E2 ──┬ E3 ──┬ E4 ──┐   top
+ │ note │cutoff│   achene    │
+ ├──────┴──────┴──────┴──────┤
+ │ ■  ■  □  ■  □  ■  □  ■    │   middle top: steps
+ ├──────┬──────┬─────────────┤
+ │  ▮   │  ◔   │  ∿ lfo      │   middle bottom: slider, knob, graph
+ ├──────┼──────┼──────┬──────┤
+ │ run  │      │      │      │   bottom
+ └ K1 ──┴ K2 ──┴ K3 ──┴ K4 ──┘
+```
+
+| block                             | draws                                                                       |
+| --------------------------------- | --------------------------------------------------------------------------- |
+| enc label _label, lo, hi_ (top)   | a name with its value as a line under it; turning shows the number a moment |
+| key label _label_ (bottom)        | a name, inverted while its input is not 0 (a key, a toggle)                 |
+| slider _label, lo, hi_            | a vertical bar with its value over it and name under it                     |
+| knob _label, lo, hi_              | an arc with the value inside and the name under it                          |
+| number _label_                    | a name and its value as text                                                |
+| graph _label, lo, hi_             | the last values as a line scrolling from the right (25 a second)            |
+| steps _steps, note, lo, hi, keys_ | a step sequencer of up to 32 steps with a note each, as bars (below)        |
+| text _text_                       | fixed words                                                                 |
+
+**steps** is a sequencer in one block, up to 32 steps, each on or off with
+its own note, drawn as bars as tall as their notes (within lo..hi). Input 1
+is the playing step (from a counter): it sends the step's note (output 2)
+and, when the step is on, a gate (output 1: 1, then 0 at the next step); the
+note goes first so a midi note block plays it. Output 3 is the step number.
+Its **keys** (K1–K4, K5–K8, K10–K13, or all eight under the encoders) show
+the page of steps that's playing, with their LEDs (amber on, white playing,
+blue held). A press turns a step on or off; an encoder wired to input 3 then
+sets that step's note, for 2 seconds after the press or while the key is
+held, so press a step and dial its note with one hand (or one mouse, in
+diii's panel view). Otherwise the encoder transposes every step. The screen
+shows the step and note for a moment. Input 2 (a step number) turns a step
+on or off. Input 4 picks the page the keys show: each step from an encoder
+(or each press of a key) moves through auto, page 1, page 2… and back to
+auto, so a step on another page can be edited without waiting for it to play
+(the line under the bars marks the page; caps at its ends when it was picked
+by hand). The pattern and notes stay when the block is edited.
+
+**Examples** (examples… in the drawer): **sequencer**, 16 steps across the
+middle of the screen, played from the keys under E5–E12 (two pages; E4 picks
+one to edit), notes set with E1 and snapped to C minor, a filter cutoff and
+resonance on E2 and E3 with knobs, the playing step's number, and K1 to
+start and stop; **controller**, four CCs on E1–E4 named over their encoders
+with knobs and sliders under them, and K1 for sustain; **modes**, one set of
+encoders with two jobs: K2 toggles edit mode, and route blocks send E1 and
+E2 either to cutoff and resonance or to the sequencer's notes and page;
+**arp**, the lua block making an arpeggio; **basics**, a first patch: an
+encoder on a CC and the screen, a key on a note and its LED, an LFO on a CC.
+
+diii uploads blocks.lua again whenever it changes (its first line carries a
+fingerprint of the text); a copy loaded again stops the one that was running
+and takes over its clock, so two never play at once.
+
+The **screen** button in the drawer opens the layout builder
+(js/patch-screen.js): the screen drawn between E1–E4 and K1–K4 with a box
+for each screen block. Drag a box to move it, drag its right edge to widen
+it, double-click it to switch between the full middle row and a half;
+overlapping boxes turn red, and a click selects the block on the canvas.
+The **? guide** button (and the opening page) shows a patching guide with a
+picture of the grid.
+
+The screen redraws at most 25 times a second and only when something on it
+changed; the firmware sends the frame in the background, one changed page
+at a time. The older **display** block (8 fixed bars) still works and draws
+under the screen blocks.
+
 The lua block's code travels as one Lua string in one line, so it's capped
 at 360 characters (iii reads 512 per line). Longer code belongs in a user
 block file (below).
 
 **Next**: probability, curve, sample & hold, stepped values, a clock out,
-grid key rows and LED rows, the achene's screen beyond bars.
+grid key rows and LED rows; for the screen, pages (a page input that
+flips between sets of screen blocks), saving a steps pattern with the
+patch, and a menu block to set parameters from the panel.
 
 **From the Monolit list** (achene's DESIGN.md §9.4): LFO with clock sync and
 min/max, motion recorder, macro (one to many), key modifiers (freeze,
@@ -211,14 +293,25 @@ palette.
 
 Blocks come from the palette by a click (near the middle of the view) or a
 drag (where they are dropped). Hovering a block's title, a field or a port
-tells what it does. As in most node editors: the wheel zooms around the
-pointer (the buttons too, and **fit** shows the whole patch); a drag on
-empty space draws a selection box (shift adds to it); a click selects a
-block, shift- or ctrl-click adds or removes one; dragging a selected block
-moves the whole selection; space + drag or the middle button pans; Delete
-removes the selection, Esc lets go. Drawflow pans on a plain drag, zooms on
-ctrl+wheel only and has no group selection, so js/patch.js handles these
-first and wraps its drag handler to move the rest of a selection.
+tells what it does. Wires are drawn from either end: from an output to an
+input, or from an input back to an output. As in most node editors: the
+wheel zooms around the pointer (the buttons too, and **fit** shows the whole
+patch); a drag on empty space draws a selection box (shift adds to it); a
+click selects a block, shift- or ctrl-click adds or removes one; dragging a
+selected block moves the whole selection; space + drag or the middle button
+pans; ctrl+C / X / V copy, cut and paste the selection with the wires
+between its blocks (a paste lands under the mouse, and copied blocks paste
+into another diii tab too), ctrl+D duplicates it, ctrl+A selects every
+block; delete removes the selection, Esc lets go. Drawflow pans on a plain
+drag, zooms on ctrl+wheel only and has no group selection, so js/patch.js
+handles these first and wraps its drag handler to move the rest of a
+selection. The **patch** button at the top opens the editor any time, with
+no device connected: a patch can be made offline and kept with **export…**
+(a file on the computer, in the same format as **save…** on the device) and
+**import…**. The guide's **recipes** are small wirings (an encoder on a CC,
+a key as a switch, an LFO on a CC, random notes on a beat, following a MIDI
+clock, an LFO around a knob, a shared value, one key for two jobs) that
+**add** puts on the canvas beside what's there.
 
 ## Memory and timing
 

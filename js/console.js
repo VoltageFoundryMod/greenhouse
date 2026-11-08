@@ -359,6 +359,11 @@ export const consoleMethods = {
             this.handleMidiCountsLine(cleaned);
             return;
         }
+        // a patch's watch blocks reporting their values (js/patch.js)
+        if (cleaned.startsWith('^^pw(')) {
+            this.handlePatchWatchLine?.(cleaned);
+            return;
+        }
 
         if (this.handleSuppressedOutputLine(cleaned)) {
             return;

@@ -17,6 +17,7 @@ import { fileMethods } from './js/files.js';
 import { gridMethods } from './js/grid.js';
 import { acheneMethods } from './js/achene.js';
 import { patchMethods } from './js/patch.js';
+import { patchScreenMethods } from './js/patch-screen.js';
 import { backupUiMethods } from './js/backup-ui.js';
 import { editorUiMethods } from './js/editor-ui.js';
 import { firmwareUiMethods } from './js/firmware-ui.js';
@@ -174,6 +175,13 @@ class diiiApp {
             patchRunBtn: document.getElementById('patchRunBtn'),
             patchStopBtn: document.getElementById('patchStopBtn'),
             patchLiveBtn: document.getElementById('patchLiveBtn'),
+            patchScreenBtn: document.getElementById('patchScreenBtn'),
+            patchOpenBtn: document.getElementById('patchOpenBtn'),
+            patchExportBtn: document.getElementById('patchExportBtn'),
+            patchImportBtn: document.getElementById('patchImportBtn'),
+            patchImportInput: document.getElementById('patchImportInput'),
+            patchGuideBtn: document.getElementById('patchGuideBtn'),
+            welcomeGuideBtn: document.getElementById('welcomeGuideBtn'),
             patchApplyBtn: document.getElementById('patchApplyBtn'),
             patchSaveBtn: document.getElementById('patchSaveBtn'),
             patchOpenSelect: document.getElementById('patchOpenSelect'),
@@ -282,6 +290,17 @@ class diiiApp {
         });
         on(this.elements.patchStopBtn, 'click', () => this.stopPatch());
         on(this.elements.patchLiveBtn, 'click', () => this.setPatchLive(!this.patchLive));
+        on(this.elements.patchScreenBtn, 'click', () => this.togglePatchScreen());
+        on(this.elements.patchOpenBtn, 'click', () => this.showPatchEditor());
+        on(this.elements.patchExportBtn, 'click', () => this.exportPatchFile());
+        on(this.elements.patchImportBtn, 'click', () => this.elements.patchImportInput?.click());
+        on(this.elements.patchImportInput, 'change', (e) => {
+            const file = e.target.files?.[0];
+            e.target.value = '';
+            if (file) this.importPatchFile(file);
+        });
+        on(this.elements.patchGuideBtn, 'click', () => this.togglePatchGuide());
+        on(this.elements.welcomeGuideBtn, 'click', () => this.togglePatchGuide(true));
         on(this.elements.patchApplyBtn, 'click', () => this.applyPatchEdits());
         on(this.elements.patchSaveBtn, 'click', () => this.savePatchToDevice());
         // the list is the device's files as of now: fill it when it's about to open
@@ -362,6 +381,7 @@ Object.assign(
     gridMethods,
     acheneMethods,
     patchMethods,
+    patchScreenMethods,
     backupUiMethods,
     editorUiMethods,
     firmwareUiMethods,

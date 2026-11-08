@@ -25,6 +25,17 @@ details live in the linked documents; this is the list.
 - **Visual editor, math and memory**: math, function, change, memory and
   shared variables (set var / get var); zoom buttons and fit; selecting
   several blocks (shift-drag, shift-click) to move or delete them together.
+- **Visual editor, the screen**: screen blocks on a grid that matches the
+  panel (enc label, key label, slider, knob, number, graph, steps, text),
+  steps as a sequencer played from the keys with their LEDs, and a screen
+  example; live/apply, palette drag, tooltips and resizable drawers; a
+  screen layout builder (drag the screen blocks into place), a patching
+  guide, and an opening page that says what iii and diii are and what
+  works with each device.
+- **Visual editor, steps and recipes**: steps with a note per step (bars),
+  up to 32 steps, paging, one-handed note editing; route and watch blocks;
+  a modes example; recipes in the guide; offline editing with export and
+  import.
 
 ## Next
 

@@ -202,6 +202,17 @@
     border-color: var(--accent);
 }
 
+/* wires start from either end */
+.patch-canvas .drawflow .drawflow-node .output,
+.patch-canvas .drawflow .drawflow-node .input {
+    cursor: crosshair;
+}
+
+/* a wire being drawn from an input: under the mouse, not in its way */
+.patch-canvas .pn-wire-draft {
+    pointer-events: none;
+}
+
 .patch-canvas .drawflow .connection .main-path {
     stroke: #6b8fbf;
     stroke-width: 3px;
@@ -275,6 +286,11 @@
     font: inherit;
 }
 
+.pn-field select {
+    width: auto;
+    min-width: 68px;
+}
+
 .pn-field input[type='text'] {
     width: 84px;
 }
@@ -324,6 +340,57 @@
 .pn-var_set .pn-title,
 .pn-var_get .pn-title {
     color: #9fe0e0;
+}
+
+.pn-enc_label .pn-title,
+.pn-key_label .pn-title,
+.pn-slider .pn-title,
+.pn-knob .pn-title,
+.pn-number .pn-title,
+.pn-graph .pn-title,
+.pn-steps .pn-title,
+.pn-text .pn-title {
+    color: #f59fc8;
+}
+
+.pn-watch .pn-title {
+    color: #79b8ff;
+}
+
+/* the watch block's view: the latest value and the last ones as a line */
+.pn-watchview {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    width: 120px;
+}
+
+.pn-watch-value {
+    font-family: var(--mono-font, ui-monospace, monospace);
+    font-size: 0.95rem;
+    color: var(--neutral-heavy);
+}
+
+/* Drawflow positions every svg on its canvas absolutely (its wires are
+   svgs); this one stays in the block */
+.patch-canvas .drawflow .pn-watch-graph {
+    position: static;
+    display: block;
+    overflow: hidden !important;
+}
+
+.pn-watch-graph {
+    width: 100%;
+    height: 28px;
+    border-radius: 3px;
+    background: #1b1c1f;
+}
+
+.pn-watch-graph polyline {
+    fill: none;
+    stroke: #79b8ff;
+    stroke-width: 1.5;
+    vector-effect: non-scaling-stroke;
 }
 
 .pn-print .pn-title {
@@ -385,6 +452,46 @@
     content: 'recall';
 }
 
+.pn-route .input_2::after {
+    content: 'pick';
+}
+
+.pn-route .output_1::after {
+    content: '0';
+}
+
+.pn-route .output_2::after {
+    content: '1';
+}
+
+.pn-steps .input_1::after {
+    content: 'step';
+}
+
+.pn-steps .input_2::after {
+    content: 'flip';
+}
+
+.pn-steps .output_1::after {
+    content: 'gate';
+}
+
+.pn-steps .input_3::after {
+    content: 'edit';
+}
+
+.pn-steps .input_4::after {
+    content: 'page';
+}
+
+.pn-steps .output_2::after {
+    content: 'note';
+}
+
+.pn-steps .output_3::after {
+    content: 'step';
+}
+
 .pn-midi_note .input_2::after {
     content: 'note';
 }
@@ -425,4 +532,312 @@
 .pn-lua .input_2::after,
 .pn-lua .output_2::after {
     content: '2';
+}
+
+/* ------------------------------------------------ guide and screen layout */
+
+/* panels over the canvas (js/patch-screen.js) */
+.patch-overlay {
+    position: absolute;
+    inset: 8px 8px 8px 126px;
+    z-index: 4;
+    overflow: auto;
+    padding: 12px 18px 16px;
+    border: 1px solid var(--neutral-trim);
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--bg-default) 96%, transparent);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    color: var(--neutral-heavy);
+    font-size: 0.85rem;
+    line-height: 1.5;
+}
+
+.patch-overlay[hidden] {
+    display: none;
+}
+
+.patch-overlay h3 {
+    margin: 0 0 8px;
+    font-size: 1rem;
+}
+
+.patch-overlay h4 {
+    margin: 14px 0 4px;
+    font-size: 0.78rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--neutral-medium);
+}
+
+.patch-overlay p,
+.patch-overlay ul {
+    margin: 4px 0;
+    max-width: 72ch;
+}
+
+.patch-overlay ul {
+    padding-left: 18px;
+}
+
+.patch-overlay td {
+    padding: 1px 14px 1px 0;
+    vertical-align: top;
+}
+
+.patch-overlay td:first-child {
+    white-space: nowrap;
+    color: var(--neutral-medium);
+}
+
+.patch-overlay-close {
+    position: sticky;
+    top: 0;
+    float: right;
+    border: 0;
+    background: none;
+    color: var(--neutral-medium);
+    font-size: 1.2rem;
+    cursor: pointer;
+}
+
+.patch-overlay-close:hover {
+    color: var(--interactive-selected);
+}
+
+/* the guide's picture of the screen grid */
+.screen-diagram {
+    display: block;
+    width: 100%;
+    max-width: 640px;
+    margin: 8px 0;
+}
+
+.screen-diagram text {
+    font-family: var(--mono-font, ui-monospace, monospace);
+    font-size: 11px;
+    fill: var(--neutral-medium);
+}
+
+.screen-diagram .sd-cap,
+.screen-diagram .sd-colnum {
+    text-anchor: middle;
+}
+
+.screen-diagram .sd-name {
+    fill: var(--neutral-heavy);
+    font-weight: 600;
+}
+
+.screen-diagram .sd-enc,
+.screen-diagram .sd-key {
+    fill: #121314;
+    stroke: #5b616a;
+    stroke-width: 1.5;
+}
+
+.screen-diagram .sd-screen {
+    fill: #08090a;
+    stroke: #3a3d42;
+    stroke-width: 2;
+}
+
+.screen-diagram .sd-row {
+    stroke: #08090a;
+    stroke-width: 1;
+}
+
+.screen-diagram .sd-top,
+.screen-diagram .sd-bottom {
+    fill: color-mix(in srgb, #f59fc8 28%, transparent);
+}
+
+.screen-diagram .sd-middle-top {
+    fill: color-mix(in srgb, #79b8ff 26%, transparent);
+}
+
+.screen-diagram .sd-middle-bottom {
+    fill: color-mix(in srgb, #79b8ff 16%, transparent);
+}
+
+.screen-diagram .sd-col {
+    stroke: #9aa3ad;
+    stroke-dasharray: 3 3;
+    stroke-width: 1;
+}
+
+/* the layout builder: the screen with the encoders above, the keys below */
+.ps-hint {
+    color: var(--neutral-medium);
+}
+
+.ps-panel {
+    width: min(100%, 560px);
+    margin: 10px 0 4px;
+}
+
+.ps-encs,
+.ps-keys {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    justify-items: center;
+    margin: 6px 0;
+}
+
+.ps-enc,
+.ps-key {
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border: 1.5px solid #5b616a;
+    background: #121314;
+    color: var(--neutral-medium);
+    font-family: var(--mono-font, ui-monospace, monospace);
+    font-size: 0.72rem;
+}
+
+.ps-enc {
+    border-radius: 50%;
+}
+
+.ps-key {
+    border-radius: 4px;
+}
+
+.ps-screen {
+    position: relative;
+    aspect-ratio: 2;
+    border: 2px solid #3a3d42;
+    border-radius: 3px;
+    background-color: #08090a;
+    /* the four columns (each tile is one column, its line on the right
+       edge), and the rows' edges (10, 32 and 55 of 64 px) */
+    background-image:
+        linear-gradient(90deg, transparent calc(100% - 1px), #24272b calc(100% - 1px)),
+        linear-gradient(
+            180deg,
+            transparent calc(15.625% - 1px),
+            #24272b calc(15.625% - 1px),
+            #24272b 15.625%,
+            transparent 15.625%,
+            transparent calc(50% - 1px),
+            #1b1d20 calc(50% - 1px),
+            #1b1d20 50%,
+            transparent 50%,
+            transparent calc(85.9375% - 1px),
+            #24272b calc(85.9375% - 1px),
+            #24272b 85.9375%,
+            transparent 85.9375%
+        );
+    background-size:
+        25% 100%,
+        100% 100%;
+}
+
+.ps-box {
+    position: absolute;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    padding: 0 4px;
+    border: 1px solid #f59fc8;
+    border-radius: 3px;
+    background: color-mix(in srgb, #f59fc8 18%, #08090a);
+    color: #fde3ef;
+    font-family: var(--mono-font, ui-monospace, monospace);
+    font-size: 0.68rem;
+    line-height: 1.15;
+    white-space: nowrap;
+    cursor: grab;
+    touch-action: none;
+    user-select: none;
+}
+
+.ps-box.ps-top,
+.ps-box.ps-bottom {
+    flex-direction: row;
+    gap: 6px;
+}
+
+.ps-box .ps-type {
+    color: color-mix(in srgb, #f59fc8 70%, white);
+    opacity: 0.75;
+}
+
+.ps-box.ps-picked {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+}
+
+.ps-box.ps-clash {
+    border-color: #ff6b6b;
+    background: color-mix(in srgb, #ff6b6b 25%, #08090a);
+}
+
+.ps-box.ps-dragging {
+    z-index: 2;
+    cursor: grabbing;
+    opacity: 0.85;
+}
+
+/* the right edge: drag to widen */
+.ps-grip {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 7px;
+    cursor: ew-resize;
+    background: linear-gradient(90deg, transparent 2px, color-mix(in srgb, #f59fc8 55%, transparent) 2px);
+    opacity: 0.5;
+}
+
+.ps-box:hover .ps-grip {
+    opacity: 1;
+}
+
+/* the guide's recipes */
+.patch-recipes {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 10px;
+    margin: 6px 0;
+}
+
+.patch-recipe {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 8px 10px;
+    border: 1px solid var(--neutral-trim);
+    border-radius: 6px;
+    background: var(--bg-surface);
+}
+
+.patch-recipe b {
+    color: var(--neutral-heavy);
+}
+
+.patch-recipe code {
+    font-family: var(--mono-font, ui-monospace, monospace);
+    font-size: 0.75rem;
+    color: #79b8ff;
+}
+
+.patch-recipe p {
+    margin: 0;
+    color: var(--neutral-medium);
+    font-size: 0.8rem;
+}
+
+.patch-recipe button {
+    align-self: flex-start;
+    margin-top: auto;
+}
+
+.ps-empty {
+    color: var(--neutral-medium);
 }

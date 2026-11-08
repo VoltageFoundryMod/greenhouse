@@ -63,6 +63,8 @@
                 </div>
                 <button type="button" id="uploadBtn" class="repl-connection-btn"
                     title="upload .lua files (or drop them anywhere)">upload</button>
+                <button type="button" id="patchOpenBtn" class="repl-connection-btn"
+                    title="the patch editor: wire blocks into a script (works with no device connected too)">patch</button>
                 <button type="button" id="helpBtn" class="repl-connection-btn"
                     title="diii shortcuts and the device's help()">help</button>
             </div>
@@ -144,15 +146,27 @@
                                             <option value="">examples…</option>
                                             <option value="basics">basics</option>
                                             <option value="sequencer">sequencer</option>
+                                            <option value="controller">controller</option>
+                                            <option value="modes">modes</option>
+                                            <option value="arp">arp (lua)</option>
                                         </select>
+                                        <button type="button" id="patchExportBtn" class="repl-action-btn"
+                                            title="save the patch to a file on your computer (the same format as save…; no device needed)">export…</button>
+                                        <button type="button" id="patchImportBtn" class="repl-action-btn"
+                                            title="load a patch from a file on your computer (exported, or a patch script copied off a device)">import…</button>
+                                        <input type="file" id="patchImportInput" accept=".lua,.json,.txt" hidden>
                                         <button type="button" id="patchClearBtn" class="repl-action-btn"
                                             title="remove every block">clear</button>
+                                        <button type="button" id="patchScreenBtn" class="repl-action-btn" aria-pressed="false"
+                                            title="the screen layout: see where the screen blocks sit and drag them into place">screen</button>
+                                        <button type="button" id="patchGuideBtn" class="repl-action-btn" aria-pressed="false"
+                                            title="how patching works: blocks, wires, the mouse, running, the screen">? guide</button>
                                     </div>
                                 </div>
                                 <div id="patchBody" class="patch-body">
                                     <nav id="patchPalette" class="patch-palette" aria-label="blocks"></nav>
                                     <div id="patchCanvas" class="patch-canvas"
-                                        title="wheel zooms; drag on empty space selects (shift adds); click a block to select it, shift- or ctrl-click adds or removes; dragging a selected block moves them all; space + drag or the middle button pans; Delete removes, Esc lets go"></div>
+                                        title="wheel zooms; drag on empty space selects (shift adds); click a block to select it, shift- or ctrl-click adds or removes; dragging a selected block moves them all; space + drag or the middle button pans; ctrl+C / X / V copy, cut and paste, ctrl+D duplicates, ctrl+A selects all; Delete removes, Esc lets go"></div>
                                     <div class="patch-zoom" id="patchZoom" role="group" aria-label="zoom">
                                         <button type="button" data-zoom="out" title="zoom out (wheel)">−</button>
                                         <button type="button" id="patchZoomLabel" data-zoom="reset" title="back to 100%">100%</button>
@@ -223,6 +237,24 @@
                                             <span class="welcome-note">over USB, in Chrome, Edge or Opera</span>
                                         </div>
                                     </div>
+                                    <div class="welcome-what">
+                                        <div>
+                                            <h3 class="welcome-heading">what is iii?</h3>
+                                            <p><a href="https://monome.org/docs/iii" target="_blank"
+                                                    rel="noopener noreferrer">iii</a> is monome's Lua runtime that
+                                                lives inside a device. Scripts are stored on the device and run
+                                                there, so it plays on its own, without a computer: plug it into a
+                                                synth, a phone or a power bank.</p>
+                                        </div>
+                                        <div>
+                                            <h3 class="welcome-heading">what is diii?</h3>
+                                            <p>diii is the window into it, in the browser, with nothing to
+                                                install: type Lua and the device answers at once, keep its scripts
+                                                in an editor that knows its functions, see and play the device on
+                                                screen, or wire blocks into a script in the patch editor
+                                                without writing code.</p>
+                                        </div>
+                                    </div>
                                     <h3 class="welcome-heading">devices</h3>
                                     <div class="welcome-cards">
                                         <a class="welcome-card" href="https://vfmod.com/achene" target="_blank"
@@ -267,6 +299,48 @@
                                                 firmware: the REPL, files, editor and reference all work.</span>
                                         </a>
                                     </div>
+                                    <table class="welcome-table">
+                                        <caption>what diii does with each</caption>
+                                        <thead>
+                                            <tr>
+                                                <th></th>
+                                                <th>console, files, editor</th>
+                                                <th>live view</th>
+                                                <th>patch editor</th>
+                                                <th>firmware update</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <th>achene</th>
+                                                <td>✓</td>
+                                                <td>panel and screen</td>
+                                                <td>✓ with its encoders, keys and screen</td>
+                                                <td>a UF2 file (boot button)</td>
+                                            </tr>
+                                            <tr>
+                                                <th>Open Grid</th>
+                                                <td>✓</td>
+                                                <td>LEDs and keys</td>
+                                                <td>✓ with its keys and LEDs</td>
+                                                <td>✓ from diii</td>
+                                            </tr>
+                                            <tr>
+                                                <th>monome grid, arc</th>
+                                                <td>✓</td>
+                                                <td>–</td>
+                                                <td>✓ (a grid: its keys and LEDs too)</td>
+                                                <td>monome's tools</td>
+                                            </tr>
+                                            <tr>
+                                                <th>any iii device</th>
+                                                <td>✓</td>
+                                                <td>–</td>
+                                                <td>✓ the shared blocks</td>
+                                                <td>–</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
                                     <h3 class="welcome-heading">start</h3>
                                     <ul class="welcome-links">
                                         <li><a href="https://monome.org/docs/iii" target="_blank"
@@ -275,6 +349,10 @@
                                         <li><button type="button" id="welcomeReferenceBtn"
                                                 class="welcome-link-btn">reference</button>:
                                             every function, offline too</li>
+                                        <li><button type="button" id="welcomeGuideBtn"
+                                                class="welcome-link-btn">patching guide</button>: blocks, wires,
+                                            the screen layout (the patch editor works before connecting too, to
+                                            look around)</li>
                                         <li>drop a <code>.lua</code> file anywhere to upload it; type
                                             <code>help()</code> once
                                             connected

@@ -42,6 +42,8 @@
                     <button type="button" id="patchRunBtn" class="repl-action-btn">run</button>
                     <button type="button" id="patchStopBtn" class="repl-action-btn">stop</button>
                     <button type="button" id="patchFileBtn" class="repl-action-btn">show file</button>
+                    <button type="button" id="patchScreenBtn" class="repl-action-btn">screen</button>
+                    <button type="button" id="patchGuideBtn" class="repl-action-btn">? guide</button>
                 </div>
             </div>
             <div id="patchBody" class="patch-body">
@@ -58,6 +60,7 @@
         <pre id="log"></pre>
         <script type="module">
             import { patchMethods } from '../js/patch.js';
+            import { patchScreenMethods } from '../js/patch-screen.js';
             import { dividerMethods } from '../js/dividers.js';
             import { EXAMPLES, patchFile } from '../js/patch-blocks.js';
 
@@ -66,6 +69,7 @@
                 log.textContent = `${text}\n${log.textContent}`.slice(0, 6000);
             };
             const $ = (id) => document.getElementById(id);
+            let build = '-';
             const app = Object.assign(
                 {
                     elements: {
@@ -82,10 +86,16 @@
                     acheneSupported: true,
                     outputLine: note,
                     executeLua: async (line) => note(`> ${line}`),
-                    executeLuaCapture: async () => [String(99)],
-                    uploadChecked: async () => true
+                    // a device that keeps the blocks.lua it was sent (its BLOCKS_BUILD)
+                    executeLuaCapture: async (line) => (line.includes('BLOCKS_BUILD') ? [`5 ${build}`] : ['99']),
+                    uploadChecked: async (name, text) => {
+                        build = /BLOCKS_BUILD = "(\w+)"/.exec(text)?.[1] || build;
+                        note(`(uploaded ${name})`);
+                        return true;
+                    }
                 },
                 patchMethods,
+                patchScreenMethods,
                 dividerMethods
             );
             app.initPatch();
@@ -105,6 +115,8 @@
                 if (how) app.zoomPatch(how);
             });
             $('patchStopBtn').addEventListener('click', () => app.stopPatch());
+            $('patchScreenBtn').addEventListener('click', () => app.togglePatchScreen());
+            $('patchGuideBtn').addEventListener('click', () => app.togglePatchGuide());
             $('patchFileBtn').addEventListener('click', () => note(patchFile('preview', app.exportPatch())));
             window.app = app;
             // ?example=sequencer loads an example
