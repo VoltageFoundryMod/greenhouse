@@ -7,7 +7,9 @@
         <!-- Development page (not published): the patch drawer without a device.
              js/patch.js runs on a stand-in app that logs the lines it would send
              (B.node, B.wire, ...). Serve the repo and open /tools/patch-preview.html;
-             ?run starts it "running", so edits show their live lines. -->
+             ?run starts it "running", so edits show their live lines;
+             ?caps=achene, ?caps=grid16x8 (or 8x8, 16x16, og16x8) acts as that
+             device connected. -->
         <link rel="stylesheet" href="../style.css" />
         <link rel="stylesheet" href="../refresh.css" />
         <link rel="stylesheet" href="../vendor/drawflow.css" />
@@ -42,6 +44,8 @@
                     <button type="button" id="patchRunBtn" class="repl-action-btn">run</button>
                     <button type="button" id="patchStopBtn" class="repl-action-btn">stop</button>
                     <button type="button" id="patchFileBtn" class="repl-action-btn">show file</button>
+                    <select id="patchTargetSelect" class="repl-action-btn patch-select"></select>
+                    <select id="patchExampleSelect" class="repl-action-btn patch-select"></select>
                     <button type="button" id="patchScreenBtn" class="repl-action-btn">screen</button>
                     <button type="button" id="patchGuideBtn" class="repl-action-btn">? guide</button>
                 </div>
@@ -61,6 +65,7 @@
         <script type="module">
             import { patchMethods } from '../js/patch.js';
             import { patchScreenMethods } from '../js/patch-screen.js';
+            import { patchGridMethods } from '../js/patch-grid.js';
             import { dividerMethods } from '../js/dividers.js';
             import { EXAMPLES, patchFile } from '../js/patch-blocks.js';
 
@@ -79,7 +84,10 @@
                         patchPalette: $('patchPalette'),
                         patchCanvas: $('patchCanvas'),
                         patchBody: $('patchBody'),
-                        patchZoomLabel: $('patchZoomLabel')
+                        patchZoomLabel: $('patchZoomLabel'),
+                        patchScreenBtn: $('patchScreenBtn'),
+                        patchTargetSelect: $('patchTargetSelect'),
+                        patchExampleSelect: $('patchExampleSelect')
                     },
                     iiiDevice: { isConnected: true },
                     uploadInProgress: false,
@@ -96,9 +104,20 @@
                 },
                 patchMethods,
                 patchScreenMethods,
+                patchGridMethods,
                 dividerMethods
             );
             app.initPatch();
+            const caps = new URLSearchParams(location.search).get('caps');
+            const grid = caps && /^(og)?grid(\d+)x(\d+)$/.exec(caps.replace(/^og/, 'oggrid'));
+            if (caps === 'achene') {
+                app.patchCaps = { achene: true, grid: false, og: false, size: { x: 16, y: 8 }, kind: 'achene' };
+            } else if (grid) {
+                const size = { x: Number(grid[2]), y: Number(grid[3]) };
+                const kind = `${grid[1] ? 'Open Grid' : 'grid'} ${size.x}×${size.y}`;
+                app.patchCaps = { achene: false, grid: true, og: Boolean(grid[1]), size, kind };
+            }
+            if (caps) app.updatePatchTarget();
             app.bindPaneDividers();
             // ?hidden builds the canvas while the drawer is hidden, as the app
             // does before a device connects, then shows it
@@ -115,7 +134,11 @@
                 if (how) app.zoomPatch(how);
             });
             $('patchStopBtn').addEventListener('click', () => app.stopPatch());
-            $('patchScreenBtn').addEventListener('click', () => app.togglePatchScreen());
+            $('patchScreenBtn').addEventListener('click', () => app.togglePatchLayout());
+            $('patchExampleSelect').addEventListener('change', (e) => {
+                if (e.target.value) app.loadPatch(EXAMPLES[e.target.value]());
+                e.target.value = '';
+            });
             $('patchGuideBtn').addEventListener('click', () => app.togglePatchGuide());
             $('patchFileBtn').addEventListener('click', () => note(patchFile('preview', app.exportPatch())));
             window.app = app;

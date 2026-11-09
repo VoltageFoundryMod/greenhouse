@@ -1,5 +1,5 @@
 // Bump CACHE when the list below changes; old caches are deleted on activate.
-const CACHE = 'diii-v26';
+const CACHE = 'diii-v27';
 
 // Relative to this file, so the app works from any path (e.g. GitHub Pages
 // project sites), not only from the site root.
@@ -44,6 +44,7 @@ const APP_SHELL_FILES = [
     './js/oled.js',
     './js/patch.js',
     './js/patch-screen.js',
+    './js/patch-grid.js',
     './js/patch-blocks.js',
     './js/reference.js',
     './js/repl-complete.js',

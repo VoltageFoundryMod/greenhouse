@@ -40,6 +40,15 @@ details live in the linked documents; this is the list.
   export; versioned patch files; constant, sample & hold, not, a metro
   with a BPM input; a right-click menu; new blocks on free space; the
   running patch's size in the status.
+- **Visual editor, the grid (part A), runtime v7**: grid widgets on a
+  shared grid picture (button, fader), a grid layout builder, device
+  detection (achene, Open Grid, grid, with its size) with the palette,
+  examples, guide and layout following it, a for: picker offline, a
+  warning when a patch was made for another device, and a grid mixer
+  example.
+- **Visual editor, the grid (part B)**: a step grid, an isomorphic
+  keyboard and ripples (rings spreading from a press, sending notes as
+  they cross keys), with examples.
 
 ## Next
 

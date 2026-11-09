@@ -8,7 +8,7 @@
 -- first, or its clock and patch would carry on beside this one.
 if B and B.clear then B.clear() end
 B = B or {}
-B.version = 6
+B.version = 7
 B.types = {}
 
 local nodes = {}      -- id -> node
@@ -166,6 +166,7 @@ function B.start()
         for _, node in ipairs(tickers) do node.def.tick(node, TICK) end
         flush()
         if B.redraw then B.redraw() end
+        if B.grid_draw then B.grid_draw() end
       end
       tick_metro.time = TICK
     end
@@ -183,7 +184,8 @@ function B.clear()
   running = false
   if tick_metro then tick_metro:stop() end
   B.screen_clear()
-  -- the tick that redraws is stopped: blank the screen now
+  -- the tick that draws is stopped: blank the grid and the screen now
+  if B.grid_draw then B.grid_draw() end
   if screen_clear then
     screen_clear()
     screen_refresh()
@@ -785,18 +787,184 @@ B.type("key_led", {
   end,
 })
 
-local function send_grid_led(node, v)
-  grid_led(node.p.x or 1, node.p.y or 1, clamp(round(v * 15), 0, 15))
+-- ------------------------------------------------------------- grid
+
+-- The grid blocks draw into one picture of levels (0-15), sent at most once
+-- a tick with one grid_refresh, and a press goes to the block under it. A
+-- grid widget has an area (x, y, w, h in keys) and
+--   gdraw(node, put, w, h)       put(i, j, level), i and j from its top left
+--   gpress(node, i, j, z, w, h)  a key in its area, pressed (1) or let go (0)
+local gwidgets = {}   -- widget nodes, in the order made (later ones on top)
+local graw = {}       -- grid led blocks: key index -> level
+local grid_dirty = false
+
+local function gsize()
+  if grid_size_x then return grid_size_x(), grid_size_y() end
+  return 16, 8
+end
+
+local function garea(node)
+  local W, H = gsize()
+  local x = clamp(math.floor(node.p.x or 1), 1, W)
+  local y = clamp(math.floor(node.p.y or 1), 1, H)
+  local w = clamp(math.floor(node.p.w or 1), 1, W - x + 1)
+  local h = clamp(math.floor(node.p.h or 1), 1, H - y + 1)
+  return x, y, w, h
+end
+
+function B.grid_draw()
+  if not grid_dirty or not grid_led then return end
+  grid_dirty = false
+  grid_led_all(0)
+  local W = gsize()
+  for k, lvl in pairs(graw) do grid_led((k - 1) % W + 1, (k - 1) // W + 1, lvl) end
+  for _, node in ipairs(gwidgets) do
+    local x, y, w, h = garea(node)
+    node.def.gdraw(node, function(i, j, lvl)
+      if i >= 1 and i <= w and j >= 1 and j <= h then
+        grid_led(x + i - 1, y + j - 1, clamp(round(lvl), 0, 15))
+      end
+    end, w, h)
+  end
   grid_refresh()
+end
+
+local function gwidget(node)
+  table.insert(gwidgets, node)
+  node.listen("grid")
+  grid_dirty = true
+end
+
+local function gforget(node)
+  for i = #gwidgets, 1, -1 do
+    if gwidgets[i] == node then table.remove(gwidgets, i) end
+  end
+  grid_dirty = true
+end
+
+local function gevent(node, _, gx, gy, z)
+  local x, y, w, h = garea(node)
+  local i, j = gx - x + 1, gy - y + 1
+  if i >= 1 and i <= w and j >= 1 and j <= h then node.def.gpress(node, i, j, z, w, h) end
 end
 
 B.type("grid_led", {
   inputs = 1,
   input = function(node, _, v)
-    if grid_led then B.limit(node, v, send_grid_led) end
+    local W = gsize()
+    graw[((node.p.y or 1) - 1) * W + (node.p.x or 1)] = clamp(round(v * 15), 0, 15)
+    grid_dirty = true
   end,
   stop = function(node)
-    if grid_led then grid_led(node.p.x or 1, node.p.y or 1, 0) grid_refresh() end
+    local W = gsize()
+    graw[((node.p.y or 1) - 1) * W + (node.p.x or 1)] = nil
+    grid_dirty = true
+  end,
+})
+
+-- A button of one key or more. momentary: 1 pressed, 0 let go; toggle: each
+-- press flips it, 1 or 0; trigger: 1 on each press. Lit while held or on;
+-- its input lights it (and sets a toggle) without sending.
+local BUTTON_OFF, BUTTON_ON = 3, 15
+
+B.type("gbutton", {
+  inputs = 1, outputs = 1,
+  init = function(node)
+    node.on = node.old and node.old.on or false
+    node.down = 0
+    gwidget(node)
+  end,
+  start = function(node)
+    if node.p.mode == "toggle" then B.out(node, 1, node.on and 1 or 0) end
+  end,
+  stop = gforget,
+  event = gevent,
+  save = function(node) if node.p.mode == "toggle" then return {on = node.on} end end,
+  load = function(node, st) node.on = st.on == true grid_dirty = true end,
+  input = function(node, _, v)
+    node.on = v ~= 0
+    grid_dirty = true
+  end,
+  gpress = function(node, _, _, z)
+    local was = node.down
+    node.down = math.max(0, was + (z == 1 and 1 or -1))
+    local mode = node.p.mode or "momentary"
+    if mode == "toggle" then
+      if was == 0 and node.down > 0 then
+        node.on = not node.on
+        B.out(node, 1, node.on and 1 or 0)
+      end
+    elseif mode == "trigger" then
+      if was == 0 and node.down > 0 then B.out(node, 1, 1) end
+    elseif (was == 0) ~= (node.down == 0) then
+      B.out(node, 1, node.down > 0 and 1 or 0)
+    end
+    grid_dirty = true
+  end,
+  gdraw = function(node, put, w, h)
+    local lvl = (node.down > 0 or node.on) and BUTTON_ON or BUTTON_OFF
+    for j = 1, h do
+      for i = 1, w do put(i, j, lvl) end
+    end
+  end,
+})
+
+-- A fader: a row (or column) of keys from lo to hi, vertical when taller than
+-- wide (or as set), bottom or left being lo; a wide one moves as one. A press
+-- sends its value; the input moves it without sending.
+local function gfader_shape(node, w, h)
+  local o = node.p.orient or "auto"
+  local vert = o == "vertical" or (o == "auto" and h > w)
+  return vert, vert and h or w
+end
+
+local function gfader_range(node)
+  return node.p.lo or 0, node.p.hi or 127
+end
+
+B.type("gfader", {
+  inputs = 1, outputs = 1,
+  init = function(node)
+    local lo = gfader_range(node)
+    node.v = node.old and node.old.v or node.p.start or lo
+    gwidget(node)
+  end,
+  start = function(node) B.out(node, 1, node.v) end,
+  stop = gforget,
+  event = gevent,
+  save = function(node) return {v = node.v} end,
+  load = function(node, st) if type(st.v) == "number" then node.v = st.v grid_dirty = true end end,
+  input = function(node, _, v)
+    node.v = v
+    grid_dirty = true
+  end,
+  gpress = function(node, i, j, z, w, h)
+    if z ~= 1 then return end
+    local vert, n = gfader_shape(node, w, h)
+    local k = vert and (h - j + 1) or i
+    local lo, hi = gfader_range(node)
+    local v = n > 1 and lo + (hi - lo) * (k - 1) / (n - 1) or hi
+    if lo == math.floor(lo) and hi == math.floor(hi) then v = round(v) end
+    node.v = v
+    B.out(node, 1, v)
+    grid_dirty = true
+  end,
+  gdraw = function(node, put, w, h)
+    local vert, n = gfader_shape(node, w, h)
+    local lo, hi = gfader_range(node)
+    local pos = n
+    if hi ~= lo then pos = clamp(round((node.v - lo) / (hi - lo) * (n - 1)) + 1, 1, n) end
+    local dot = node.p.style == "dot"
+    for k = 1, n do
+      local lvl = 2
+      if k == pos then lvl = 15
+      elseif not dot and k < pos then lvl = 8 end
+      if vert then
+        for i = 1, w do put(i, h - k + 1, lvl) end
+      else
+        for j = 1, h do put(k, j, lvl) end
+      end
+    end
   end,
 })
 

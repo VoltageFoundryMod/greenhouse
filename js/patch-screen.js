@@ -8,7 +8,7 @@
 // column, its right edge its width, and a double-click switches it between
 // the full middle row and a half.
 
-import { BLOCKS, RECIPES } from './patch-blocks.js';
+import { BLOCKS, RECIPES, patchDevice } from './patch-blocks.js';
 
 /** the rows as [y, height] in screen pixels (128 x 64), as in blocks.lua */
 const ROWS = {
@@ -88,7 +88,9 @@ The patch runs on the device itself, and keeps running after it's saved, without
 
 <h4>Blocks</h4>
 <ul>
-<li><b>achene</b>: the panel's encoders, pushes, keys and key LEDs. <b>screen</b>: things drawn on its OLED.</li>
+<li data-for="achene"><b>achene</b>: the panel's encoders, pushes, keys and key LEDs. <b>screen</b>: things drawn on its OLED.</li>
+<li data-for="grid"><b>grid</b>: widgets made of grid keys (buttons, faders), and single keys and LEDs.</li>
+<li>The palette shows the blocks for the device connected; offline, <b>for:</b> in the bar picks one.</li>
 <li><b>sources</b> start messages (lfo, metro, clock in, MIDI in); <b>process</b>, <b>math</b> and
 <b>memory</b> shape them (value, scale, counter, quantize, a + b…); <b>output</b> sends them out (MIDI, print);
 <b>custom</b> is a block of your own Lua.</li>
@@ -131,6 +133,7 @@ them together, without restarting.</li>
 <b>open…</b> brings one back to the canvas.</li>
 </ul>
 
+<div data-for="achene">
 <h4>Steps: tips</h4>
 <table>
 <tr><td>set a step's note</td><td>wire an encoder to <i>edit</i> (input 3); press the step's key, then turn within 2 seconds
@@ -147,13 +150,14 @@ length, whatever it is. With step number, a counter drives it, and its hi should
 <tr><td>playing notes</td><td><i>note</i> (output 2) → midi note's input 2 (through quantize for a scale), <i>gate</i> (output 1)
 → its input 1: the note is sent first, so it plays the right pitch.</td></tr>
 </table>
+</div>
 
 <h4>Recipes</h4>
 <p>Small wirings to start from: <b>add</b> puts one on the canvas beside what's there (nothing is replaced).</p>
 <div class="patch-recipes">
 ${RECIPES.map(
     (r) =>
-        `<div class="patch-recipe"><b>${escapeHtml(r.title)}</b><code>${escapeHtml(r.chain)}</code>` +
+        `<div class="patch-recipe" data-for="${patchDevice(r.patch) || 'any'}"><b>${escapeHtml(r.title)}</b><code>${escapeHtml(r.chain)}</code>` +
         `<p>${escapeHtml(r.text)}</p><button type="button" class="repl-action-btn" data-recipe="${r.name}">add</button></div>`
 ).join('')}
 </div>
@@ -171,6 +175,23 @@ top opens the editor any time.</li>
 <li>Copied blocks (ctrl+C) paste into another diii tab too.</li>
 </ul>
 
+<div data-for="grid">
+<h4>The grid</h4>
+<p>Grid widgets take a rectangle of keys: <b>x</b> and <b>y</b> for the top left key (1, 1 is the top left of the
+grid), <b>width</b> and <b>height</b> in keys. They draw into one picture that goes to the grid at most 50 times
+a second, and a press goes to the widget under it.</p>
+<table>
+<tr><td>button</td><td>momentary (1 held, 0 let go), toggle (flips on each press) or trigger (1 on each press). Any size;
+its input lights it without sending.</td></tr>
+<tr><td>fader</td><td>a column or row of keys from lo to hi (vertical when taller than wide). fill lights up to the value,
+dot only its key. Its input moves it without sending.</td></tr>
+<tr><td>grid key, grid led</td><td>one key's press, one key's light (0..1), for wiring of your own.</td></tr>
+</table>
+<p><button type="button" class="repl-action-btn" data-open-grid>open the grid layout</button> to place and size them by
+dragging. The <b>mixer</b> example (examples… in the bar) has four channel faders with mute buttons and a master.</p>
+</div>
+
+<div data-for="achene">
 <h4>The screen</h4>
 <p>The screen blocks share a grid that matches the panel: four columns under the encoders E1–E4 and over the
 keys K1–K4, and rows for each job. Each block takes a <b>row</b>, a <b>column</b> and a <b>width</b> in
@@ -180,6 +201,7 @@ ${screenDiagram()}
 them by dragging. Two examples (examples… in the bar) put it together: <b>sequencer</b>, 16 steps drawn as
 bars across the middle and played from the keys under E5–E12 (press a step, then turn E1 for its note), and
 <b>controller</b>, four CCs on E1–E4 named over their encoders with knobs and sliders under them.</p>
+</div>
 `;
 
 export const patchScreenMethods = {
@@ -197,6 +219,10 @@ export const patchScreenMethods = {
             if (target.closest('[data-open-screen]')) {
                 this.togglePatchGuide(false);
                 this.togglePatchScreen(true);
+            }
+            if (target.closest('[data-open-grid]')) {
+                this.togglePatchGuide(false);
+                this.togglePatchGrid?.(true);
             }
             const recipe = target.closest('[data-recipe]');
             if (recipe) this.addPatchRecipe(/** @type {HTMLElement} */ (recipe).dataset.recipe || '');
@@ -233,10 +259,24 @@ widen it, double-click it to switch between the full middle row and a half. Clic
         this.ensurePatchOverlays();
         if (!this.patchGuideEl) return;
         this.patchGuideOpen = open;
-        if (open) this.togglePatchScreen(false);
+        if (open) {
+            this.togglePatchScreen(false);
+            this.togglePatchGrid?.(false);
+            this.filterPatchGuide();
+        }
         this.patchGuideEl.hidden = !open;
         this.elements.patchGuideBtn?.setAttribute('aria-pressed', String(open));
         this.elements.patchGuideBtn?.classList.toggle('active', open);
+    },
+
+    /** The guide shows what fits the device the patch is for (all of it for none). */
+    filterPatchGuide() {
+        if (!this.patchGuideEl) return;
+        const device = this.patchTarget?.().device || 'any';
+        for (const el of this.patchGuideEl.querySelectorAll('[data-for]')) {
+            const want = /** @type {HTMLElement} */ (el).dataset.for;
+            /** @type {HTMLElement} */ (el).hidden = device !== 'any' && want !== 'any' && want !== device;
+        }
     },
 
     /**
@@ -260,7 +300,10 @@ widen it, double-click it to switch between the full middle row and a half. Clic
         if (!this.patchScreenEl) return;
         if (open) await this.ensurePatchEditor();
         this.patchScreenOpen = open;
-        if (open) this.togglePatchGuide(false);
+        if (open) {
+            this.togglePatchGuide(false);
+            this.togglePatchGrid?.(false);
+        }
         this.patchScreenEl.hidden = !open;
         this.elements.patchScreenBtn?.setAttribute('aria-pressed', String(open));
         this.elements.patchScreenBtn?.classList.toggle('active', open);

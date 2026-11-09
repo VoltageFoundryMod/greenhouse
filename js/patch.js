@@ -7,11 +7,13 @@ import {
     BLOCKS,
     CODE_MAX,
     EXAMPLES,
+    EXAMPLE_MENU,
     RUNTIME_VERSION,
     defaultParams,
     examplePatch,
     liveLines,
     luaParams,
+    patchDevice,
     patchFile,
     patchProblems,
     readPatchFile
@@ -22,6 +24,14 @@ const SAVED_KEY = 'webdiii.patch';
 /** what a palette block carries while it's dragged onto the canvas */
 const DRAG_TYPE = 'application/x-diii-block';
 const LIVE_KEY = 'webdiii.patchLive';
+/** offline, the device the patch is made for (the for: picker) */
+const TARGET_KEY = 'webdiii.patchTarget';
+const OFFLINE_TARGETS = [
+    ['achene', 'achene'],
+    ['grid 16x8', 'grid 16×8'],
+    ['grid 8x8', 'grid 8×8'],
+    ['grid 16x16', 'grid 16×16']
+];
 const GROUPS = [
     ['achene', 'achene'],
     ['screen', 'screen'],
@@ -130,25 +140,94 @@ export const patchMethods = {
         try {
             this.patchPanelOpen = window.localStorage.getItem(DRAWER_KEY) === 'open';
             this.patchLive = window.localStorage.getItem(LIVE_KEY) !== 'off';
+            this.patchOfflineTarget = window.localStorage.getItem(TARGET_KEY) || 'achene';
         } catch {
             // storage blocked
         }
-        this.buildPatchPalette();
+        this.elements.patchTargetSelect?.addEventListener('change', (event) => {
+            this.patchOfflineTarget = /** @type {HTMLSelectElement} */ (event.target).value;
+            try {
+                window.localStorage.setItem(TARGET_KEY, this.patchOfflineTarget);
+            } catch {
+                // storage blocked
+            }
+            this.updatePatchTarget();
+        });
+        this.updatePatchTarget();
         this.showPatchDrawerState();
     },
 
     /**
-     * The palette: shared blocks always, a device's own blocks when that
-     * device is connected (all of them while offline, to look around).
+     * What the patch is made for: the device connected (null for one with
+     * neither achene's controls nor a grid), or offline what for: picks.
+     * @returns {{ device: 'achene' | 'grid' | null, size: { x: number, y: number } }}
+     */
+    patchTarget() {
+        const caps = this.patchCaps;
+        if (caps) return { device: caps.achene ? 'achene' : caps.grid ? 'grid' : null, size: caps.size };
+        const m = String(this.patchOfflineTarget || '').match(/^grid (\d+)x(\d+)$/);
+        return m
+            ? { device: 'grid', size: { x: Number(m[1]), y: Number(m[2]) } }
+            : { device: 'achene', size: { x: 16, y: 8 } };
+    },
+
+    /** After connecting, disconnecting or picking for: everything that depends on the device. */
+    updatePatchTarget() {
+        const select = this.elements.patchTargetSelect;
+        const caps = this.patchCaps;
+        if (select) {
+            select.replaceChildren();
+            const options = caps ? [['', `for: ${caps.kind}`]] : OFFLINE_TARGETS.map(([v, l]) => [v, `for: ${l}`]);
+            for (const [value, label] of options) select.add(new Option(label, value));
+            select.disabled = Boolean(caps);
+            select.value = caps ? '' : this.patchOfflineTarget || 'achene';
+            select.title = caps
+                ? `the device connected: the palette, examples and layout follow it`
+                : 'no device connected: which device the palette, examples and layout are for';
+        }
+        const { device } = this.patchTarget();
+        this.buildPatchPalette();
+        this.fillPatchExamples();
+        const button = this.elements.patchScreenBtn;
+        if (button) {
+            button.hidden = !device;
+            button.textContent = device === 'grid' ? 'grid' : 'screen';
+            button.title =
+                device === 'grid'
+                    ? 'the grid layout: see where the grid blocks sit, drag them into place and size'
+                    : 'the screen layout: see where the screen blocks sit and drag them into place';
+        }
+        if (device === 'grid' && this.patchScreenOpen) this.togglePatchScreen?.(false);
+        if (device !== 'grid' && this.patchGridOpen) this.togglePatchGrid?.(false);
+        this.renderPatchGrid?.();
+        this.filterPatchGuide?.();
+    },
+
+    /** The examples menu: those for the device (or for any device). */
+    fillPatchExamples() {
+        const select = this.elements.patchExampleSelect;
+        if (!select) return;
+        const { device } = this.patchTarget();
+        select.replaceChildren(new Option('examples…', ''));
+        for (const [name, label] of EXAMPLE_MENU) {
+            const made = patchDevice(EXAMPLES[name]());
+            if (made && device && made !== device) continue;
+            select.add(new Option(label, name));
+        }
+    },
+
+    /**
+     * The palette: shared blocks always, a device's own blocks for the device
+     * the patch is made for (connected, or offline the for: picker).
      */
     buildPatchPalette() {
         const palette = this.elements.patchPalette;
         if (!palette) return;
         palette.replaceChildren();
-        const caps = this.patchCaps;
+        const { device } = this.patchTarget();
         for (const [group, title] of GROUPS) {
-            if (caps && (group === 'achene' || group === 'screen') && !caps.achene) continue;
-            if (caps && group === 'grid' && !caps.grid) continue;
+            if ((group === 'achene' || group === 'screen') && device !== 'achene') continue;
+            if (group === 'grid' && device !== 'grid') continue;
             const heading = document.createElement('div');
             heading.className = 'patch-palette-group';
             heading.textContent = title;
@@ -293,16 +372,33 @@ export const patchMethods = {
      * shared blocks only need iii itself.
      */
     async detectPatchCaps() {
-        let caps = { achene: false, grid: false };
+        let caps = { achene: false, grid: false, og: false, size: { x: 16, y: 8 }, kind: 'iii device' };
         try {
-            const lines = await this.executeLuaCapture('print((key_led and "a" or "-") .. (grid_led and "g" or "-"))');
-            const flags = lines.map((l) => String(l).trim()).join('');
-            caps = { achene: flags.includes('a'), grid: flags.includes('g') };
+            const lines = await this.executeLuaCapture(
+                'print("caps:" .. (key_led and "a" or "-") .. (grid_led and "g" or "-") .. (og_mirror and "o" or "-")' +
+                    ' .. (grid_size_x and (grid_size_x() .. "x" .. grid_size_y()) or ""))'
+            );
+            const m = lines
+                .map((l) => String(l).trim())
+                .join('')
+                .match(/caps:([a-])([g-])([o-])(?:(\d+)x(\d+))?/);
+            if (m) {
+                const achene = m[1] === 'a';
+                const grid = m[2] === 'g';
+                const og = m[3] === 'o';
+                const size = m[4] ? { x: Number(m[4]), y: Number(m[5]) } : { x: 16, y: 8 };
+                const kind = achene
+                    ? 'achene'
+                    : grid
+                      ? `${og ? 'Open Grid' : 'grid'} ${size.x}×${size.y}`
+                      : 'iii device';
+                caps = { achene, grid, og, size, kind };
+            }
         } catch {
             // not answering: shared blocks only
         }
         this.patchCaps = caps;
-        this.buildPatchPalette();
+        this.updatePatchTarget();
         if (this.elements.patchDrawer) this.elements.patchDrawer.hidden = false;
         this.updatePatchStatus();
     },
@@ -1142,7 +1238,9 @@ export const patchMethods = {
             this.outputLine(`patch: ${name} isn't a patch (no --@patch lines); open it with edit instead`);
             return;
         }
-        for (const problem of patchProblems(patch)) this.outputLine(`patch: ${name}: ${problem}`);
+        for (const problem of patchProblems(patch, this.patchTarget().device)) {
+            this.outputLine(`patch: ${name}: ${problem}`);
+        }
         if (!this.patchPanelOpen) await this.togglePatchPanel(true);
         await this.ensurePatchEditor();
         this.loadPatch(patch);
@@ -1182,8 +1280,9 @@ export const patchMethods = {
         } catch {
             // storage blocked or full
         }
-        // the screen layout (js/patch-screen.js) shows the change
+        // the screen and grid layouts (js/patch-screen.js, patch-grid.js) show the change
         this.renderPatchScreen?.();
+        this.renderPatchGrid?.();
     },
 
     /**
@@ -1542,7 +1641,9 @@ export const patchMethods = {
             this.outputLine(`patch: ${file.name} has no patch in it (no --@patch lines)`);
             return;
         }
-        for (const problem of patchProblems(patch)) this.outputLine(`patch: ${file.name}: ${problem}`);
+        for (const problem of patchProblems(patch, this.patchTarget().device)) {
+            this.outputLine(`patch: ${file.name}: ${problem}`);
+        }
         const count = Object.keys(this.patchEditor?.drawflow.drawflow[this.patchEditor.module].data || {}).length;
         if (count && !window.confirm(`Replace the canvas with ${file.name}?`)) return;
         this.loadPatch(patch);
@@ -1571,6 +1672,8 @@ export const patchMethods = {
     patchDisconnected() {
         this.patchRunning = false;
         this.patchPending.clear();
+        this.patchCaps = null;
+        this.updatePatchTarget();
         this.updatePatchStatus();
     }
 };

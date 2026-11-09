@@ -145,57 +145,81 @@ B.patch{
   a **patch** tag, and **open…** lists only them.
 - The runtime is uploaded when missing or older than the one diii carries.
 - **Device palettes**: the palette shows the connected device's own blocks
-  (achene: encoders, pushes, keys, key LEDs, screen; grid: keys, LEDs) next
-  to the shared ones. Later: drag an encoder off the achene panel into the
-  patch.
+  (achene: encoders, pushes, keys, key LEDs, screen; grid: buttons, faders,
+  keys, LEDs) next to the shared ones. diii tells achene, Open Grid (it has
+  `og_mirror`), a stock grid and other iii devices apart, with the grid's
+  size. Offline, **for:** in the bar picks the device (achene, grid 16×8,
+  8×8, 16×16); connected, it shows the device and is locked. The examples
+  menu, the guide's sections and recipes, and the layout button (**screen**
+  or **grid**) follow it. A patch's device comes from its blocks (achene or
+  screen blocks: achene; grid blocks: grid; neither: any iii device), and
+  opening one made for another device says so. Later: drag an encoder off
+  the achene panel into the patch.
 - **Library**: Drawflow (MIT, no dependencies), bundled into `vendor/` like
   the code editor, so the site keeps its no-build setup.
 
 ## Blocks
 
-**The blocks so far** (runtime v6). Device blocks show in the palette only
-when that device is connected:
+**The blocks so far** (runtime v7). Device blocks show in the palette only
+for that device:
 
-| block                           | does                                                                                           |
-| ------------------------------- | ---------------------------------------------------------------------------------------------- |
-| encoder _n_ (achene)            | a turn's steps                                                                                 |
-| enc push _n_ (achene)           | 1 pushed, 0 released                                                                           |
-| key _n_ (achene)                | 1 pressed, 0 released                                                                          |
-| key led _n, colour_ (achene)    | lights key n at the value's brightness (0..1)                                                  |
-| display _label, place_ (achene) | a labelled bar on the screen, in one of eight places                                           |
-| grid key _x, y_ (grid)          | 1 pressed, 0 released                                                                          |
-| grid led _x, y_ (grid)          | lights a key at the value's level (0..1 to 0..15)                                              |
-| lfo _rate, shape_               | 0..1, sine / triangle / saw / square, 50 times a second                                        |
-| constant _value_                | a fixed number: sent at the start, and again on anything at its input                          |
-| metro _ms, per beat_            | a gate: 1 on each beat, 0 halfway; input 1 stops (0) and starts it, input 2 sets BPM           |
-| clock in _div_                  | MIDI clock in: a gate every _div_ clocks; output 2 is 1 on start, 0 on stop                    |
-| midi in cc _cc, ch_             | an incoming CC's value                                                                         |
-| midi in note _ch_               | output 1 the note number, output 2 1 on / 0 off                                                |
-| value _lo, hi, start_           | adds what comes in, clamped: encoder steps become a value; sends its start                     |
-| scale _in lo/hi, out lo/hi_     | maps a range                                                                                   |
-| toggle                          | flips 0 / 1 on each press; sends its state (0) at the start too                                |
-| counter _lo, hi, step_          | input 1 steps (the first step is lo), input 2 resets; wraps                                    |
-| random _lo, hi_                 | a whole number in the range for each non-zero input                                            |
-| quantize _scale, root_          | the nearest note of the scale                                                                  |
-| slew _time_                     | glides to each new value                                                                       |
-| gate                            | passes input 1 while input 2 is open (not 0)                                                   |
-| route                           | input 1 out of output 1 while input 2 is 0, out of output 2 otherwise (one control, two jobs)  |
-| midi cc _cc, ch_                | sends the value (0..127, rounded; repeats skipped)                                             |
-| midi note _note, vel, ch_       | input 1: note on / off; input 2 sets the note number                                           |
-| math _op, b_                    | two numbers: + − × ÷ mod min max pow > < =; input 1 computes and sends, input 2 sets b quietly |
-| function _fn_                   | sin cos tan (radians) abs neg not sqrt exp log floor ceil round                                |
-| change                          | passes a value only when it differs from the last                                              |
-| memory _start_                  | input 1 stores and sends, input 2 stores quietly, input 3 recalls                              |
-| sample & hold                   | input 1 watched quietly; a trigger on input 2 sends the value it had then                      |
-| set var / get var _name_        | a named value shared by the whole patch, without wires (Max's send/receive)                    |
-| watch                           | passes values on and shows them on the block: the latest and a graph (10 a second)             |
-| print _label_                   | prints to diii's console, at most 10 a second                                                  |
-| lua _code_                      | your code, for each message: `i`, `v`, `out(n, value)`, and `s` kept between calls             |
+| block                                                      | does                                                                                              |
+| ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| encoder _n_ (achene)                                       | a turn's steps                                                                                    |
+| enc push _n_ (achene)                                      | 1 pushed, 0 released                                                                              |
+| key _n_ (achene)                                           | 1 pressed, 0 released                                                                             |
+| key led _n, colour_ (achene)                               | lights key n at the value's brightness (0..1)                                                     |
+| display _label, place_ (achene)                            | a labelled bar on the screen, in one of eight places                                              |
+| grid key _x, y_ (grid)                                     | 1 pressed, 0 released                                                                             |
+| grid led _x, y_ (grid)                                     | lights a key at the value's level (0..1 to 0..15)                                                 |
+| button _mode, x, y, w, h_ (grid)                           | momentary (1/0), toggle (flips, remembered) or trigger (1); lit while held or on; input lights it |
+| fader _lo, hi, start, style, direction, x, y, w, h_ (grid) | a row or column of keys from lo to hi; a press sends, the input moves it; remembered              |
+| lfo _rate, shape_                                          | 0..1, sine / triangle / saw / square, 50 times a second                                           |
+| constant _value_                                           | a fixed number: sent at the start, and again on anything at its input                             |
+| metro _ms, per beat_                                       | a gate: 1 on each beat, 0 halfway; input 1 stops (0) and starts it, input 2 sets BPM              |
+| clock in _div_                                             | MIDI clock in: a gate every _div_ clocks; output 2 is 1 on start, 0 on stop                       |
+| midi in cc _cc, ch_                                        | an incoming CC's value                                                                            |
+| midi in note _ch_                                          | output 1 the note number, output 2 1 on / 0 off                                                   |
+| value _lo, hi, start_                                      | adds what comes in, clamped: encoder steps become a value; sends its start                        |
+| scale _in lo/hi, out lo/hi_                                | maps a range                                                                                      |
+| toggle                                                     | flips 0 / 1 on each press; sends its state (0) at the start too                                   |
+| counter _lo, hi, step_                                     | input 1 steps (the first step is lo), input 2 resets; wraps                                       |
+| random _lo, hi_                                            | a whole number in the range for each non-zero input                                               |
+| quantize _scale, root_                                     | the nearest note of the scale                                                                     |
+| slew _time_                                                | glides to each new value                                                                          |
+| gate                                                       | passes input 1 while input 2 is open (not 0)                                                      |
+| route                                                      | input 1 out of output 1 while input 2 is 0, out of output 2 otherwise (one control, two jobs)     |
+| midi cc _cc, ch_                                           | sends the value (0..127, rounded; repeats skipped)                                                |
+| midi note _note, vel, ch_                                  | input 1: note on / off; input 2 sets the note number                                              |
+| math _op, b_                                               | two numbers: + − × ÷ mod min max pow > < =; input 1 computes and sends, input 2 sets b quietly    |
+| function _fn_                                              | sin cos tan (radians) abs neg not sqrt exp log floor ceil round                                   |
+| change                                                     | passes a value only when it differs from the last                                                 |
+| memory _start_                                             | input 1 stores and sends, input 2 stores quietly, input 3 recalls                                 |
+| sample & hold                                              | input 1 watched quietly; a trigger on input 2 sends the value it had then                         |
+| set var / get var _name_                                   | a named value shared by the whole patch, without wires (Max's send/receive)                       |
+| watch                                                      | passes values on and shows them on the block: the latest and a graph (10 a second)                |
+| print _label_                                              | prints to diii's console, at most 10 a second                                                     |
+| lua _code_                                                 | your code, for each message: `i`, `v`, `out(n, value)`, and `s` kept between calls                |
 
 Gates (metro, clock in) go 1 then 0, so a note retriggers and a toggle or
 counter counts only the 1s. Outputs (MIDI, LEDs) send at most once a tick:
 a value that comes sooner is held and the latest goes out next tick, so an
 LFO can't flood MIDI and a knob still answers at once.
+
+### The grid
+
+The grid widgets (button, fader; later steps, keys, ripples) each take a
+rectangle of keys: **x, y** for its top left key and **w, h** in keys, cut
+to the grid's size on the device. They draw into one picture of levels
+(0–15) that goes to the grid at most once a tick, with one
+`grid_refresh()`, and only when something changed; a press goes to the
+widget under it. grid led blocks draw into the same picture, under the
+widgets. The **grid** button (where **screen** is for achene) opens the
+grid layout: the grid at the device's size (offline: the size for: picks)
+with a box per grid block; drag a box to move it, drag its bottom right
+corner to resize it, and a place over another block is refused. The
+**mixer** example has four two-key-wide channel faders with mute toggles
+and a master; the guide has fader, button and host-feedback recipes.
 
 ### The screen
 

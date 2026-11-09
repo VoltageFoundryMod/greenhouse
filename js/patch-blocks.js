@@ -4,7 +4,7 @@
 // outputs and parameters.
 
 /** Version of lua/blocks.lua this diii carries; the device gets it when older. */
-export const RUNTIME_VERSION = 6;
+export const RUNTIME_VERSION = 7;
 
 /**
  * @typedef {object} Param
@@ -45,6 +45,20 @@ function place(where, span) {
         },
         col: { type: 'int', label: 'column', default: 1, min: 1, max: 4 },
         span: { type: 'int', label: 'width', default: span, min: 1, max: 4 }
+    };
+}
+
+/**
+ * Where a grid widget sits: its top left key and its size, in keys.
+ * @param {number} w @param {number} h
+ * @returns {Record<string, Param>}
+ */
+function gplace(w, h) {
+    return {
+        x: { type: 'int', label: 'x', default: 1, min: 1, max: 16 },
+        y: { type: 'int', label: 'y', default: 1, min: 1, max: 16 },
+        w: { type: 'int', label: 'width', default: w, min: 1, max: 16 },
+        h: { type: 'int', label: 'height', default: h, min: 1, max: 16 }
     };
 }
 
@@ -181,10 +195,41 @@ export const BLOCKS = {
         group: 'grid',
         inputs: 1,
         outputs: 0,
-        doc: 'lights a grid key: the value (0..1) is the level',
+        doc: 'lights a grid key: the value (0..1) is the level (0 to 15 on the grid)',
         params: {
             x: { type: 'int', label: 'x', default: 1, min: 1, max: 16 },
             y: { type: 'int', label: 'y', default: 1, min: 1, max: 16 }
+        }
+    },
+    gbutton: {
+        label: 'button',
+        group: 'grid',
+        inputs: 1,
+        outputs: 1,
+        doc: "a button of one key or more on the grid. momentary: 1 pressed, 0 let go; toggle: each press flips it, 1 or 0 (and it remembers); trigger: 1 on each press. It's lit while held or on; its input lights it (and sets a toggle) without sending, so MIDI coming back can show a state. The grid button places it",
+        params: {
+            mode: { type: 'select', label: 'mode', default: 'momentary', options: ['momentary', 'toggle', 'trigger'] },
+            ...gplace(1, 1)
+        }
+    },
+    gfader: {
+        label: 'fader',
+        group: 'grid',
+        inputs: 1,
+        outputs: 1,
+        doc: 'a fader of grid keys from lo to hi: vertical when taller than wide (lo at the bottom), horizontal otherwise (lo on the left); a wider one moves as one. A press sends its value; its input moves it without sending. Each key is one step, so 8 keys of 0..127 jump by 18. It remembers where it was',
+        params: {
+            lo: { type: 'number', label: 'lo', default: 0 },
+            hi: { type: 'number', label: 'hi', default: 127 },
+            start: { type: 'number', label: 'start', default: 0 },
+            style: { type: 'select', label: 'style', default: 'fill', options: ['fill', 'dot'] },
+            orient: {
+                type: 'select',
+                label: 'direction',
+                default: 'auto',
+                options: ['auto', 'vertical', 'horizontal']
+            },
+            ...gplace(1, 8)
         }
     },
     metro: {
@@ -611,13 +656,41 @@ export function luaState(n) {
 }
 
 /**
- * What would go wrong opening a patch here: blocks this diii doesn't know,
- * or a newer runtime than it carries.
+ * The device a patch is for, from its blocks: 'achene' (achene or screen
+ * blocks), 'grid' (grid blocks), 'mixed' (both) or null (shared blocks only,
+ * for any iii device).
  * @param {Patch} patch
+ * @returns {'achene' | 'grid' | 'mixed' | null}
+ */
+export function patchDevice(patch) {
+    let achene = false;
+    let grid = false;
+    for (const n of patch.nodes) {
+        const group = BLOCKS[n.type]?.group;
+        if (group === 'achene' || group === 'screen') achene = true;
+        if (group === 'grid') grid = true;
+    }
+    if (achene && grid) return 'mixed';
+    return achene ? 'achene' : grid ? 'grid' : null;
+}
+
+/**
+ * What would go wrong opening a patch here: blocks this diii doesn't know,
+ * a newer runtime than it carries, or blocks for another device.
+ * @param {Patch} patch
+ * @param {'achene' | 'grid' | null} [device] the device it would run on
  * @returns {string[]}
  */
-export function patchProblems(patch) {
+export function patchProblems(patch, device) {
     const problems = [];
+    const made = patchDevice(patch);
+    if (device && made && made !== device) {
+        problems.push(
+            made === 'mixed'
+                ? `it has both achene and grid blocks: on this ${device}, the ${device === 'grid' ? 'achene' : 'grid'} ones do nothing`
+                : `it was made for ${made === 'grid' ? 'a grid' : 'achene'}: on this ${device}, its ${made} blocks do nothing`
+        );
+    }
     const unknown = [...new Set(patch.nodes.filter((n) => !BLOCKS[n.type]).map((n) => n.type))];
     if (unknown.length) problems.push(`blocks this diii doesn't know (left out): ${unknown.join(', ')}`);
     if (patch.rt && patch.rt > RUNTIME_VERSION) {
@@ -1329,8 +1402,116 @@ export const RECIPES = [
                 [8, 1, 9, 1]
             ]
         }
+    },
+    {
+        name: 'gfader',
+        title: 'A grid fader sends a CC',
+        chain: 'fader → midi cc',
+        text: 'A fader is a column (or row) of keys from lo to hi: a press sends the value of that key. Its size and place are its x, y, width and height, or drag it in the grid button. It sends its start value when the patch starts.',
+        patch: {
+            nodes: [
+                {
+                    id: 1,
+                    type: 'gfader',
+                    params: { lo: 0, hi: 127, start: 64, style: 'fill', orient: 'auto', x: 1, y: 1, w: 1, h: 8 },
+                    x: 0,
+                    y: 0
+                },
+                { id: 2, type: 'midi_cc', params: { cc: 74, ch: 1 }, x: 260, y: 0 }
+            ],
+            wires: [[1, 1, 2, 1]]
+        }
+    },
+    {
+        name: 'gbutton',
+        title: 'Grid buttons play notes and toggle a CC',
+        chain: 'button (momentary) → midi note; button (toggle) → math (× 127) → midi cc',
+        text: 'A momentary button sends 1 while held and 0 when let go, just what midi note wants for its gate. A toggle flips between 1 and 0 on each press; math × 127 makes that a CC value (127 on, 0 off).',
+        patch: {
+            nodes: [
+                { id: 1, type: 'gbutton', params: { mode: 'momentary', x: 1, y: 1, w: 1, h: 1 }, x: 0, y: 0 },
+                { id: 2, type: 'midi_note', params: { note: 60, vel: 100, ch: 1 }, x: 260, y: 0 },
+                { id: 3, type: 'gbutton', params: { mode: 'toggle', x: 2, y: 1, w: 1, h: 1 }, x: 0, y: 160 },
+                { id: 4, type: 'math', params: { op: '*', b: 127 }, x: 260, y: 160 },
+                { id: 5, type: 'midi_cc', params: { cc: 64, ch: 1 }, x: 460, y: 160 }
+            ],
+            wires: [
+                [1, 1, 2, 1],
+                [3, 1, 4, 1],
+                [4, 1, 5, 1]
+            ]
+        }
+    },
+    {
+        name: 'gback',
+        title: 'A button that shows what the host says',
+        chain: 'midi in cc → button input; button (toggle) → math (× 127) → midi cc',
+        text: "A button's input lights it without sending. Wire a midi in cc for the same CC into it, and the button shows the state your DAW sends back, even when it was changed there.",
+        patch: {
+            nodes: [
+                { id: 1, type: 'midi_in_cc', params: { cc: 20, ch: 1 }, x: 0, y: 0 },
+                { id: 2, type: 'gbutton', params: { mode: 'toggle', x: 1, y: 1, w: 1, h: 1 }, x: 230, y: 0 },
+                { id: 3, type: 'math', params: { op: '*', b: 127 }, x: 430, y: 0 },
+                { id: 4, type: 'midi_cc', params: { cc: 20, ch: 1 }, x: 630, y: 0 }
+            ],
+            wires: [
+                [1, 1, 2, 1],
+                [2, 1, 3, 1],
+                [3, 1, 4, 1]
+            ]
+        }
     }
 ];
+
+/**
+ * A mixer on a 16x8 grid: four channel faders (two keys wide, seven tall)
+ * on CC 7 of channels 1-4, each with a mute toggle under it (CC 20 on its
+ * channel, 127 or 0, for a DAW to map), and a master fader on CC 7 of
+ * channel 16.
+ * @returns {Patch}
+ */
+export function gridMixerPatch() {
+    /** @type {Patch['nodes']} */
+    const nodes = [];
+    /** @type {Patch['wires']} */
+    const wires = [];
+    for (let k = 0; k < 4; k++) {
+        const id = 1 + k * 5;
+        const y = k * 260;
+        nodes.push(
+            {
+                id,
+                type: 'gfader',
+                params: { lo: 0, hi: 127, start: 96, style: 'fill', orient: 'auto', x: 1 + k * 2, y: 1, w: 2, h: 7 },
+                x: 20,
+                y
+            },
+            { id: id + 1, type: 'midi_cc', params: { cc: 7, ch: k + 1 }, x: 260, y },
+            {
+                id: id + 2,
+                type: 'gbutton',
+                params: { mode: 'toggle', x: 1 + k * 2, y: 8, w: 2, h: 1 },
+                x: 20,
+                y: y + 150
+            },
+            { id: id + 3, type: 'math', params: { op: '*', b: 127 }, x: 260, y: y + 130 },
+            { id: id + 4, type: 'midi_cc', params: { cc: 20, ch: k + 1 }, x: 460, y: y + 130 }
+        );
+        wires.push([id, 1, id + 1, 1], [id + 2, 1, id + 3, 1], [id + 3, 1, id + 4, 1]);
+    }
+    nodes.push(
+        {
+            id: 21,
+            type: 'gfader',
+            params: { lo: 0, hi: 127, start: 100, style: 'fill', orient: 'auto', x: 10, y: 1, w: 3, h: 8 },
+            x: 700,
+            y: 20
+        },
+        { id: 22, type: 'midi_cc', params: { cc: 7, ch: 16 }, x: 940, y: 20 }
+    );
+    wires.push([21, 1, 22, 1]);
+    return { nodes, wires };
+}
 
 /** The examples the drawer offers, by name. */
 export const EXAMPLES = /** @type {Record<string, () => Patch>} */ ({
@@ -1338,5 +1519,16 @@ export const EXAMPLES = /** @type {Record<string, () => Patch>} */ ({
     sequencer: sequencerPatch,
     controller: controllerPatch,
     modes: modesPatch,
-    arp: arpPatch
+    arp: arpPatch,
+    'grid mixer': gridMixerPatch
 });
+
+/** The examples menu, in order: name, label; the device comes from patchDevice. */
+export const EXAMPLE_MENU = [
+    ['basics', 'basics'],
+    ['sequencer', 'sequencer'],
+    ['controller', 'controller'],
+    ['modes', 'modes'],
+    ['arp', 'arp (lua)'],
+    ['grid mixer', 'mixer']
+];

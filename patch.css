@@ -923,3 +923,127 @@
 .ps-empty {
     color: var(--neutral-medium);
 }
+
+/* the guide shows what fits the device the patch is for */
+.patch-guide [data-for][hidden] {
+    display: none !important;
+}
+
+/* the grid layout builder: the grid's keys, a box per grid block */
+.pg-hint,
+.pg-size,
+.pg-empty {
+    color: var(--neutral-medium);
+}
+
+.pg-size {
+    margin: 4px 0 6px;
+    font-family: var(--mono-font, ui-monospace, monospace);
+    font-size: 0.75rem;
+}
+
+.pg-grid {
+    --gx: 16;
+    --gy: 8;
+    position: relative;
+    width: min(100%, calc(var(--gx) * 38px));
+    aspect-ratio: var(--gx) / var(--gy);
+    padding: 0;
+    border: 2px solid #3a3d42;
+    border-radius: 6px;
+    background: #101112;
+}
+
+.pg-cells {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    grid-template-columns: repeat(var(--gx), 1fr);
+    grid-template-rows: repeat(var(--gy), 1fr);
+}
+
+.pg-cell {
+    margin: 12%;
+    border-radius: 3px;
+    background: #1d1f22;
+}
+
+.pg-boxes {
+    position: absolute;
+    inset: 0;
+}
+
+.pg-box {
+    position: absolute;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    padding: 0 2px;
+    border: 1px solid #ffbe64;
+    border-radius: 4px;
+    background: color-mix(in srgb, #ffbe64 20%, transparent);
+    color: #ffe9c7;
+    font-family: var(--mono-font, ui-monospace, monospace);
+    font-size: 0.62rem;
+    line-height: 1.15;
+    white-space: nowrap;
+    cursor: grab;
+    touch-action: none;
+    user-select: none;
+}
+
+.pg-box.pg-gfader {
+    border-color: #7fdc9a;
+    background: color-mix(in srgb, #7fdc9a 18%, transparent);
+    color: #dff7e6;
+}
+
+.pg-box.pg-grid_key,
+.pg-box.pg-grid_led {
+    border-style: dashed;
+}
+
+.pg-box .pg-note {
+    opacity: 0.7;
+}
+
+.pg-box.pg-picked {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+}
+
+.pg-box.pg-clash {
+    border-color: #ff6b6b;
+    background: color-mix(in srgb, #ff6b6b 28%, transparent);
+}
+
+.pg-box.pg-dragging {
+    z-index: 2;
+    cursor: grabbing;
+    opacity: 0.85;
+}
+
+/* the bottom right corner: drag to resize */
+.pg-grip {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    width: 10px;
+    height: 10px;
+    cursor: nwse-resize;
+    background: linear-gradient(135deg, transparent 50%, currentColor 50%);
+    opacity: 0.45;
+}
+
+.pg-box:hover .pg-grip {
+    opacity: 1;
+}
+
+/* port labels of the grid widgets */
+.pn-gbutton .input_1::after,
+.pn-gfader .input_1::after {
+    content: 'set';
+}

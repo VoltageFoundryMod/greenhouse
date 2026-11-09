@@ -18,6 +18,7 @@ import { gridMethods } from './js/grid.js';
 import { acheneMethods } from './js/achene.js';
 import { patchMethods } from './js/patch.js';
 import { patchScreenMethods } from './js/patch-screen.js';
+import { patchGridMethods } from './js/patch-grid.js';
 import { backupUiMethods } from './js/backup-ui.js';
 import { editorUiMethods } from './js/editor-ui.js';
 import { firmwareUiMethods } from './js/firmware-ui.js';
@@ -186,6 +187,7 @@ class diiiApp {
             patchSaveBtn: document.getElementById('patchSaveBtn'),
             patchOpenSelect: document.getElementById('patchOpenSelect'),
             patchExampleSelect: document.getElementById('patchExampleSelect'),
+            patchTargetSelect: document.getElementById('patchTargetSelect'),
             patchClearBtn: document.getElementById('patchClearBtn'),
             patchPalette: document.getElementById('patchPalette'),
             patchCanvas: document.getElementById('patchCanvas'),
@@ -290,7 +292,7 @@ class diiiApp {
         });
         on(this.elements.patchStopBtn, 'click', () => this.stopPatch());
         on(this.elements.patchLiveBtn, 'click', () => this.setPatchLive(!this.patchLive));
-        on(this.elements.patchScreenBtn, 'click', () => this.togglePatchScreen());
+        on(this.elements.patchScreenBtn, 'click', () => this.togglePatchLayout());
         on(this.elements.patchOpenBtn, 'click', () => this.showPatchEditor());
         on(this.elements.patchExportBtn, 'click', () => this.exportPatchFile());
         on(this.elements.patchImportBtn, 'click', () => this.elements.patchImportInput?.click());
@@ -382,6 +384,7 @@ Object.assign(
     acheneMethods,
     patchMethods,
     patchScreenMethods,
+    patchGridMethods,
     backupUiMethods,
     editorUiMethods,
     firmwareUiMethods,

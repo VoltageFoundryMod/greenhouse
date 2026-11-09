@@ -141,14 +141,13 @@
                                         </select>
                                         <button type="button" id="patchSaveBtn" class="repl-action-btn"
                                             title="save the patch on the device as a script that runs on its own">save…</button>
+                                        <select id="patchTargetSelect" class="repl-action-btn patch-select" aria-label="the device the patch is for"
+                                            title="which device the palette, examples and layout are for">
+                                            <option value="achene">for: achene</option>
+                                        </select>
                                         <select id="patchExampleSelect" class="repl-action-btn patch-select" aria-label="load an example patch"
                                             title="replace the canvas with an example">
                                             <option value="">examples…</option>
-                                            <option value="basics">basics</option>
-                                            <option value="sequencer">sequencer</option>
-                                            <option value="controller">controller</option>
-                                            <option value="modes">modes</option>
-                                            <option value="arp">arp (lua)</option>
                                         </select>
                                         <button type="button" id="patchExportBtn" class="repl-action-btn"
                                             title="save the patch to a file on your computer (the same format as save…; no device needed)">export…</button>
