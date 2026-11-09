@@ -129,6 +129,23 @@ them together, without restarting.</li>
 <b>open…</b> brings one back to the canvas.</li>
 </ul>
 
+<h4>Steps: tips</h4>
+<table>
+<tr><td>set a step's note</td><td>wire an encoder to <i>edit</i> (input 3); press the step's key, then turn within 2 seconds
+(or hold the key while turning). Turning with no step pressed transposes them all.</td></tr>
+<tr><td>pages, with an encoder</td><td>encoder → <i>page</i> (input 4): turn through auto, page 1, page 2…; auto follows the
+playing step.</td></tr>
+<tr><td>pages, with keys</td><td>key → <i>page</i> is next page; key → math (× −1) → <i>page</i> is previous. The page input
+counts steps (positive next, negative previous, 0 nothing), so no value block in between: it would send its total, always
+positive, on press and release, two pages a click.</td></tr>
+<tr><td>length</td><td>encoder → value (1 to 64) → <i>length</i> (input 5). This input takes a number of steps, so here a
+value block is the right thing.</td></tr>
+<tr><td>beat or counter</td><td>set <i>input 1 is</i> to beat and wire a metro or clock in straight in: it wraps at the
+length, whatever it is. With step number, a counter drives it, and its hi should match the length.</td></tr>
+<tr><td>playing notes</td><td><i>note</i> (output 2) → midi note's input 2 (through quantize for a scale), <i>gate</i> (output 1)
+→ its input 1: the note is sent first, so it plays the right pitch.</td></tr>
+</table>
+
 <h4>Recipes</h4>
 <p>Small wirings to start from: <b>add</b> puts one on the canvas beside what's there (nothing is replaced).</p>
 <div class="patch-recipes">

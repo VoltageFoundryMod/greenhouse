@@ -493,8 +493,9 @@ B.type("gate", {
   end,
 })
 
--- route: input 1 goes out of output 1 while input 2 is 0, out of output 2
--- otherwise: one control, two jobs (a toggle on input 2 picks which)
+-- route: input 1 goes out of output 1 while input 2 is 0. If pick is 1
+-- then output 1 is 0 and output 2 gets the input value.
+-- (a toggle on input 2 picks which)
 B.type("route", {
   inputs = 2, outputs = 2,
   init = function(node) node.second = node.old and node.old.second or false end,
@@ -931,6 +932,11 @@ widget("text", {
 -- a step on or off; a press held while turning only edits. The page is the
 -- one playing, unless input 4 picked one: each step there (an encoder's,
 -- or a key's press) moves through auto, page 1, page 2... and back.
+-- Input 5 sets how many steps play (1..64, e.g. from a value block); the
+-- steps field is the length until it does. With "input 1 is" set to beat,
+-- input 1 takes beats instead of step numbers: each 1 is the next step,
+-- wrapping at the length, so no counter is needed and the length can change
+-- while it plays.
 local STEP_KEYS = {
   ["K1-K4"] = {1, 2, 3, 4}, ["K5-K8"] = {5, 6, 7, 8}, ["K10-K13"] = {10, 11, 12, 13},
   ["K5-K8 K10-K13"] = {5, 6, 7, 8, 10, 11, 12, 13},
@@ -942,7 +948,7 @@ local function note_name(n)
   return NOTE_NAMES[n % 12 + 1] .. (n // 12 - 1)
 end
 
-local function step_count(node) return clamp(math.floor(node.p.steps or 8), 1, 32) end
+local function step_count(node) return clamp(math.floor(node.len or node.p.steps or 8), 1, 64) end
 
 -- the step a key stands for, on the page shown
 local function step_of_key(node, i)
@@ -981,18 +987,35 @@ local function step_flash(node, text)
 end
 
 widget("steps", {
-  inputs = 4, outputs = 3, where = "middle top", span = 4,
+  inputs = 5, outputs = 3, where = "middle top", span = 4,
   init = function(node)
     local old = node.old
     node.on = old and old.on or {}
     node.notes = old and old.notes or {}
     node.page = old and old.page or 0
     node.pin = old and old.pin or nil   -- the page input 4 chose (nil: follow)
+    node.len = old and old.len or nil   -- the length input 5 set (nil: the field)
+    node.pos = old and old.pos or nil
     node.held = {}
     node.listen("key")
   end,
   start = function(node) step_leds(node) end,
   input = function(node, i, v)
+    if i == 5 then
+      -- the length: the steps that play (the pattern past it is kept)
+      local len = clamp(math.floor(v + 0.5), 1, 64)
+      if len == node.len then return end
+      node.len = len
+      local per = #(STEP_KEYS[node.p.keys] or {})
+      if per > 0 then
+        local pages = (len + per - 1) // per
+        if node.pin and node.pin >= pages then node.pin = nil end
+        if node.page >= pages then node.page = pages - 1 end
+      end
+      step_flash(node, len .. (len == 1 and " step" or " steps"))
+      step_leds(node)
+      return
+    end
     if i == 4 then
       -- auto, page 1, page 2...: each step moves one along, wrapping
       local per = #(STEP_KEYS[node.p.keys] or {})
@@ -1040,7 +1063,12 @@ widget("steps", {
     end
     if v == 0 then return end
     local n = step_count(node)
-    node.pos = (v - 1) % n + 1
+    if node.p.advance == "beat" then
+      -- a beat: the next step (the first one after the start is step 1)
+      node.pos = (node.pos or 0) % n + 1
+    else
+      node.pos = (v - 1) % n + 1
+    end
     -- the keys follow the playing page, unless one is held or a page was chosen
     local per = #(STEP_KEYS[node.p.keys] or {})
     if per > 0 and not node.pin and next(node.held) == nil then node.page = (node.pos - 1) // per end
@@ -1088,8 +1116,9 @@ widget("steps", {
   -- mark at its height when off; under them the playing step and the page
   draw = function(node, x, y, w, h)
     local n = step_count(node)
-    local cw = w // n
-    local gap = cw >= 6 and 2 or 1
+    local cw = math.max(1, w // n)
+    local gap = cw >= 6 and 2 or (cw >= 2 and 1 or 0)
+    n = math.min(n, w // cw)
     local bh = math.max(3, h - 6)
     local base = y + bh
     local lo, hi = node.p.lo or 36, node.p.hi or 84

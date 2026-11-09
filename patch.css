@@ -484,6 +484,10 @@
     content: 'page';
 }
 
+.pn-steps .input_5::after {
+    content: 'length';
+}
+
 .pn-steps .output_2::after {
     content: 'note';
 }

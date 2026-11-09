@@ -216,34 +216,43 @@ column and a width in columns:
  └ K1 ──┴ K2 ──┴ K3 ──┴ K4 ──┘
 ```
 
-| block                             | draws                                                                       |
-| --------------------------------- | --------------------------------------------------------------------------- |
-| enc label _label, lo, hi_ (top)   | a name with its value as a line under it; turning shows the number a moment |
-| key label _label_ (bottom)        | a name, inverted while its input is not 0 (a key, a toggle)                 |
-| slider _label, lo, hi_            | a vertical bar with its value over it and name under it                     |
-| knob _label, lo, hi_              | an arc with the value inside and the name under it                          |
-| number _label_                    | a name and its value as text                                                |
-| graph _label, lo, hi_             | the last values as a line scrolling from the right (25 a second)            |
-| steps _steps, note, lo, hi, keys_ | a step sequencer of up to 32 steps with a note each, as bars (below)        |
-| text _text_                       | fixed words                                                                 |
+| block                                         | draws                                                                       |
+| --------------------------------------------- | --------------------------------------------------------------------------- |
+| enc label _label, lo, hi_ (top)               | a name with its value as a line under it; turning shows the number a moment |
+| key label _label_ (bottom)                    | a name, inverted while its input is not 0 (a key, a toggle)                 |
+| slider _label, lo, hi_                        | a vertical bar with its value over it and name under it                     |
+| knob _label, lo, hi_                          | an arc with the value inside and the name under it                          |
+| number _label_                                | a name and its value as text                                                |
+| graph _label, lo, hi_                         | the last values as a line scrolling from the right (25 a second)            |
+| steps _steps, input 1 is, note, lo, hi, keys_ | a step sequencer of up to 64 steps with a note each, as bars (below)        |
+| text _text_                                   | fixed words                                                                 |
 
-**steps** is a sequencer in one block, up to 32 steps, each on or off with
+**steps** is a sequencer in one block, up to 64 steps, each on or off with
 its own note, drawn as bars as tall as their notes (within lo..hi). Input 1
-is the playing step (from a counter): it sends the step's note (output 2)
-and, when the step is on, a gate (output 1: 1, then 0 at the next step); the
-note goes first so a midi note block plays it. Output 3 is the step number.
-Its **keys** (K1–K4, K5–K8, K10–K13, or all eight under the encoders) show
-the page of steps that's playing, with their LEDs (amber on, white playing,
-blue held). A press turns a step on or off; an encoder wired to input 3 then
-sets that step's note, for 2 seconds after the press or while the key is
-held, so press a step and dial its note with one hand (or one mouse, in
-diii's panel view). Otherwise the encoder transposes every step. The screen
-shows the step and note for a moment. Input 2 (a step number) turns a step
-on or off. Input 4 picks the page the keys show: each step from an encoder
-(or each press of a key) moves through auto, page 1, page 2… and back to
-auto, so a step on another page can be edited without waiting for it to play
-(the line under the bars marks the page; caps at its ends when it was picked
-by hand). The pattern and notes stay when the block is edited.
+is the playing step (from a counter), or, with **input 1 is** set to beat, a
+beat (a metro, clock in) that moves to the next step and wraps at the
+length, so no counter is needed: it sends the step's note (output 2) and,
+when the step is on, a gate (output 1: 1, then 0 at the next step); the note
+goes first so a midi note block plays it. Output 3 is the step number. Its
+**keys** (K1–K4, K5–K8, K10–K13, or all eight under the encoders) show the
+page of steps that's playing, with their LEDs (amber on, white playing, blue
+held). A press turns a step on or off; an encoder wired to input 3 then sets
+that step's note, for 2 seconds after the press or while the key is held, so
+press a step and dial its note with one hand (or one mouse, in diii's panel
+view). Otherwise the encoder transposes every step. The screen shows the
+step and note for a moment. Input 2 (a step number) turns a step on or off.
+Input 4 picks the page the keys show, counting steps through auto, page 1,
+page 2… and back to auto: a positive number is the next page, a negative one
+the previous, 0 nothing. So an encoder works, a key wired straight in is
+“next” and a key through math × −1 is “previous”; a value block in between
+doesn't work, since it sends its total (positive) on every press and
+release, so a step on another page can be edited without waiting for it to
+play (the line under the bars marks the page; caps at its ends when it was
+picked by hand). Input 5 sets the length, 1 to 64 steps, from a value block
+(encoder → value 1..64 → length); until it does, the steps field is the
+length, and steps past it keep their pattern. The pattern and notes stay
+when the block is edited. The guide's **Steps: tips** and its recipes (pages
+from two keys, a sequence whose length you turn) show the wiring.
 
 **Examples** (examples… in the drawer): **sequencer**, 16 steps across the
 middle of the screen, played from the keys under E5–E12 (two pages; E4 picks

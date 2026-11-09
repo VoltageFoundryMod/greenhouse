@@ -55,7 +55,7 @@ export const BLOCKS = {
         group: 'achene',
         inputs: 0,
         outputs: 1,
-        doc: 'an achene encoder: each turn sends its steps (+1, -2, ...)',
+        doc: 'an achene encoder: a turn clockwise sends +1, counterclockwise sends -1',
         params: { n: { type: 'int', label: 'E', default: 5, min: 1, max: 12 } }
     },
     key: {
@@ -63,7 +63,7 @@ export const BLOCKS = {
         group: 'achene',
         inputs: 0,
         outputs: 1,
-        doc: 'an achene key: 1 when pressed, 0 when released',
+        doc: 'an achene key button: 1 when pressed, 0 when released',
         params: { n: { type: 'int', label: 'K', default: 5, min: 1, max: 16 } }
     },
     lfo: {
@@ -71,7 +71,7 @@ export const BLOCKS = {
         group: 'source',
         inputs: 0,
         outputs: 1,
-        doc: 'a slow wave, 0 to 1, sent 50 times a second',
+        doc: 'a slow wave, 0 to 1, updates 50 times a second',
         params: {
             rate: { type: 'number', label: 'Hz', default: 0.5, min: 0.01, max: 20, step: 0.05 },
             shape: { type: 'select', label: 'shape', default: 'sine', options: ['sine', 'triangle', 'saw', 'square'] }
@@ -82,7 +82,7 @@ export const BLOCKS = {
         group: 'process',
         inputs: 1,
         outputs: 1,
-        doc: 'adds what comes in and keeps it between lo and hi: turns encoder steps into a value',
+        doc: 'stores and accumulates a value, keeps it between lo and hi: turns encoder steps into a value',
         params: {
             lo: { type: 'number', label: 'lo', default: 0 },
             hi: { type: 'number', label: 'hi', default: 127 },
@@ -107,7 +107,7 @@ export const BLOCKS = {
         group: 'process',
         inputs: 1,
         outputs: 1,
-        doc: 'flips between 0 and 1 on each press',
+        doc: 'flips between 0 and 1 on each press (a flip-flop)',
         params: {}
     },
     midi_cc: {
@@ -138,7 +138,7 @@ export const BLOCKS = {
         group: 'achene',
         inputs: 1,
         outputs: 0,
-        doc: 'lights an achene key: the value (0..1) is the brightness',
+        doc: 'lights an achene key button: the value (0..1) is the brightness',
         params: {
             n: { type: 'int', label: 'K', default: 5, min: 1, max: 16 },
             colour: { type: 'select', label: 'colour', default: 'amber', options: COLOURS }
@@ -162,7 +162,7 @@ export const BLOCKS = {
         group: 'achene',
         inputs: 0,
         outputs: 1,
-        doc: "an achene encoder's push: 1 pressed, 0 released",
+        doc: "an achene encoder's push button: 1 pressed, 0 released",
         params: { n: { type: 'int', label: 'E', default: 1, min: 1, max: 12 } }
     },
     grid_key: {
@@ -200,7 +200,7 @@ export const BLOCKS = {
         group: 'source',
         inputs: 0,
         outputs: 2,
-        doc: 'MIDI clock in: output 1 beats every div clocks (24 = a quarter); output 2 is 1 on start, 0 on stop',
+        doc: 'MIDI clock in: output 1 beats every div clocks (24 = a quarter(PPQN)); output 2 is 1 on start, 0 on stop',
         params: {
             div: { type: 'select', label: 'div', default: '24', options: ['96', '48', '24', '12', '6', '3'] }
         }
@@ -229,7 +229,7 @@ export const BLOCKS = {
         group: 'process',
         inputs: 2,
         outputs: 1,
-        doc: 'input 1 (not 0): the next step, wrapping; input 2 (not 0): back to lo',
+        doc: 'step input: the next step when not 0, wrapping; reset input: resets to lo when not 0',
         params: {
             lo: { type: 'int', label: 'lo', default: 1 },
             hi: { type: 'int', label: 'hi', default: 8 },
@@ -252,7 +252,7 @@ export const BLOCKS = {
         group: 'process',
         inputs: 1,
         outputs: 1,
-        doc: 'the nearest note of a scale',
+        doc: 'quantizes the input note to the nearest note in the selected scale',
         params: {
             scale: {
                 type: 'select',
@@ -276,7 +276,7 @@ export const BLOCKS = {
         group: 'process',
         inputs: 2,
         outputs: 1,
-        doc: 'passes input 1 while input 2 is open (not 0); starts open',
+        doc: 'passes input value while "open" is not 0; starts open',
         params: {}
     },
     route: {
@@ -284,7 +284,7 @@ export const BLOCKS = {
         group: 'process',
         inputs: 2,
         outputs: 2,
-        doc: 'input 1 goes out of output 1 while input 2 is 0, out of output 2 otherwise: one control, two jobs (a toggle on input 2 picks which)',
+        doc: 'input 1 goes out of output 1 while input 2 is 0. If pick is 1 then output 1 is 0 and output 2 gets the input value (a toggle on input 2 picks which)',
         params: {}
     },
     math: {
@@ -292,7 +292,7 @@ export const BLOCKS = {
         group: 'math',
         inputs: 2,
         outputs: 1,
-        doc: 'two numbers: input 1 computes and sends (a op b), input 2 sets b without sending; until then b is the field',
+        doc: 'applies an operation to two number inputs: input 1 computes and sends (a op b), input 2 sets b without sending; until then b is the field',
         params: {
             op: {
                 type: 'select',
@@ -427,11 +427,12 @@ export const BLOCKS = {
     steps: {
         label: 'steps',
         group: 'screen',
-        inputs: 4,
+        inputs: 5,
         outputs: 3,
-        doc: "a step sequencer of up to 32 steps, each with a note, drawn as bars. Input 1 is the playing step (a counter): it sends the step's note (output 2) and, if the step is on, a gate (output 1); output 3 is the step number. Its keys show the playing page: a press turns a step on or off; an encoder wired to input 3 then sets that step's note (for 2 seconds after the press, or while the key is held); otherwise it transposes them all. Input 2 (a step number) turns a step on or off. Input 4 picks the page the keys show (an encoder or a key steps through auto, page 1, page 2...), so a step on another page can be edited without waiting for it",
+        doc: "a step sequencer of up to 64 steps, each with a note, drawn as bars. *Step input* is the playing step (a counter), or with 'input is' set to beat, a beat (a metro, clock in) that moves to the next step. Each step sends its note and, if it is on, a gate; step output is the step number. Its keys show a page of steps: a press turns a step on or off; an encoder wired to *edit input* then sets that step's note (for 2 seconds after the press, or while the key is held); otherwise it transposes them all. *Flip input* turns the current step on or off. *Page input* picks the page the keys show, counting steps through auto, page 1, page 2...: positive is the next page, negative the previous (wire an encoder, a key for next on each push or a key thru 'math x -1' op for previous). *Length input* sets the length, 1 to 64 (from a value block); see guide for more recipes",
         params: {
-            steps: { type: 'int', label: 'steps', default: 8, min: 1, max: 32 },
+            steps: { type: 'int', label: 'steps', default: 8, min: 1, max: 64 },
+            advance: { type: 'select', label: 'input is', default: 'step number', options: ['step number', 'beat'] },
             note: { type: 'int', label: 'note', default: 60, min: 0, max: 127 },
             lo: { type: 'int', label: 'lo', default: 48, min: 0, max: 127 },
             hi: { type: 'int', label: 'hi', default: 72, min: 0, max: 127 },
@@ -460,7 +461,7 @@ export const BLOCKS = {
         group: 'output',
         inputs: 1,
         outputs: 1,
-        doc: 'passes values on unchanged and shows them here on the block, the latest and a little graph, while the patch runs (10 times a second at most)',
+        doc: 'passes values unchanged and shows the values on the block with a graph (updated 10 times a second at most)',
         view: 'watch',
         params: {}
     },
@@ -469,7 +470,7 @@ export const BLOCKS = {
         group: 'output',
         inputs: 1,
         outputs: 0,
-        doc: "prints values in diii's console, at most 10 a second",
+        doc: "prints values in diii's console, at most 10 times a second",
         params: { label: { type: 'text', label: 'label', default: 'value' } }
     },
     lua: {
@@ -1098,6 +1099,72 @@ export const RECIPES = [
                 [2, 1, 3, 1],
                 [3, 2, 4, 2],
                 [3, 1, 4, 1]
+            ]
+        }
+    },
+    {
+        name: 'pages',
+        title: 'Pages from two keys (or an encoder)',
+        chain: 'key K9 → steps page, key K14 → math (× −1) → steps page',
+        text: "The page input counts steps: a positive number is the next page, a negative one the previous, 0 nothing. A key sends 1 on press (next) and 0 on release (ignored); math × −1 makes the other key's press a −1 (previous). An encoder wired straight in works too. Not through a value block: it sends its total, always positive, on every press and release, so each click would turn two pages forward.",
+        patch: {
+            nodes: [
+                { id: 1, type: 'metro', params: { ms: 150 }, x: 0, y: 0 },
+                {
+                    id: 2,
+                    type: 'steps',
+                    params: { steps: 32, advance: 'beat', keys: 'K5-K8 K10-K13', where: 'middle top', col: 1, span: 4 },
+                    x: 420,
+                    y: 0
+                },
+                { id: 3, type: 'midi_note', params: { note: 60, vel: 100, ch: 1 }, x: 700, y: 0 },
+                { id: 4, type: 'key', params: { n: 9 }, x: 0, y: 150 },
+                { id: 5, type: 'key', params: { n: 14 }, x: 0, y: 260 },
+                { id: 6, type: 'math', params: { op: '*', b: -1 }, x: 190, y: 250 }
+            ],
+            wires: [
+                [1, 1, 2, 1],
+                [2, 2, 3, 2],
+                [2, 1, 3, 1],
+                [4, 1, 2, 4],
+                [5, 1, 6, 1],
+                [6, 1, 2, 4]
+            ]
+        }
+    },
+    {
+        name: 'length',
+        title: 'A sequence whose length you turn',
+        chain: 'metro → steps (input 1 is: beat), encoder → value (1..64) → steps length',
+        text: "With 'input 1 is' set to beat, each beat moves to the next step and wraps at the length, so no counter is needed. The length input takes a number of steps, so it goes through a value block (here 1 to 64, starting at 16); number shows it on the screen.",
+        patch: {
+            nodes: [
+                { id: 1, type: 'metro', params: { ms: 150 }, x: 0, y: 0 },
+                {
+                    id: 2,
+                    type: 'steps',
+                    params: { steps: 16, advance: 'beat', keys: 'K5-K8 K10-K13', where: 'middle top', col: 1, span: 4 },
+                    x: 420,
+                    y: 0
+                },
+                { id: 3, type: 'midi_note', params: { note: 60, vel: 100, ch: 1 }, x: 700, y: 0 },
+                { id: 4, type: 'encoder', params: { n: 4 }, x: 0, y: 200 },
+                { id: 5, type: 'accum', params: { lo: 1, hi: 64, start: 16 }, x: 190, y: 190 },
+                {
+                    id: 6,
+                    type: 'number',
+                    params: { label: 'length', where: 'middle bottom', col: 4, span: 1 },
+                    x: 700,
+                    y: 200
+                }
+            ],
+            wires: [
+                [1, 1, 2, 1],
+                [2, 2, 3, 2],
+                [2, 1, 3, 1],
+                [4, 1, 5, 1],
+                [5, 1, 2, 5],
+                [5, 1, 6, 1]
             ]
         }
     },
