@@ -4,6 +4,11 @@
 
 if not (B and B.type) then error("blocks_grid.lua: load blocks.lua first") end
 B.grid_version = 8
+-- on another device (achene), skip it: its blocks would only take memory
+if not grid_led then
+  print("blocks_grid: not a grid, skipped")
+  return
+end
 local round, SCALES = B.round, B.SCALES
 
 B.type("grid_key", {

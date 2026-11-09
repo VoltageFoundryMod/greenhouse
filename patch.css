@@ -19,6 +19,13 @@
     flex: none;
 }
 
+/* on the right, also when a long status or wider menus wrap them below */
+.patch-controls {
+    margin-left: auto;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
 .patch-drawer[hidden],
 .patch-drawer:not(.open) .patch-body,
 .patch-drawer:not(.open) .patch-controls {

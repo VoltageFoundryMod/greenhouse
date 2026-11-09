@@ -1507,9 +1507,11 @@ export const patchMethods = {
      * device, not only version bumps.
      */
     async ensurePatchRuntime() {
-        // the core, the connected device's module, and any other the patch uses
-        const made = this.patchEditor ? patchDevice(this.exportPatch()) : null;
-        const parts = new Set(['core', ...runtimeModules(this.patchTarget().device), ...runtimeModules(made)]);
+        // the core and the connected device's module only: another device's
+        // blocks do nothing here, and on a grid all three files run it out of
+        // memory. A device of unknown kind gets what the patch uses.
+        const device = this.patchTarget().device ?? (this.patchEditor ? patchDevice(this.exportPatch()) : null);
+        const parts = new Set(['core', ...runtimeModules(device)]);
         for (const part of parts) {
             if (!(await this.ensureRuntimeFile(/** @type {keyof typeof RUNTIME_FILES} */ (part)))) return false;
         }

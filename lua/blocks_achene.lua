@@ -4,6 +4,11 @@
 
 if not (B and B.type) then error("blocks_achene.lua: load blocks.lua first") end
 B.achene_version = 8
+-- on another device (a grid), skip it: its blocks would only take memory
+if not (key_led and screen_clear) then
+  print("blocks_achene: not an achene, skipped")
+  return
+end
 local round = B.round
 
 -- ------------------------------------------------------------- screen

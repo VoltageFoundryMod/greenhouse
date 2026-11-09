@@ -833,8 +833,10 @@ export function patchFile(name, patch) {
         .map((f) => `(${f.version.replace('B and ', '')} or 0) < ${RUNTIME_VERSION}`)
         .join(' or ');
     lines.push(
-        'require("blocks.lua")',
-        ...modules.map((m) => `require("${RUNTIME_FILES[m].file}")`),
+        // each file only when it isn't loaded yet: a reload would hold two copies at once
+        ...[RUNTIME_FILES.core, ...modules.map((m) => RUNTIME_FILES[m])].map(
+            (f) => `if (${f.version} or 0) < ${RUNTIME_VERSION} then require("${f.file}") end`
+        ),
         // an older runtime on the device: say so rather than fail on blocks it lacks
         `if ${versions} then print("this patch needs the blocks runtime v${RUNTIME_VERSION}: open diii's patch editor and press run to update it") end`,
         'B.patch{',

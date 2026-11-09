@@ -4,6 +4,13 @@
 import { hasExactFiles, readDeviceFile } from './backup.js';
 import { disableStartupScript, onlyStartsScript, setStartupScript } from './init-lua.js';
 
+/** Files scripts save their data in (presets, state); the list hides them unless asked. */
+const DATA_PREFIXES = ['pset_', 'data_', 'd_', 'state_'];
+const SHOW_DATA_KEY = 'webdiii.showDataFiles';
+
+/** @param {string} name */
+const isDataFile = (name) => DATA_PREFIXES.some((prefix) => name.startsWith(prefix));
+
 export const fileMethods = {
     formatSizeKb(bytes) {
         const kb = (Number(bytes) || 0) / 1024;
@@ -87,7 +94,11 @@ export const fileMethods = {
             return;
         }
 
-        const sortedEntries = this.getSortedFileEntries();
+        // data files other scripts save (presets, state): hidden unless asked for
+        const showData = this.showDataFiles();
+        const allEntries = this.getSortedFileEntries();
+        const sortedEntries = showData ? allEntries : allEntries.filter((entry) => !isDataFile(entry.name));
+        const hiddenCount = allEntries.length - sortedEntries.length;
         const pinnedCount = sortedEntries.filter(
             (entry) => entry.name === 'lib.lua' || this.isInitFile(entry.name)
         ).length;
@@ -207,12 +218,47 @@ export const fileMethods = {
                 this.elements.fileList.appendChild(separator);
             }
         }
+
+        const dataCount = showData ? allEntries.filter((entry) => isDataFile(entry.name)).length : hiddenCount;
+        if (dataCount > 0) {
+            const toggle = document.createElement('button');
+            toggle.type = 'button';
+            toggle.className = 'file-data-toggle';
+            toggle.textContent = showData
+                ? `hide ${dataCount} data file${dataCount === 1 ? '' : 's'}`
+                : `${dataCount} data file${dataCount === 1 ? '' : 's'} hidden: show`;
+            toggle.title = `files scripts save their presets and state in (${DATA_PREFIXES.map((p) => `${p}…`).join(', ')})`;
+            toggle.addEventListener('click', () => {
+                this.setShowDataFiles(!showData);
+                this.renderFileList();
+            });
+            this.elements.fileList.appendChild(toggle);
+        }
+    },
+
+    /** Whether the file list shows data files (remembered in this browser). */
+    showDataFiles() {
+        try {
+            return localStorage.getItem(SHOW_DATA_KEY) === '1';
+        } catch {
+            return false;
+        }
+    },
+
+    /** @param {boolean} on */
+    setShowDataFiles(on) {
+        try {
+            localStorage.setItem(SHOW_DATA_KEY, on ? '1' : '0');
+        } catch {
+            // private window: it lasts until the next render only
+        }
     },
 
     async refreshFileList() {
         if (!this.iiiDevice.isConnected) {
             this.fileEntries = [];
             this.firstBadgeFileNames = new Set();
+            this.patchFileSeen = null; // the next device has its own files
             this.fileFreeSpaceBytes = null;
             this.updateFileSpaceFooter(null);
             this.renderFileList();
@@ -337,23 +383,32 @@ export const fileMethods = {
 
     /**
      * Scripts saved from the patch drawer start with "-- diii patch:"; ask
-     * the device which do (small files only: each is read whole into RAM).
+     * the device which do. iii can only read a file whole, into one string,
+     * and on a grid running a patch a big read can run Lua out of memory (and
+     * the device into its watchdog). So: never the runtime's or iii's own
+     * files, one file per request (collected right after), and each file
+     * only once per name and size: what was seen is remembered.
      * @param {{ name: string, size?: number }[]} entries
      */
     async refreshPatchFileNames(entries) {
-        if (!entries.some((entry) => entry.name.endsWith('.lua'))) {
-            this.patchFileNames = new Set();
-            return;
+        const seen = (this.patchFileSeen ??= new Map()); // "name\tsize" -> is a patch
+        const skip = new Set(['init.lua', 'lib.lua', 'blocks.lua', 'blocks_achene.lua', 'blocks_grid.lua']);
+        const names = new Set();
+        for (const { name, size = 0 } of entries) {
+            if (!name.endsWith('.lua') || skip.has(name) || isDataFile(name) || size >= 32768) continue;
+            const key = `${name}\t${size}`;
+            if (!seen.has(key)) {
+                const lines = await this.executeLuaCapture(
+                    `do local s = fs_read_file(${JSON.stringify(name)}) print(s and s:find("^%-%- diii patch:") and "__webdiii_patch" or "-") s = nil collectgarbage() end`
+                );
+                seen.set(
+                    key,
+                    lines.some((line) => String(line).trim() === '__webdiii_patch')
+                );
+            }
+            if (seen.get(key)) names.add(name);
         }
-        const lines = await this.executeLuaCapture(
-            'for _, n in ipairs(fs_list_files()) do if n:match("%.lua$") and (fs_file_size(n) or 0) < 32768 then local s = fs_read_file(n) if s and s:find("^%-%- diii patch:") then print("__webdiii_patch\\t" .. n) end s = nil end end collectgarbage()'
-        );
-        this.patchFileNames = new Set(
-            lines
-                .map((line) => String(line).split('\t'))
-                .filter((parts) => parts[0] === '__webdiii_patch' && parts[1])
-                .map((parts) => parts[1].trim())
-        );
+        this.patchFileNames = names;
     },
 
     async refreshFirstBadgeFileNames(entries) {
