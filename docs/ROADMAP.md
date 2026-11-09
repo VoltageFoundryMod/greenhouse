@@ -36,6 +36,10 @@ details live in the linked documents; this is the list.
   up to 32 steps, paging, one-handed note editing; route and watch blocks;
   a modes example; recipes in the guide; offline editing with export and
   import.
+- **Visual editor, runtime v6**: state kept across stop, run, save and
+  export; versioned patch files; constant, sample & hold, not, a metro
+  with a BPM input; a right-click menu; new blocks on free space; the
+  running patch's size in the status.
 
 ## Next
 

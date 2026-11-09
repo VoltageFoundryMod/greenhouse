@@ -8,7 +8,7 @@
 -- first, or its clock and patch would carry on beside this one.
 if B and B.clear then B.clear() end
 B = B or {}
-B.version = 5
+B.version = 6
 B.types = {}
 
 local nodes = {}      -- id -> node
@@ -190,9 +190,60 @@ function B.clear()
   end
 end
 
+-- ------------------------------------------------------------- state
+
+-- What a block remembers (a pattern, a value, a toggle's side): def.save
+-- returns it as a table, def.load puts it back. diii asks for it (B.state)
+-- before stopping or saving, and sends it back with the patch, so a patch
+-- starts again where it was.
+local function json(v)
+  local t = type(v)
+  if t == "number" then
+    if v == math.floor(v) and math.abs(v) < 2^53 then return string.format("%d", v) end
+    return string.format("%.6g", v)
+  elseif t == "boolean" then
+    return v and "true" or "false"
+  elseif t == "string" then
+    return '"' .. (v:gsub('[%c"\\]', "")) .. '"'
+  elseif t == "table" then
+    local parts = {}
+    if #v > 0 then
+      for i = 1, #v do parts[i] = json(v[i]) end
+      return "[" .. table.concat(parts, ",") .. "]"
+    end
+    for k, x in pairs(v) do parts[#parts + 1] = '"' .. tostring(k) .. '":' .. json(x) end
+    return "{" .. table.concat(parts, ",") .. "}"
+  end
+  return "null"
+end
+
+function B.state()
+  for id, node in pairs(nodes) do
+    if node.def.save then
+      local st = node.def.save(node)
+      if st then print("__webdiii_state\t" .. id .. "\t" .. json(st)) end
+    end
+  end
+end
+
+function B.load(id, st)
+  local node = nodes[id]
+  if node and node.def.load and type(st) == "table" then node.def.load(node, st) end
+end
+
+-- how big the running patch is: its blocks and Lua's memory in KB
+function B.stats()
+  local n = 0
+  for _ in pairs(nodes) do n = n + 1 end
+  print("__webdiii_stats\t" .. n .. "\t" .. math.floor(collectgarbage("count")))
+end
+
 function B.patch(p)
   B.clear()
-  for _, n in ipairs(p.nodes or {}) do B.node(n[1], n[2], n[3]) end
+  for _, n in ipairs(p.nodes or {}) do
+    B.node(n[1], n[2], n[3])
+    if n[4] then B.load(n[1], n[4]) end
+  end
   for _, w in ipairs(p.wires or {}) do B.wire(w[1], w[2], w[3], w[4]) end
   B.start()
 end
@@ -303,10 +354,20 @@ B.type("lfo", {
 })
 
 -- 1 at each beat, 0 halfway; input 1 turns it off (0) and on (not 0)
+-- Input 2 sets the tempo in BPM (then ms is unused): `per` beats come for
+-- each quarter note (2 for eighths, 4 for sixteenths). It steps on the 50 Hz
+-- tick, so its timing is rounded to 20 ms.
 B.type("metro", {
-  inputs = 1, outputs = 1,
-  init = function(node) node.t, node.on = 0, true end,
-  input = function(node, _, v)
+  inputs = 2, outputs = 1,
+  init = function(node)
+    node.t, node.on = 0, true
+    node.bpm = node.old and node.old.bpm or nil
+  end,
+  input = function(node, i, v)
+    if i == 2 then
+      if v > 0 then node.bpm = v end
+      return
+    end
     node.on = v ~= 0
     if not node.on and node.high then
       node.high = false
@@ -316,6 +377,7 @@ B.type("metro", {
   tick = function(node, dt)
     if not node.on then return end
     local period = math.max(node.p.ms or 500, 20) / 1000
+    if node.bpm then period = math.max(60 / (node.bpm * (tonumber(node.p.per) or 1)), 0.02) end
     node.t = (node.t + dt) % period
     gate(node, node.t / period)
   end,
@@ -370,6 +432,8 @@ B.type("midi_in_note", {
 B.type("accum", {
   inputs = 1, outputs = 1,
   init = function(node) node.v = node.p.start or 64 end,
+  save = function(node) return {v = node.v} end,
+  load = function(node, st) if type(st.v) == "number" then node.v = st.v end end,
   start = function(node) B.out(node, 1, node.v) end,
   input = function(node, _, d)
     node.v = clamp(node.v + d, node.p.lo or 0, node.p.hi or 127)
@@ -390,6 +454,8 @@ B.type("toggle", {
   inputs = 1, outputs = 1,
   init = function(node) node.on = node.old and node.old.on or false end,
   start = function(node) B.out(node, 1, node.on and 1 or 0) end,
+  save = function(node) return {on = node.on} end,
+  load = function(node, st) node.on = st.on == true end,
   input = function(node, _, v)
     if v ~= 0 then
       node.on = not node.on
@@ -406,6 +472,11 @@ B.type("counter", {
   init = function(node)
     node.v = node.p.lo or 1
     node.fresh = true
+  end,
+  -- loaded: the next step plays where it was
+  save = function(node) return {v = node.v} end,
+  load = function(node, st)
+    if type(st.v) == "number" then node.v, node.fresh = st.v, true end
   end,
   start = function(node) B.out(node, 1, node.v) end,
   input = function(node, i, v)
@@ -499,10 +570,32 @@ B.type("gate", {
 B.type("route", {
   inputs = 2, outputs = 2,
   init = function(node) node.second = node.old and node.old.second or false end,
+  save = function(node) return {second = node.second} end,
+  load = function(node, st) node.second = st.second == true end,
   input = function(node, i, v)
     if i == 2 then node.second = v ~= 0
     else B.out(node, node.second and 2 or 1, v) end
   end,
+})
+
+-- sample & hold: input 1 is watched quietly; a trigger on input 2 (not 0)
+-- sends the value input 1 had then
+B.type("sample", {
+  inputs = 2, outputs = 1,
+  init = function(node) node.v = node.old and node.old.v or 0 end,
+  input = function(node, i, v)
+    if i == 1 then node.v = v
+    elseif v ~= 0 then B.out(node, 1, node.v) end
+  end,
+  save = function(node) return {v = node.v} end,
+  load = function(node, st) if type(st.v) == "number" then node.v = st.v end end,
+})
+
+-- a fixed number: sent at the start, and again on anything at its input
+B.type("constant", {
+  inputs = 1, outputs = 1,
+  start = function(node) B.out(node, 1, node.p.value or 0) end,
+  input = function(node) B.out(node, 1, node.p.value or 0) end,
 })
 
 -- custom code: the code runs for each message with node, i (the input),
@@ -563,6 +656,7 @@ B.type("math", {
 local FUNCS = {
   sin = math.sin, cos = math.cos, tan = math.tan, abs = math.abs,
   neg = function(v) return -v end,
+  ["not"] = function(v) return v == 0 and 1 or 0 end,
   sqrt = function(v) return math.sqrt(math.abs(v)) end,
   exp = math.exp,
   log = function(v) return v > 0 and math.log(v) or 0 end,
@@ -597,6 +691,8 @@ B.type("change", {
 B.type("memory", {
   inputs = 3, outputs = 1,
   init = function(node) node.v = node.p.start or 0 end,
+  save = function(node) return {v = node.v} end,
+  load = function(node, st) if type(st.v) == "number" then node.v = st.v end end,
   input = function(node, i, v)
     if i == 1 then
       node.v = v
@@ -879,7 +975,10 @@ widget("number", {
       text_in(x, top, w - 2, node.p.label or "")
       text_in(x, top + 10, w - 2, fmt(node.v))
     else
-      text_in(x, y + (h - 8) // 2, w - 2, (node.p.label or "") .. " " .. fmt(node.v))
+      -- one line: the number always whole, the label shortened to fit
+      local num, label = fmt(node.v), node.p.label or ""
+      while #label > 0 and screen_text_width(label .. " " .. num) > w - 2 do label = label:sub(1, -2) end
+      text_in(x, y + (h - 8) // 2, w - 2, label ~= "" and (label .. " " .. num) or num)
     end
   end,
 })
@@ -1000,6 +1099,30 @@ widget("steps", {
     node.listen("key")
   end,
   start = function(node) step_leds(node) end,
+  -- the pattern (on as a string of 0 and 1), the notes, the length, the page
+  save = function(node)
+    local last = 0
+    for s = 1, 64 do if node.on[s] or node.notes[s] then last = s end end
+    local on, notes = {}, {}
+    for s = 1, last do
+      on[s] = node.on[s] and "1" or "0"
+      notes[s] = step_note(node, s)
+    end
+    return {on = table.concat(on), notes = notes, len = node.len, pin = node.pin}
+  end,
+  load = function(node, st)
+    if type(st.on) == "string" then
+      node.on = {}
+      for s = 1, math.min(#st.on, 64) do node.on[s] = st.on:sub(s, s) == "1" end
+    end
+    if type(st.notes) == "table" then
+      node.notes = {}
+      for s, n in ipairs(st.notes) do node.notes[s] = n end
+    end
+    if type(st.len) == "number" then node.len = clamp(math.floor(st.len), 1, 64) end
+    if type(st.pin) == "number" then node.pin, node.page = st.pin, st.pin end
+    screen_dirty = true
+  end,
   input = function(node, i, v)
     if i == 5 then
       -- the length: the steps that play (the pattern past it is kept)

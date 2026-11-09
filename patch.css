@@ -330,6 +330,14 @@
     color: #7fdc9a;
 }
 
+.pn-constant .pn-title {
+    color: #7fdc9a;
+}
+
+.pn-sample .pn-title {
+    color: #9fe0e0;
+}
+
 .pn-math .pn-title,
 .pn-func .pn-title,
 .pn-change .pn-title {
@@ -450,6 +458,18 @@
 
 .pn-memory .input_3::after {
     content: 'recall';
+}
+
+.pn-metro .input_2::after {
+    content: 'bpm';
+}
+
+.pn-sample .input_1::after {
+    content: 'in';
+}
+
+.pn-sample .input_2::after {
+    content: 'trig';
 }
 
 .pn-route .input_2::after {
@@ -801,6 +821,64 @@
 
 .ps-box:hover .ps-grip {
     opacity: 1;
+}
+
+/* the right-click menu */
+.patch-menu {
+    position: absolute;
+    z-index: 6;
+    min-width: 180px;
+    max-width: 280px;
+    padding: 4px;
+    border: 1px solid var(--neutral-trim);
+    border-radius: 8px;
+    background: var(--bg-surface);
+    box-shadow: 0 8px 24px #0009;
+}
+
+.patch-menu[hidden] {
+    display: none;
+}
+
+.patch-menu-item {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    width: 100%;
+    padding: 5px 8px;
+    border: 0;
+    border-radius: 4px;
+    background: none;
+    color: var(--neutral-heavy);
+    font: inherit;
+    font-size: 0.8rem;
+    text-align: left;
+    cursor: pointer;
+}
+
+.patch-menu-item:hover:not(:disabled) {
+    background: var(--hover, #2a2d2e);
+}
+
+.patch-menu-item:disabled {
+    color: var(--neutral-medium);
+    opacity: 0.6;
+    cursor: default;
+}
+
+.patch-menu-item kbd {
+    font-family: var(--mono-font, ui-monospace, monospace);
+    font-size: 0.7rem;
+    color: var(--neutral-medium);
+}
+
+.patch-menu-note {
+    margin: 4px 8px 4px;
+    padding-top: 6px;
+    border-top: 1px solid var(--neutral-trim);
+    font-size: 0.75rem;
+    line-height: 1.4;
+    color: var(--neutral-medium);
 }
 
 /* the guide's recipes */

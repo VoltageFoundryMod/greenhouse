@@ -116,6 +116,8 @@ back to an output. One output can feed many inputs.</li>
 <tr><td>ctrl+C, X, V</td><td>copy, cut, paste the selection, with the wires between its blocks (a paste lands under the mouse)</td></tr>
 <tr><td>ctrl+D</td><td>duplicate the selection beside it</td></tr>
 <tr><td>ctrl+A</td><td>select every block</td></tr>
+<tr><td>right-click</td><td>on a block or a selection: duplicate, copy, cut, delete, and what the block does;
+on empty canvas: paste here, select all; on a wire: × deletes it</td></tr>
 <tr><td>export…, import…</td><td>save the patch to a file on your computer, or load one (works offline)</td></tr>
 <tr><td>Delete, Esc</td><td>remove the selection, let go of it</td></tr>
 </table>
@@ -158,6 +160,11 @@ ${RECIPES.map(
 
 <h4>Saving and sharing</h4>
 <ul>
+<li>Blocks that remember things (a steps pattern and its notes, a value, a toggle, a counter, a memory) keep it:
+<b>stop</b>, <b>save…</b> and <b>export…</b> ask the device for it, so <b>run</b>, a saved script and an
+exported file start again where you left off.</li>
+<li>A patch file says which blocks.lua it needs: on a device with an older one it prints so instead of
+failing, and diii tells you about blocks it doesn't know when you open or import one.</li>
 <li><b>save…</b> and <b>open…</b> use the device; <b>export…</b> and <b>import…</b> use a file on your computer
 (the same format), so a patch can be made, kept and shared with no device connected: the <b>patch</b> button at the
 top opens the editor any time.</li>
@@ -243,7 +250,7 @@ widen it, double-click it to switch between the full middle row and a half. Clic
         await this.ensurePatchEditor();
         this.togglePatchGuide(false);
         const rect = this.elements.patchCanvas.getBoundingClientRect();
-        this.pastePatch?.(recipe.patch, { x: rect.left + 40, y: rect.top + 30 });
+        this.pastePatch?.(recipe.patch, { x: rect.left + 40, y: rect.top + 30 }, true);
     },
 
     /** @param {boolean} [open] */

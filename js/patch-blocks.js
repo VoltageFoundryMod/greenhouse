@@ -4,7 +4,7 @@
 // outputs and parameters.
 
 /** Version of lua/blocks.lua this diii carries; the device gets it when older. */
-export const RUNTIME_VERSION = 5;
+export const RUNTIME_VERSION = 6;
 
 /**
  * @typedef {object} Param
@@ -190,10 +190,13 @@ export const BLOCKS = {
     metro: {
         label: 'metro',
         group: 'source',
-        inputs: 1,
+        inputs: 2,
         outputs: 1,
-        doc: 'a steady beat: 1 on each beat, 0 halfway; input: 0 stops it, anything else starts it',
-        params: { ms: { type: 'int', label: 'ms', default: 500, min: 20, max: 10000 } }
+        doc: 'a steady beat: 1 on each beat, 0 halfway. Input 1: 0 stops it, anything else starts it. Input 2 sets the tempo in BPM (then ms is unused), with per beat beats to a quarter note (2 eighths, 4 sixteenths); it steps on the 50 Hz tick, so timing is rounded to 20 ms',
+        params: {
+            ms: { type: 'int', label: 'ms', default: 500, min: 20, max: 10000 },
+            per: { type: 'select', label: 'per beat', default: '1', options: ['1', '2', '3', '4'] }
+        }
     },
     clock: {
         label: 'clock in',
@@ -279,6 +282,22 @@ export const BLOCKS = {
         doc: 'passes input value while "open" is not 0; starts open',
         params: {}
     },
+    constant: {
+        label: 'constant',
+        group: 'source',
+        inputs: 1,
+        outputs: 1,
+        doc: 'a fixed number: sent when the patch starts, and again whenever anything comes in (a key, a beat)',
+        params: { value: { type: 'number', label: 'value', default: 1 } }
+    },
+    sample: {
+        label: 'sample & hold',
+        group: 'memory',
+        inputs: 2,
+        outputs: 1,
+        doc: 'sample & hold: input 1 is watched quietly; a trigger on input 2 (not 0, e.g. a metro) sends the value input 1 had then',
+        params: {}
+    },
     route: {
         label: 'route',
         group: 'process',
@@ -314,7 +333,7 @@ export const BLOCKS = {
                 type: 'select',
                 label: 'fn',
                 default: 'sin',
-                options: ['sin', 'cos', 'tan', 'abs', 'neg', 'sqrt', 'exp', 'log', 'floor', 'ceil', 'round']
+                options: ['sin', 'cos', 'tan', 'abs', 'neg', 'not', 'sqrt', 'exp', 'log', 'floor', 'ceil', 'round']
             }
         }
     },
@@ -552,11 +571,62 @@ export function luaParams(type, values) {
  * @property {Record<string, unknown>} params
  * @property {number} [x]
  * @property {number} [y]
+ * @property {Record<string, unknown>} [state] what the block remembered on the device (a pattern, a value)
  *
  * @typedef {object} Patch
  * @property {PatchNode[]} nodes
  * @property {[number, number, number, number][]} wires from, output, to, input
+ * @property {number} [rt] the runtime version it was made with (files)
  */
+
+/**
+ * A JSON value as a Lua literal: numbers, booleans, strings (printable
+ * ASCII without quotes), arrays and objects with plain keys.
+ * @param {unknown} v
+ * @returns {string}
+ */
+function luaValue(v) {
+    if (typeof v === 'number') return Number.isFinite(v) ? String(v) : '0';
+    if (typeof v === 'boolean') return v ? 'true' : 'false';
+    if (typeof v === 'string') return `"${v.replace(/[^ -~]|["\\]/g, '')}"`;
+    if (Array.isArray(v)) return `{${v.map(luaValue).join(', ')}}`;
+    if (v && typeof v === 'object') {
+        const parts = Object.entries(v)
+            .filter(([k]) => /^[A-Za-z_]\w*$/.test(k))
+            .map(([k, x]) => `${k} = ${luaValue(x)}`);
+        return `{${parts.join(', ')}}`;
+    }
+    return 'nil';
+}
+
+/**
+ * A block's remembered state as a Lua table, or '' when there is none or
+ * it would not fit one line to the device.
+ * @param {PatchNode} n
+ */
+export function luaState(n) {
+    if (!n.state || typeof n.state !== 'object') return '';
+    const lua = luaValue(n.state);
+    return lua.length > 400 ? '' : lua;
+}
+
+/**
+ * What would go wrong opening a patch here: blocks this diii doesn't know,
+ * or a newer runtime than it carries.
+ * @param {Patch} patch
+ * @returns {string[]}
+ */
+export function patchProblems(patch) {
+    const problems = [];
+    const unknown = [...new Set(patch.nodes.filter((n) => !BLOCKS[n.type]).map((n) => n.type))];
+    if (unknown.length) problems.push(`blocks this diii doesn't know (left out): ${unknown.join(', ')}`);
+    if (patch.rt && patch.rt > RUNTIME_VERSION) {
+        problems.push(
+            `made with a newer runtime (v${patch.rt}; this diii has v${RUNTIME_VERSION}): reload diii for the newest`
+        );
+    }
+    return problems;
+}
 
 /** The lines that rebuild a patch live on a device with the runtime loaded. */
 /** @param {Patch} patch */
@@ -564,6 +634,7 @@ export function liveLines(patch) {
     return [
         'B.clear()',
         ...patch.nodes.map((n) => `B.node(${n.id}, "${n.type}", ${luaParams(n.type, n.params)})`),
+        ...patch.nodes.filter((n) => luaState(n)).map((n) => `B.load(${n.id}, ${luaState(n)})`),
         ...patch.wires.map((w) => `B.wire(${w.join(', ')})`),
         'B.start()'
     ];
@@ -575,14 +646,23 @@ export function liveLines(patch) {
  * @param {string} name @param {Patch} patch
  */
 export function patchFile(name, patch) {
-    const json = JSON.stringify({ v: 1, nodes: patch.nodes, wires: patch.wires });
+    const json = JSON.stringify({ v: 1, rt: RUNTIME_VERSION, nodes: patch.nodes, wires: patch.wires });
     const lines = [
         `-- diii patch: ${name.replace(/[^ -~]/g, '')}`,
         '-- made in the patch drawer; open it there to change it'
     ];
     for (let i = 0; i < json.length; i += 300) lines.push(`--@patch ${json.slice(i, i + 300)}`);
-    lines.push('require("blocks.lua")', 'B.patch{', '  nodes = {');
-    for (const n of patch.nodes) lines.push(`    {${n.id}, "${n.type}", ${luaParams(n.type, n.params)}},`);
+    lines.push(
+        'require("blocks.lua")',
+        // an older blocks.lua on the device: say so rather than fail on blocks it lacks
+        `if (B.version or 0) < ${RUNTIME_VERSION} then print("this patch needs blocks.lua v${RUNTIME_VERSION}: open diii's patch editor and press run to update it") end`,
+        'B.patch{',
+        '  nodes = {'
+    );
+    for (const n of patch.nodes) {
+        const state = luaState(n);
+        lines.push(`    {${n.id}, "${n.type}", ${luaParams(n.type, n.params)}${state ? `, ${state}` : ''}},`);
+    }
     lines.push('  },', '  wires = {');
     for (const w of patch.wires) lines.push(`    {${w.join(', ')}},`);
     lines.push('  },', '}', '');
@@ -604,7 +684,7 @@ export function readPatchFile(text) {
     try {
         const data = JSON.parse(json);
         if (!Array.isArray(data.nodes) || !Array.isArray(data.wires)) return null;
-        return { nodes: data.nodes, wires: data.wires };
+        return { nodes: data.nodes, wires: data.wires, rt: Number(data.rt) || 0 };
     } catch {
         return null;
     }
@@ -1193,9 +1273,9 @@ export const RECIPES = [
     },
     {
         name: 'var',
-        title: 'Share a value without a wire',
-        chain: 'encoder → value → set var "tempo" … get var "tempo" → number',
-        text: 'set var stores a value under a name and every get var with that name sends it on, anywhere in the patch: handy when a wire would cross the whole canvas.',
+        title: 'A tempo shared without a wire',
+        chain: 'encoder → value → set var "tempo" … get var "tempo" → metro (bpm), number',
+        text: "set var stores a value under a name and every get var with that name sends it on, anywhere in the patch. Here E3 sets a tempo (60 to 200 BPM) that a metro's input 2 follows, four beats to a quarter note; K16's LED blinks with it.",
         patch: {
             nodes: [
                 { id: 1, type: 'encoder', params: { n: 3 }, x: 0, y: 0 },
@@ -1207,13 +1287,17 @@ export const RECIPES = [
                     type: 'number',
                     params: { label: 'tempo', where: 'middle top', col: 3, span: 1 },
                     x: 190,
-                    y: 170
-                }
+                    y: 300
+                },
+                { id: 6, type: 'metro', params: { ms: 500, per: '4' }, x: 190, y: 170 },
+                { id: 7, type: 'key_led', params: { n: 16, colour: 'green' }, x: 400, y: 170 }
             ],
             wires: [
                 [1, 1, 2, 1],
                 [2, 1, 3, 1],
-                [4, 1, 5, 1]
+                [4, 1, 5, 1],
+                [4, 1, 6, 2],
+                [6, 1, 7, 1]
             ]
         }
     },

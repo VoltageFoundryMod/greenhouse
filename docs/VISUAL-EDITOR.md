@@ -153,7 +153,7 @@ B.patch{
 
 ## Blocks
 
-**The blocks so far** (runtime v5). Device blocks show in the palette only
+**The blocks so far** (runtime v6). Device blocks show in the palette only
 when that device is connected:
 
 | block                           | does                                                                                           |
@@ -166,7 +166,8 @@ when that device is connected:
 | grid key _x, y_ (grid)          | 1 pressed, 0 released                                                                          |
 | grid led _x, y_ (grid)          | lights a key at the value's level (0..1 to 0..15)                                              |
 | lfo _rate, shape_               | 0..1, sine / triangle / saw / square, 50 times a second                                        |
-| metro _ms_                      | a gate: 1 on each beat, 0 halfway; its input stops (0) and starts it                           |
+| constant _value_                | a fixed number: sent at the start, and again on anything at its input                          |
+| metro _ms, per beat_            | a gate: 1 on each beat, 0 halfway; input 1 stops (0) and starts it, input 2 sets BPM           |
 | clock in _div_                  | MIDI clock in: a gate every _div_ clocks; output 2 is 1 on start, 0 on stop                    |
 | midi in cc _cc, ch_             | an incoming CC's value                                                                         |
 | midi in note _ch_               | output 1 the note number, output 2 1 on / 0 off                                                |
@@ -182,9 +183,10 @@ when that device is connected:
 | midi cc _cc, ch_                | sends the value (0..127, rounded; repeats skipped)                                             |
 | midi note _note, vel, ch_       | input 1: note on / off; input 2 sets the note number                                           |
 | math _op, b_                    | two numbers: + − × ÷ mod min max pow > < =; input 1 computes and sends, input 2 sets b quietly |
-| function _fn_                   | sin cos tan (radians) abs neg sqrt exp log floor ceil round                                    |
+| function _fn_                   | sin cos tan (radians) abs neg not sqrt exp log floor ceil round                                |
 | change                          | passes a value only when it differs from the last                                              |
 | memory _start_                  | input 1 stores and sends, input 2 stores quietly, input 3 recalls                              |
+| sample & hold                   | input 1 watched quietly; a trigger on input 2 sends the value it had then                      |
 | set var / get var _name_        | a named value shared by the whole patch, without wires (Max's send/receive)                    |
 | watch                           | passes values on and shows them on the block: the latest and a graph (10 a second)             |
 | print _label_                   | prints to diii's console, at most 10 a second                                                  |
@@ -320,7 +322,35 @@ no device connected: a patch can be made offline and kept with **export…**
 **import…**. The guide's **recipes** are small wirings (an encoder on a CC,
 a key as a switch, an LFO on a CC, random notes on a beat, following a MIDI
 clock, an LFO around a knob, a shared value, one key for two jobs) that
-**add** puts on the canvas beside what's there.
+**add** puts on the canvas beside what's there. Right-click a block (or the
+selection it's in) for duplicate, copy, cut, delete and what it does, or
+empty canvas for paste here and select all; a wire keeps its × to delete it.
+New blocks from the palette, a recipe or a duplicate land on free space,
+never on top of other blocks.
+
+## State, versions and limits
+
+Blocks that remember something keep it: a steps block its pattern, notes,
+length and page; value, counter and memory blocks their number; a toggle
+and a route their side; sample & hold its sample. The runtime reports it
+(`B.state()`, one `__webdiii_state` line per block, as JSON) and takes it
+back (`B.load(id, {...})`, or a fourth field in `B.patch`'s nodes). diii
+asks for it on **stop**, **save…**, **export…** and before **run** on a
+running patch, keeps it with the block (copying a block copies it too) and
+sends it with the patch, so a patch starts again where it was, on the
+device or from a saved file.
+
+A patch file carries the runtime version it was made with (`rt`). On the
+device, a file that needs a newer blocks.lua prints so instead of failing
+on blocks it lacks; in diii, opening or importing one lists the blocks it
+doesn't know and says when the file is newer than diii.
+
+Limits: the whole patch runs on one 50 Hz metro (iii has 12), so blocks
+cost memory, not metros; the status shows the running patch's blocks and
+Lua memory (`B.stats()`). Timing is rounded to the 20 ms tick (a metro at
+120 BPM in sixteenths can be up to 20 ms late), outputs send at most once
+a tick each, and a line to the device stays under iii's 512 characters
+(the lua block's code, a block's state).
 
 ## Memory and timing
 

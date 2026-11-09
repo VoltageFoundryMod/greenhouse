@@ -13,6 +13,7 @@ import {
     liveLines,
     luaParams,
     patchFile,
+    patchProblems,
     readPatchFile
 } from './patch-blocks.js';
 
@@ -49,6 +50,22 @@ function fingerprint(text) {
         h = Math.imul(h, 0x01000193) >>> 0;
     }
     return h.toString(16).padStart(8, '0');
+}
+
+/**
+ * About how big a block is on the canvas, before it exists: its title, a
+ * row per field (the code field is taller), and a watch's graph.
+ * @param {string} type
+ */
+function blockSize(type) {
+    const block = BLOCKS[type];
+    if (!block) return { w: 180, h: 80 };
+    const params = Object.values(block.params);
+    const code = params.some((p) => p.type === 'code');
+    return {
+        w: code ? 240 : 180,
+        h: 44 + params.length * 25 + (code ? 70 : 0) + (block.view ? 50 : 0) + Math.max(block.inputs, block.outputs) * 4
+    };
 }
 
 /** A node's inside: its name and a field per parameter, bound by df-<name>. */
@@ -207,6 +224,7 @@ export const patchMethods = {
         this.bindPatchSelection(editor);
         this.bindPatchDrop(editor);
         this.bindPatchClipboard(editor);
+        this.bindPatchMenu(editor);
         this.bindPatchPortTips();
         editor.on('zoom', () => this.updatePatchZoomLabel());
         // Drawflow draws a wire from its blocks' positions on screen, which
@@ -301,7 +319,7 @@ export const patchMethods = {
             status.textContent = !this.patchRunning
                 ? 'stopped'
                 : this.patchLive
-                  ? 'running · live: edits go to the device as you make them'
+                  ? `running${this.patchStats ? ` · ${this.patchStats}` : ''} · live: edits go to the device as you make them`
                   : waiting
                     ? `running · ${waiting} edit${waiting === 1 ? '' : 's'} waiting for apply`
                     : 'running · edits wait for apply';
@@ -339,10 +357,9 @@ export const patchMethods = {
             y -= 12;
         } else {
             const rect = this.elements.patchCanvas.getBoundingClientRect();
-            this.patchAddCount = ((this.patchAddCount || 0) + 1) % 6;
-            [x, y] = this.patchCanvasPoint(rect.left + rect.width / 2, rect.top + rect.height / 2);
-            x += -80 + this.patchAddCount * 18;
-            y += -40 + this.patchAddCount * 18;
+            [x, y] = this.patchCanvasPoint(rect.left + rect.width / 3, rect.top + rect.height / 3);
+            const size = blockSize(type);
+            [x, y] = this.findFreePatchSpot(x, y, size.w, size.h);
         }
         editor.addNode(type, block.inputs, block.outputs, x, y, `pn-${type}`, defaultParams(type), nodeHtml(type));
     },
@@ -353,12 +370,14 @@ export const patchMethods = {
         const nodes = [];
         const wires = [];
         for (const node of Object.values(data)) {
+            const { _state: state, ...params } = node.data || {};
             nodes.push({
                 id: Number(node.id),
                 type: node.name,
-                params: { ...node.data },
+                params,
                 x: node.pos_x,
-                y: node.pos_y
+                y: node.pos_y,
+                ...(state ? { state } : {})
             });
             for (const [out, port] of Object.entries(node.outputs || {})) {
                 for (const c of port.connections || []) {
@@ -394,7 +413,7 @@ export const patchMethods = {
             data[n.id] = {
                 id: n.id,
                 name: n.type,
-                data: { ...defaultParams(n.type), ...n.params },
+                data: { ...defaultParams(n.type), ...n.params, ...(n.state ? { _state: n.state } : {}) },
                 class: `pn-${n.type}`,
                 html: nodeHtml(n.type),
                 typenode: false,
@@ -628,8 +647,9 @@ export const patchMethods = {
      * its top left corner at (clientX, clientY), or offset from where the
      * copied blocks were, a little further each time.
      * @param {import('./patch-blocks.js').Patch} clip @param {{ x: number, y: number } | null} [at]
+     * @param {boolean} [free] move from `at` to free space if blocks are there
      */
-    pastePatch(clip, at = null) {
+    pastePatch(clip, at = null, free = false) {
         const editor = this.patchEditor;
         const nodes = (clip?.nodes || []).filter((n) => BLOCKS[n.type]);
         if (!editor || !nodes.length) return;
@@ -645,6 +665,14 @@ export const patchMethods = {
             this.patchPasteCount = (this.patchPasteCount || 0) + 1;
             dx = dy = 30 * this.patchPasteCount;
         }
+        // not on top of other blocks: the nearest free space for the group
+        if (!at || free) {
+            const w = Math.max(...nodes.map((n) => (Number(n.x) || 0) + blockSize(n.type).w)) - x0;
+            const h = Math.max(...nodes.map((n) => (Number(n.y) || 0) + blockSize(n.type).h)) - y0;
+            const [fx, fy] = this.findFreePatchSpot(x0 + dx, y0 + dy, w, h);
+            dx = fx - x0;
+            dy = fy - y0;
+        }
         /** @type {Map<number, number>} old id -> new id */
         const ids = new Map();
         for (const n of nodes) {
@@ -656,7 +684,7 @@ export const patchMethods = {
                 (Number(n.x) || 0) + dx,
                 (Number(n.y) || 0) + dy,
                 `pn-${n.type}`,
-                { ...defaultParams(n.type), ...n.params },
+                { ...defaultParams(n.type), ...n.params, ...(n.state ? { _state: n.state } : {}) },
                 nodeHtml(n.type)
             );
             ids.set(Number(n.id), Number(id));
@@ -668,6 +696,144 @@ export const patchMethods = {
         }
         this.clearPatchSelection();
         for (const id of ids.values()) this.togglePatchSelected(id);
+    },
+
+    /**
+     * The right-click menu: on a block (or the selection it's in) duplicate,
+     * copy, cut, delete and what it does; on empty canvas paste and select
+     * all. A wire keeps Drawflow's own × for deleting it, a field the
+     * browser's menu.
+     * @param {any} editor
+     */
+    bindPatchMenu(editor) {
+        const canvas = this.elements.patchCanvas;
+        const body = this.elements.patchBody || canvas.parentElement;
+        const menu = document.createElement('div');
+        menu.className = 'patch-menu';
+        menu.hidden = true;
+        menu.setAttribute('role', 'menu');
+        body.appendChild(menu);
+        const close = () => {
+            menu.hidden = true;
+        };
+        const ids = () => [...this.patchSelectedIds()];
+        /** @param {[string, string, () => void, boolean?][]} items */
+        const show = (event, items, note = '') => {
+            menu.replaceChildren();
+            for (const [label, keys, run, off] of items) {
+                const item = document.createElement('button');
+                item.type = 'button';
+                item.className = 'patch-menu-item';
+                item.setAttribute('role', 'menuitem');
+                item.disabled = Boolean(off);
+                item.innerHTML = `<span>${escapeHtml(label)}</span><kbd>${escapeHtml(keys)}</kbd>`;
+                item.addEventListener('click', () => {
+                    close();
+                    run();
+                });
+                menu.appendChild(item);
+            }
+            if (note) {
+                const p = document.createElement('p');
+                p.className = 'patch-menu-note';
+                p.textContent = note;
+                menu.appendChild(p);
+            }
+            menu.hidden = false;
+            const box = body.getBoundingClientRect();
+            const x = Math.min(event.clientX - box.left, box.width - menu.offsetWidth - 6);
+            const y = Math.min(event.clientY - box.top, box.height - menu.offsetHeight - 6);
+            menu.style.left = `${Math.max(4, x)}px`;
+            menu.style.top = `${Math.max(4, y)}px`;
+        };
+        canvas.addEventListener(
+            'contextmenu',
+            (event) => {
+                const target = /** @type {Element} */ (event.target);
+                if (target.closest('input, textarea, select, .connection, .drawflow-delete')) return;
+                event.preventDefault();
+                event.stopPropagation();
+                const node = target.closest('.drawflow-node');
+                if (node) {
+                    const id = Number(String(node.id).replace('node-', ''));
+                    if (!this.patchSelection.has(id)) {
+                        this.clearPatchSelection();
+                        this.togglePatchSelected(id);
+                    }
+                    const chosen = ids();
+                    const one = chosen.length === 1 ? editor.drawflow.drawflow[editor.module].data[chosen[0]] : null;
+                    const block = one ? BLOCKS[one.name] : null;
+                    const copy = () => {
+                        this.patchClipboard = this.patchSelectionAsPatch();
+                        this.patchPasteCount = 0;
+                        const clip = this.patchClipboard;
+                        navigator.clipboard?.writeText(JSON.stringify({ 'diii-patch': 1, ...clip })).catch(() => {});
+                    };
+                    show(
+                        event,
+                        [
+                            [
+                                'duplicate',
+                                'ctrl+D',
+                                () => {
+                                    const clip = this.patchSelectionAsPatch();
+                                    this.patchPasteCount = 0;
+                                    if (clip) this.pastePatch(clip);
+                                }
+                            ],
+                            ['copy', 'ctrl+C', copy],
+                            [
+                                'cut',
+                                'ctrl+X',
+                                () => {
+                                    copy();
+                                    this.removePatchSelection();
+                                }
+                            ],
+                            ['delete', 'Del', () => this.removePatchSelection()]
+                        ],
+                        block ? `${block.label}: ${block.doc}` : `${chosen.length} blocks selected`
+                    );
+                    return;
+                }
+                const at = { x: event.clientX, y: event.clientY };
+                show(event, [
+                    ['paste here', 'ctrl+V', () => this.pastePatch(this.patchClipboard, at), !this.patchClipboard],
+                    [
+                        'select all',
+                        'ctrl+A',
+                        () => {
+                            this.clearPatchSelection();
+                            for (const id of Object.keys(editor.drawflow.drawflow[editor.module].data)) {
+                                this.togglePatchSelected(Number(id));
+                            }
+                        }
+                    ]
+                ]);
+            },
+            true
+        );
+        // any click elsewhere closes the menu, and lets go of a wire picked
+        // by a right-click (its ×): first, in the capture phase, since the
+        // canvas's own handlers stop clicks on empty space from going further
+        document.addEventListener(
+            'mousedown',
+            (event) => {
+                const target = /** @type {Element} */ (event.target);
+                if (!menu.hidden && !menu.contains(target)) close();
+                if (target.closest?.('.drawflow-delete, .connection')) return;
+                for (const x of canvas.querySelectorAll('.drawflow-delete')) x.remove();
+                if (editor.connection_selected) {
+                    editor.connection_selected.classList.remove('selected');
+                    editor.connection_selected = null;
+                }
+            },
+            true
+        );
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') close();
+        });
+        canvas.addEventListener('wheel', close, { passive: true });
     },
 
     /**
@@ -976,6 +1142,7 @@ export const patchMethods = {
             this.outputLine(`patch: ${name} isn't a patch (no --@patch lines); open it with edit instead`);
             return;
         }
+        for (const problem of patchProblems(patch)) this.outputLine(`patch: ${name}: ${problem}`);
         if (!this.patchPanelOpen) await this.togglePatchPanel(true);
         await this.ensurePatchEditor();
         this.loadPatch(patch);
@@ -1081,6 +1248,78 @@ export const patchMethods = {
                 );
             }
         });
+    },
+
+    /**
+     * Asks the running patch what its blocks remember (B.state) and keeps
+     * it with them on the canvas: run, save and export carry it from there.
+     */
+    async fetchPatchState() {
+        const editor = this.patchEditor;
+        if (!editor || !this.iiiDevice.isConnected) return;
+        let lines;
+        try {
+            lines = await this.executeLuaCapture('if B and B.state then B.state() end');
+        } catch {
+            return;
+        }
+        const data = editor.drawflow.drawflow[editor.module].data;
+        for (const line of lines) {
+            const [tag, id, json] = String(line).split('\t');
+            if (tag !== '__webdiii_state' || !data[id]) continue;
+            try {
+                data[id].data._state = JSON.parse(json);
+            } catch {
+                // a line cut short: keep what was there
+            }
+        }
+        this.savePatchLocally();
+    },
+
+    /** The running patch's size: its blocks and Lua's memory, for the status. */
+    async fetchPatchStats() {
+        try {
+            const lines = await this.executeLuaCapture('if B and B.stats then B.stats() end');
+            const [tag, n, kb] = String(lines.find((l) => String(l).startsWith('__webdiii_stats')) || '').split('\t');
+            this.patchStats = tag ? `${n} blocks, Lua ${kb} KB` : '';
+        } catch {
+            this.patchStats = '';
+        }
+        this.updatePatchStatus();
+    },
+
+    /**
+     * The nearest place for a w x h block (or group) at or after (x, y)
+     * that no block covers: down the column first, then the next column.
+     * @param {number} x @param {number} y @param {number} w @param {number} h
+     * @returns {[number, number]}
+     */
+    findFreePatchSpot(x, y, w, h) {
+        const editor = this.patchEditor;
+        if (!editor) return [x, y];
+        const zoom = editor.zoom || 1;
+        const taken = Object.values(editor.drawflow.drawflow[editor.module].data).map((n) => {
+            const el = document.getElementById(`node-${n.id}`);
+            return {
+                x: n.pos_x,
+                y: n.pos_y,
+                w: el ? el.getBoundingClientRect().width / zoom : 180,
+                h: el ? el.getBoundingClientRect().height / zoom : 120
+            };
+        });
+        const gap = 16;
+        const clear = (/** @type {number} */ cx, /** @type {number} */ cy) =>
+            taken.every(
+                (t) => cx + w + gap <= t.x || t.x + t.w + gap <= cx || cy + h + gap <= t.y || t.y + t.h + gap <= cy
+            );
+        for (let col = 0; col < 12; col++) {
+            for (let row = 0; row < 16; row++) {
+                const cx = x + col * 200;
+                const cy = y + row * 40;
+                if (clear(cx, cy)) return [cx, cy];
+            }
+        }
+        return [x, y];
     },
 
     /** A whole new patch on the canvas (opened, an example, cleared). */
@@ -1207,10 +1446,12 @@ export const patchMethods = {
             this.outputLine(`patch: ${error.message}`);
             return;
         }
+        if (this.patchRunning) await this.fetchPatchState();
         for (const line of liveLines(this.exportPatch())) this.sendPatchLine(line);
         this.patchRunning = true;
         this.patchPending.clear();
         this.updatePatchStatus();
+        this.fetchPatchStats();
         this.outputLine(
             this.patchLive
                 ? 'patch: running; live, so edits go to the device as you make them'
@@ -1218,10 +1459,13 @@ export const patchMethods = {
         );
     },
 
-    stopPatch() {
+    async stopPatch() {
+        // what the blocks remember, so run starts again from there
+        if (this.patchRunning) await this.fetchPatchState();
         if (this.patchRunning) this.sendPatchLine('B.clear()');
         this.patchRunning = false;
         this.patchPending.clear();
+        this.patchStats = '';
         this.updatePatchStatus();
     },
 
@@ -1235,6 +1479,7 @@ export const patchMethods = {
         let name = answer.trim().replace(/[^\w.-]/g, '_');
         if (!name.endsWith('.lua')) name += '.lua';
         this.patchFileName = name;
+        if (this.patchRunning) await this.fetchPatchState();
         await this.ensurePatchRuntime();
         const written = await this.uploadChecked(name, patchFile(name.replace(/\.lua$/, ''), this.exportPatch()));
         this.outputLine(
@@ -1254,8 +1499,9 @@ export const patchMethods = {
     },
 
     /** Saves the canvas to a file on the computer, in the patch file format. */
-    exportPatchFile() {
+    async exportPatchFile() {
         if (!this.patchEditor) return;
+        if (this.patchRunning) await this.fetchPatchState();
         const answer = window.prompt('export the patch as', (this.patchFileName || 'patch.lua').replace(/\.lua$/, ''));
         if (!answer) return;
         const base =
@@ -1296,6 +1542,7 @@ export const patchMethods = {
             this.outputLine(`patch: ${file.name} has no patch in it (no --@patch lines)`);
             return;
         }
+        for (const problem of patchProblems(patch)) this.outputLine(`patch: ${file.name}: ${problem}`);
         const count = Object.keys(this.patchEditor?.drawflow.drawflow[this.patchEditor.module].data || {}).length;
         if (count && !window.confirm(`Replace the canvas with ${file.name}?`)) return;
         this.loadPatch(patch);
