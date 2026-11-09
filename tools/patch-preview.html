@@ -74,7 +74,7 @@
                 log.textContent = `${text}\n${log.textContent}`.slice(0, 6000);
             };
             const $ = (id) => document.getElementById(id);
-            let build = '-';
+            const builds = {};
             const app = Object.assign(
                 {
                     elements: {
@@ -94,11 +94,15 @@
                     acheneSupported: true,
                     outputLine: note,
                     executeLua: async (line) => note(`> ${line}`),
-                    // a device that keeps the blocks.lua it was sent (its BLOCKS_BUILD)
-                    executeLuaCapture: async (line) => (line.includes('BLOCKS_BUILD') ? [`5 ${build}`] : ['99']),
+                    // a device that keeps the runtime files it was sent (their BLOCKS_*BUILD)
+                    executeLuaCapture: async (line) => {
+                        const global = /BLOCKS_\w*BUILD/.exec(line)?.[0];
+                        return global ? [`99 ${builds[global] || '-'}`] : ['99'];
+                    },
                     uploadChecked: async (name, text) => {
-                        build = /BLOCKS_BUILD = "(\w+)"/.exec(text)?.[1] || build;
-                        note(`(uploaded ${name})`);
+                        const m = /(BLOCKS_\w*BUILD) = "(\w+)"/.exec(text);
+                        if (m) builds[m[1]] = m[2];
+                        note(`(uploaded ${name}, ${text.length} bytes)`);
                         return true;
                     }
                 },

@@ -167,7 +167,7 @@ ${RECIPES.map(
 <li>Blocks that remember things (a steps pattern and its notes, a value, a toggle, a counter, a memory) keep it:
 <b>stop</b>, <b>save…</b> and <b>export…</b> ask the device for it, so <b>run</b>, a saved script and an
 exported file start again where you left off.</li>
-<li>A patch file says which blocks.lua it needs: on a device with an older one it prints so instead of
+<li>A patch file says which blocks runtime it needs: on a device with an older one it prints so instead of
 failing, and diii tells you about blocks it doesn't know when you open or import one.</li>
 <li><b>save…</b> and <b>open…</b> use the device; <b>export…</b> and <b>import…</b> use a file on your computer
 (the same format), so a patch can be made, kept and shared with no device connected: the <b>patch</b> button at the
@@ -185,10 +185,18 @@ a second, and a press goes to the widget under it.</p>
 its input lights it without sending.</td></tr>
 <tr><td>fader</td><td>a column or row of keys from lo to hi (vertical when taller than wide). fill lights up to the value,
 dot only its key. Its input moves it without sending.</td></tr>
+<tr><td>steps</td><td>a step grid: columns are steps, rows notes of a scale (one row: on/off steps). A metro into
+input 1 plays it; more steps than columns go on to pages. Inputs for the page, the length and a transpose.</td></tr>
+<tr><td>keys</td><td>an isomorphic keyboard, rows a fourth apart (row sets it); plays MIDI itself, chords too.
+Its input transposes.</td></tr>
+<tr><td>ripples</td><td>a press plays its note and sends out a ring; each key the ring grows plays an echo, higher up the
+scale and quieter. A metro into input 1 makes rain.</td></tr>
 <tr><td>grid key, grid led</td><td>one key's press, one key's light (0..1), for wiring of your own.</td></tr>
 </table>
 <p><button type="button" class="repl-action-btn" data-open-grid>open the grid layout</button> to place and size them by
-dragging. The <b>mixer</b> example (examples… in the bar) has four channel faders with mute buttons and a master.</p>
+dragging. The examples (examples… in the bar): <b>mixer</b>, four channel faders with mute buttons and a master;
+<b>sequencer</b>, 16 steps with a length fader; <b>keys</b>, a keyboard with octave and mod wheel faders; <b>ripples</b>,
+stones and rain.</p>
 </div>
 
 <div data-for="achene">

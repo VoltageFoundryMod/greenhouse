@@ -3,8 +3,47 @@
 // Each block here matches a B.type in lua/blocks.lua: same name, inputs,
 // outputs and parameters.
 
-/** Version of lua/blocks.lua this diii carries; the device gets it when older. */
-export const RUNTIME_VERSION = 7;
+/** Version of the runtime (lua/blocks*.lua) this diii carries; the device gets it when older. */
+export const RUNTIME_VERSION = 8;
+
+/**
+ * The runtime's files: the core (any iii device) and a module per device,
+ * each with the global its build goes in and the expression of its version.
+ */
+export const RUNTIME_FILES = {
+    core: { file: 'blocks.lua', build: 'BLOCKS_BUILD', version: 'B and B.version' },
+    achene: { file: 'blocks_achene.lua', build: 'BLOCKS_ACHENE_BUILD', version: 'B and B.achene_version' },
+    grid: { file: 'blocks_grid.lua', build: 'BLOCKS_GRID_BUILD', version: 'B and B.grid_version' }
+};
+
+/**
+ * The runtime modules a device (or a patch, by patchDevice) needs beside the core.
+ * @param {'achene' | 'grid' | 'mixed' | null | undefined} device
+ * @returns {('achene' | 'grid')[]}
+ */
+export function runtimeModules(device) {
+    if (device === 'mixed') return ['achene', 'grid'];
+    return device ? [device] : [];
+}
+
+/**
+ * Lua as the device gets it: no comment lines, no blank lines, no
+ * indentation, and no comment after code when nothing before it is a
+ * string. iii compiles each upload in RAM, so the smaller the better; the
+ * runtime has no long strings, where this would go wrong.
+ * @param {string} text
+ */
+export function compactLua(text) {
+    const out = [];
+    for (const raw of String(text).split(/\r?\n/)) {
+        let line = raw.trim();
+        if (!line || line.startsWith('--')) continue;
+        const at = line.indexOf('--');
+        if (at > 0 && !/["']/.test(line.slice(0, at))) line = line.slice(0, at).trimEnd();
+        out.push(line);
+    }
+    return `${out.join('\n')}\n`;
+}
 
 /**
  * @typedef {object} Param
@@ -230,6 +269,70 @@ export const BLOCKS = {
                 options: ['auto', 'vertical', 'horizontal']
             },
             ...gplace(1, 8)
+        }
+    },
+    gsteps: {
+        label: 'steps',
+        group: 'grid',
+        inputs: 4,
+        outputs: 3,
+        doc: "a step grid: each column a step, each row a note of the scale from note (the bottom row lowest); one key high, a row of on/off steps. A press puts its step on that row, or turns it off. Input 1 is the playing step (a counter), or with 'input 1 is' set to beat, a beat (a metro) that moves to the next step. Steps past the width go on to pages, which follow the playing step unless input 2 picks one (positive next, negative previous, through auto). Input 3 sets the length (1 to 64), input 4 transposes (semitones). Outputs: gate, note (sent before the gate), step number. It remembers its pattern",
+        params: {
+            steps: { type: 'int', label: 'steps', default: 16, min: 1, max: 64 },
+            advance: { type: 'select', label: 'input 1 is', default: 'beat', options: ['step number', 'beat'] },
+            note: { type: 'int', label: 'note', default: 48, min: 0, max: 127 },
+            scale: {
+                type: 'select',
+                label: 'scale',
+                default: 'minor pent.',
+                options: ['major', 'minor', 'dorian', 'pentatonic', 'minor pent.', 'chromatic']
+            },
+            ...gplace(8, 4)
+        }
+    },
+    gkeys: {
+        label: 'keys',
+        group: 'grid',
+        inputs: 1,
+        outputs: 2,
+        doc: 'an isomorphic keyboard: a semitone to the right, row semitones going up (5, a fourth, as on Push and Launchpad), from note at the bottom left. Root keys are lit brighter, the scale dimmer, and a held note lights every key that plays it. It plays MIDI itself, several notes at once (send: midi), and sends the last note and a gate (1 while any key is held) for wiring. Input 1 transposes, in semitones (octaves from a fader)',
+        params: {
+            note: { type: 'int', label: 'note', default: 48, min: 0, max: 127 },
+            row: { type: 'int', label: 'row', default: 5, min: 1, max: 12 },
+            scale: {
+                type: 'select',
+                label: 'scale',
+                default: 'major',
+                options: ['major', 'minor', 'dorian', 'pentatonic', 'minor pent.', 'chromatic']
+            },
+            send: { type: 'select', label: 'send', default: 'midi', options: ['midi', 'outputs only'] },
+            ch: { type: 'int', label: 'ch', default: 1, min: 1, max: 16 },
+            vel: { type: 'int', label: 'vel', default: 100, min: 1, max: 127 },
+            ...gplace(8, 4)
+        }
+    },
+    gripples: {
+        label: 'ripples',
+        group: 'grid',
+        inputs: 2,
+        outputs: 2,
+        doc: "a press drops a stone: it plays the key's note (the scale from note, a step to the right, a step going up) and a ring spreads from the key, fading. Each key it grows plays again, step scale steps higher and quieter, echoes times. Input 1 drops one on a random key (anything but 0: a metro makes rain), input 2 sets the speed (keys a second). Notes fold into the four octaves from note. It plays MIDI itself, each note len ms long, and sends each note and a gate for wiring",
+        params: {
+            note: { type: 'int', label: 'note', default: 48, min: 0, max: 127 },
+            scale: {
+                type: 'select',
+                label: 'scale',
+                default: 'pentatonic',
+                options: ['major', 'minor', 'dorian', 'pentatonic', 'minor pent.', 'chromatic']
+            },
+            step: { type: 'int', label: 'step', default: 2, min: -7, max: 7 },
+            echoes: { type: 'int', label: 'echoes', default: 4, min: 0, max: 12 },
+            speed: { type: 'number', label: 'speed', default: 6 },
+            len: { type: 'int', label: 'len ms', default: 150, min: 20, max: 4000 },
+            send: { type: 'select', label: 'send', default: 'midi', options: ['midi', 'outputs only'] },
+            ch: { type: 'int', label: 'ch', default: 1, min: 1, max: 16 },
+            vel: { type: 'int', label: 'vel', default: 100, min: 1, max: 127 },
+            ...gplace(8, 8)
         }
     },
     metro: {
@@ -725,10 +828,15 @@ export function patchFile(name, patch) {
         '-- made in the patch drawer; open it there to change it'
     ];
     for (let i = 0; i < json.length; i += 300) lines.push(`--@patch ${json.slice(i, i + 300)}`);
+    const modules = runtimeModules(patchDevice(patch));
+    const versions = [RUNTIME_FILES.core, ...modules.map((m) => RUNTIME_FILES[m])]
+        .map((f) => `(${f.version.replace('B and ', '')} or 0) < ${RUNTIME_VERSION}`)
+        .join(' or ');
     lines.push(
         'require("blocks.lua")',
-        // an older blocks.lua on the device: say so rather than fail on blocks it lacks
-        `if (B.version or 0) < ${RUNTIME_VERSION} then print("this patch needs blocks.lua v${RUNTIME_VERSION}: open diii's patch editor and press run to update it") end`,
+        ...modules.map((m) => `require("${RUNTIME_FILES[m].file}")`),
+        // an older runtime on the device: say so rather than fail on blocks it lacks
+        `if ${versions} then print("this patch needs the blocks runtime v${RUNTIME_VERSION}: open diii's patch editor and press run to update it") end`,
         'B.patch{',
         '  nodes = {'
     );
@@ -1460,6 +1568,66 @@ export const RECIPES = [
                 [3, 1, 4, 1]
             ]
         }
+    },
+    {
+        name: 'gsteps',
+        title: 'A step grid plays notes',
+        chain: 'metro → steps (input 1 is: beat) → midi note (note, then gate)',
+        text: "Each beat moves the steps one column on. A step with a key lit plays that row's note: the note goes to midi note's input 2 first, then the gate to its input 1. Press a key to put its step there, press it again to clear it.",
+        patch: {
+            nodes: [
+                { id: 1, type: 'metro', params: { ms: 200, per: '1' }, x: 0, y: 0 },
+                {
+                    id: 2,
+                    type: 'gsteps',
+                    params: { steps: 8, advance: 'beat', note: 48, scale: 'minor pent.', x: 1, y: 1, w: 8, h: 5 },
+                    x: 230,
+                    y: 0
+                },
+                { id: 3, type: 'midi_note', params: { note: 60, vel: 100, ch: 1 }, x: 520, y: 0 }
+            ],
+            wires: [
+                [1, 1, 2, 1],
+                [2, 2, 3, 2],
+                [2, 1, 3, 1]
+            ]
+        }
+    },
+    {
+        name: 'gkeys',
+        title: 'A keyboard with an octave fader',
+        chain: 'fader (−24..24, dot) → keys (transpose)',
+        text: 'keys plays MIDI by itself, several notes at once, so it needs no midi note block. A fader of five keys from −24 to 24 sends −24, −12, 0, 12 or 24: octaves, into its transpose input.',
+        patch: {
+            nodes: [
+                {
+                    id: 1,
+                    type: 'gfader',
+                    params: { lo: -24, hi: 24, start: 0, style: 'dot', orient: 'horizontal', x: 1, y: 8, w: 5, h: 1 },
+                    x: 0,
+                    y: 0
+                },
+                {
+                    id: 2,
+                    type: 'gkeys',
+                    params: {
+                        note: 48,
+                        row: 5,
+                        scale: 'major',
+                        send: 'midi',
+                        ch: 1,
+                        vel: 100,
+                        x: 1,
+                        y: 1,
+                        w: 16,
+                        h: 7
+                    },
+                    x: 260,
+                    y: 0
+                }
+            ],
+            wires: [[1, 1, 2, 1]]
+        }
     }
 ];
 
@@ -1513,6 +1681,128 @@ export function gridMixerPatch() {
     return { nodes, wires };
 }
 
+/**
+ * A 16-step sequencer on a 16x8 grid: a step grid on the top seven rows
+ * (C minor pentatonic from C3), played by a metro, and a length fader on
+ * the bottom row (dot style, 1 to 16 steps).
+ * @returns {Patch}
+ */
+export function gridSequencerPatch() {
+    return {
+        nodes: [
+            { id: 1, type: 'metro', params: { ms: 150, per: '1' }, x: 20, y: 20 },
+            {
+                id: 2,
+                type: 'gsteps',
+                params: { steps: 16, advance: 'beat', note: 48, scale: 'minor pent.', x: 1, y: 1, w: 16, h: 7 },
+                x: 260,
+                y: 0
+            },
+            { id: 3, type: 'midi_note', params: { note: 60, vel: 100, ch: 1 }, x: 560, y: 20 },
+            {
+                id: 4,
+                type: 'gfader',
+                params: { lo: 1, hi: 16, start: 16, style: 'dot', orient: 'horizontal', x: 1, y: 8, w: 16, h: 1 },
+                x: 20,
+                y: 300
+            }
+        ],
+        wires: [
+            [1, 1, 2, 1],
+            [2, 2, 3, 2],
+            [2, 1, 3, 1],
+            [4, 1, 2, 3]
+        ]
+    };
+}
+
+/**
+ * A keyboard on a 16x8 grid: an isomorphic keyboard on the top seven rows
+ * (from C2, rows a fourth apart), an octave fader on the bottom left (five
+ * keys, -2 to +2 octaves) and a mod wheel fader (CC 1) on the bottom right.
+ * @returns {Patch}
+ */
+export function gridKeysPatch() {
+    return {
+        nodes: [
+            {
+                id: 1,
+                type: 'gkeys',
+                params: { note: 36, row: 5, scale: 'major', send: 'midi', ch: 1, vel: 100, x: 1, y: 1, w: 16, h: 7 },
+                x: 260,
+                y: 0
+            },
+            {
+                id: 2,
+                type: 'gfader',
+                params: { lo: -24, hi: 24, start: 0, style: 'dot', orient: 'horizontal', x: 1, y: 8, w: 5, h: 1 },
+                x: 20,
+                y: 0
+            },
+            {
+                id: 3,
+                type: 'gfader',
+                params: { lo: 0, hi: 127, start: 0, style: 'fill', orient: 'horizontal', x: 7, y: 8, w: 10, h: 1 },
+                x: 20,
+                y: 330
+            },
+            { id: 4, type: 'midi_cc', params: { cc: 1, ch: 1 }, x: 260, y: 360 }
+        ],
+        wires: [
+            [2, 1, 1, 1],
+            [3, 1, 4, 1]
+        ]
+    };
+}
+
+/**
+ * Ripples on a 16x8 grid: the top seven rows drop stones (G pentatonic
+ * echoes); on the bottom row a rain toggle starts a metro that drops them
+ * at random, and a fader sets how fast the rings spread.
+ * @returns {Patch}
+ */
+export function gridRipplesPatch() {
+    return {
+        nodes: [
+            {
+                id: 1,
+                type: 'gripples',
+                params: {
+                    note: 43,
+                    scale: 'pentatonic',
+                    step: 2,
+                    echoes: 4,
+                    speed: 6,
+                    len: 200,
+                    send: 'midi',
+                    ch: 1,
+                    vel: 100,
+                    x: 1,
+                    y: 1,
+                    w: 16,
+                    h: 7
+                },
+                x: 520,
+                y: 0
+            },
+            { id: 2, type: 'gbutton', params: { mode: 'toggle', x: 1, y: 8, w: 2, h: 1 }, x: 20, y: 20 },
+            { id: 3, type: 'metro', params: { ms: 900, per: '1' }, x: 260, y: 20 },
+            {
+                id: 4,
+                type: 'gfader',
+                params: { lo: 2, hi: 16, start: 6, style: 'fill', orient: 'horizontal', x: 4, y: 8, w: 13, h: 1 },
+                x: 20,
+                y: 260
+            }
+        ],
+        wires: [
+            [2, 1, 3, 1],
+            [3, 1, 1, 1],
+            [4, 1, 1, 2]
+        ]
+    };
+}
+
 /** The examples the drawer offers, by name. */
 export const EXAMPLES = /** @type {Record<string, () => Patch>} */ ({
     basics: examplePatch,
@@ -1520,7 +1810,10 @@ export const EXAMPLES = /** @type {Record<string, () => Patch>} */ ({
     controller: controllerPatch,
     modes: modesPatch,
     arp: arpPatch,
-    'grid mixer': gridMixerPatch
+    'grid mixer': gridMixerPatch,
+    'grid sequencer': gridSequencerPatch,
+    'grid keys': gridKeysPatch,
+    'grid ripples': gridRipplesPatch
 });
 
 /** The examples menu, in order: name, label; the device comes from patchDevice. */
@@ -1530,5 +1823,8 @@ export const EXAMPLE_MENU = [
     ['controller', 'controller'],
     ['modes', 'modes'],
     ['arp', 'arp (lua)'],
-    ['grid mixer', 'mixer']
+    ['grid mixer', 'mixer'],
+    ['grid sequencer', 'sequencer'],
+    ['grid keys', 'keys'],
+    ['grid ripples', 'ripples']
 ];

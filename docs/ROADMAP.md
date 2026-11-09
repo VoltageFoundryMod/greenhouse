@@ -46,9 +46,9 @@ details live in the linked documents; this is the list.
   examples, guide and layout following it, a for: picker offline, a
   warning when a patch was made for another device, and a grid mixer
   example.
-- **Visual editor, the grid (part B)**: a step grid, an isomorphic
-  keyboard and ripples (rings spreading from a press, sending notes as
-  they cross keys), with examples.
+- **Visual editor, the grid (part B), runtime v8**: a step grid, an
+  isomorphic keyboard and ripples (rings spreading from a press, an echo
+  for each key they grow), with sequencer, keys and ripples examples.
 
 ## Next
 

@@ -1047,3 +1047,55 @@
 .pn-gfader .input_1::after {
     content: 'set';
 }
+
+.pn-gsteps .input_1::after {
+    content: 'step';
+}
+
+.pn-gsteps .input_2::after {
+    content: 'page';
+}
+
+.pn-gsteps .input_3::after {
+    content: 'length';
+}
+
+.pn-gsteps .input_4::after {
+    content: 'transp.';
+}
+
+.pn-gsteps .output_1::after,
+.pn-gkeys .output_1::after,
+.pn-gripples .output_1::after {
+    content: 'gate';
+}
+
+.pn-gsteps .output_2::after,
+.pn-gkeys .output_2::after,
+.pn-gripples .output_2::after {
+    content: 'note';
+}
+
+.pn-gsteps .output_3::after {
+    content: 'step';
+}
+
+.pn-gkeys .input_1::after {
+    content: 'transp.';
+}
+
+.pn-gripples .input_1::after {
+    content: 'drop';
+}
+
+.pn-gripples .input_2::after {
+    content: 'speed';
+}
+
+.pg-box.pg-gsteps,
+.pg-box.pg-gkeys,
+.pg-box.pg-gripples {
+    border-color: #9fb8ff;
+    background: color-mix(in srgb, #9fb8ff 18%, transparent);
+    color: #e3eaff;
+}

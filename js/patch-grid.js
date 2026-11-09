@@ -44,6 +44,8 @@ const overlaps = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h
 function gridNote(type, data) {
     if (type === 'gbutton') return String(data.mode || 'momentary');
     if (type === 'gfader') return `${data.lo ?? 0}–${data.hi ?? 127}`;
+    if (type === 'gsteps') return `${data.steps ?? 16} steps`;
+    if (type === 'gkeys' || type === 'gripples') return String(data.scale || '');
     return '';
 }
 
@@ -64,7 +66,7 @@ export const patchGridMethods = {
 <button type="button" class="patch-overlay-close" data-close aria-label="close the grid layout">×</button>
 <h3>Grid layout</h3>
 <p class="pg-hint">Each box is a grid block in the patch. Drag it to move it, drag its bottom right corner to
-resize it (buttons and faders), click it to select its block. A place over another block is refused.</p>
+resize it (grid key and grid led stay one key), click it to select its block. A place over another block is refused.</p>
 <p class="pg-size"></p>
 <div class="pg-grid"><div class="pg-cells"></div><div class="pg-boxes"></div></div>
 <p class="pg-empty" hidden>No grid blocks in the patch yet: drag one in from the palette's <b>grid</b> group.</p>`;

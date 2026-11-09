@@ -13,10 +13,13 @@ import {
     examplePatch,
     liveLines,
     luaParams,
+    RUNTIME_FILES,
+    compactLua,
     patchDevice,
     patchFile,
     patchProblems,
-    readPatchFile
+    readPatchFile,
+    runtimeModules
 } from './patch-blocks.js';
 
 const DRAWER_KEY = 'webdiii.patchDrawer';
@@ -1253,7 +1256,7 @@ export const patchMethods = {
     fillPatchOpenList() {
         const select = this.elements.patchOpenSelect;
         if (!select) return;
-        const skip = new Set(['blocks.lua', 'lib.lua', 'init.lua']);
+        const skip = new Set([...Object.values(RUNTIME_FILES).map((f) => f.file), 'lib.lua', 'init.lua']);
         const names = (this.fileEntries || [])
             .map((entry) => entry.name)
             .filter((name) => name.endsWith('.lua') && !skip.has(name))
@@ -1504,10 +1507,29 @@ export const patchMethods = {
      * device, not only version bumps.
      */
     async ensurePatchRuntime() {
-        const text = await (await fetch('lua/blocks.lua')).text();
+        // the core, the connected device's module, and any other the patch uses
+        const made = this.patchEditor ? patchDevice(this.exportPatch()) : null;
+        const parts = new Set(['core', ...runtimeModules(this.patchTarget().device), ...runtimeModules(made)]);
+        for (const part of parts) {
+            if (!(await this.ensureRuntimeFile(/** @type {keyof typeof RUNTIME_FILES} */ (part)))) return false;
+        }
+        return true;
+    },
+
+    /**
+     * One runtime file: loaded already (same build), on the device but not
+     * loaded (run it), or uploaded, compacted, with its build first.
+     * @param {keyof typeof RUNTIME_FILES} part
+     */
+    async ensureRuntimeFile(part) {
+        const { file, build: global, version } = RUNTIME_FILES[part];
+        // from this module's place, so it works from any page (the app, tools/)
+        const response = await fetch(new URL(`../lua/${file}`, import.meta.url));
+        if (!response.ok) throw new Error(`couldn't fetch lua/${file} (${response.status})`);
+        const text = compactLua(await response.text());
         const build = fingerprint(text);
         const current = async () => {
-            const lines = await this.executeLuaCapture('print(B and B.version or 0, BLOCKS_BUILD or "-")');
+            const lines = await this.executeLuaCapture(`print(${version} or 0, ${global} or "-")`);
             const [v, b] = lines
                 .map((l) => String(l).trim())
                 .join(' ')
@@ -1517,19 +1539,19 @@ export const patchMethods = {
         if (await current()) return true;
         // on the device but not loaded yet (after a restart)?
         const files = await this.executeLuaCapture(
-            'for _, f in ipairs(fs_list_files()) do if f == "blocks.lua" then print("yes") end end'
+            `for _, f in ipairs(fs_list_files()) do if f == "${file}" then print("yes") end end`
         );
         if (files.some((l) => String(l).trim() === 'yes')) {
-            await this.executeLuaCapture('fs_run_file("blocks.lua")');
+            await this.executeLuaCapture(`fs_run_file("${file}")`);
             if (await current()) return true;
         }
-        this.outputLine('patch: putting the blocks runtime (blocks.lua) on the device');
-        const file = `BLOCKS_BUILD = "${build}" -- set by diii: which blocks.lua this is\n${text}`;
-        if (!(await this.uploadChecked('blocks.lua', file, { keepOld: true }))) {
-            this.outputLine('patch: blocks.lua did not upload');
+        this.outputLine(`patch: putting the blocks runtime (${file}) on the device`);
+        const upload = `${global} = "${build}" -- set by diii: which ${file} this is\n${text}`;
+        if (!(await this.uploadChecked(file, upload, { keepOld: true }))) {
+            this.outputLine(`patch: ${file} did not upload`);
             return false;
         }
-        await this.executeLuaCapture('fs_run_file("blocks.lua")');
+        await this.executeLuaCapture(`fs_run_file("${file}")`);
         return current();
     },
 
