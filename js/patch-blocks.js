@@ -55,7 +55,7 @@ export const BLOCKS = {
         group: 'achene',
         inputs: 0,
         outputs: 1,
-        doc: 'an achene encoder: a turn clockwise sends +1, counterclockwise sends -1',
+        doc: 'an achene encoder: a turn sends its detents, +1, +2... clockwise and -1, -2... counterclockwise (a fast turn sends more than 1 at once)',
         params: { n: { type: 'int', label: 'E', default: 5, min: 1, max: 12 } }
     },
     key: {
@@ -284,7 +284,7 @@ export const BLOCKS = {
         group: 'process',
         inputs: 2,
         outputs: 2,
-        doc: 'input 1 goes out of output 1 while input 2 is 0. If pick is 1 then output 1 is 0 and output 2 gets the input value (a toggle on input 2 picks which)',
+        doc: 'input 1 goes out of output 1 while pick (input 2) is 0, and out of output 2 when pick is anything else; the other output stays quiet (a toggle on pick switches it)',
         params: {}
     },
     math: {
@@ -429,7 +429,7 @@ export const BLOCKS = {
         group: 'screen',
         inputs: 5,
         outputs: 3,
-        doc: "a step sequencer of up to 64 steps, each with a note, drawn as bars. *Step input* is the playing step (a counter), or with 'input is' set to beat, a beat (a metro, clock in) that moves to the next step. Each step sends its note and, if it is on, a gate; step output is the step number. Its keys show a page of steps: a press turns a step on or off; an encoder wired to *edit input* then sets that step's note (for 2 seconds after the press, or while the key is held); otherwise it transposes them all. *Flip input* turns the current step on or off. *Page input* picks the page the keys show, counting steps through auto, page 1, page 2...: positive is the next page, negative the previous (wire an encoder, a key for next on each push or a key thru 'math x -1' op for previous). *Length input* sets the length, 1 to 64 (from a value block); see guide for more recipes",
+        doc: "a step sequencer of up to 64 steps, each with a note, drawn as bars. *Step input* is the playing step (a counter), or with 'input 1 is' set to beat, a beat (a metro, clock in) that moves to the next step. Each step sends its note and, if it is on, a gate; step output is the step number. Its keys show a page of steps: a press turns a step on or off; an encoder wired to *edit input* then sets that step's note (for 2 seconds after the press, or while the key is held); otherwise it transposes them all. *Flip input* takes a step number and turns that step on or off. *Page input* picks the page the keys show, counting steps through auto, page 1, page 2...: positive is the next page, negative the previous (wire an encoder, a key for next on each push or a key thru 'math x -1' op for previous). *Length input* sets the length, 1 to 64 (from a value block); see guide for more recipes",
         params: {
             steps: { type: 'int', label: 'steps', default: 8, min: 1, max: 64 },
             advance: { type: 'select', label: 'input is', default: 'step number', options: ['step number', 'beat'] },
