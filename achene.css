@@ -154,7 +154,7 @@
     /* black anodised aluminium */
     background:
         linear-gradient(175deg, rgba(255, 255, 255, 0.05), transparent 40%),
-        repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.012) 0 1px, transparent 1px 3px), #1b1e22;
+        repeating-linear-gradient(70deg, rgba(255, 255, 255, 0.012) 0 1px, transparent 1px 3px), #1b1e22;
     box-shadow:
         0 0 0 1px #0b0c0e,
         0 6px 18px -8px rgba(0, 0, 0, 0.7),
