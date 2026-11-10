@@ -425,7 +425,7 @@ export const consoleMethods = {
 
     showHelp() {
         this.outputLine('');
-        this.outputLine(' diii helpers:');
+        this.outputLine(' greenhouse helpers:');
         this.outputLine(' h            show this help');
         this.outputLine(' u            open file picker (same as upload button)');
         this.outputLine(' r            re-upload and run last uploaded script');

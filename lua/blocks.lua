@@ -1,4 +1,4 @@
--- blocks.lua: the runtime for diii's patch editor (docs/VISUAL-EDITOR.md)
+-- blocks.lua: the runtime for graft, greenhouse's patch editor (docs/VISUAL-EDITOR.md)
 --
 -- The runtime's source, in parts: a "--@part name needs a b" line starts
 -- one, named for the block type it defines (or for helpers others need).
@@ -736,13 +736,13 @@ B.type("midi_note", {
 })
 
 --@part sends
--- prints to the REPL (diii's console), at most 10 a second
+-- prints to the REPL (greenhouse's console), at most 10 a second
 local function send_print(node, v)
   local text = math.type(v) == "float" and string.format("%.3f", v) or tostring(v)
   print((node.p.label or "") .. " " .. text)
 end
 
--- watch: passes values on unchanged, and shows them in diii on the block
+-- watch: passes values on unchanged, and shows them in greenhouse on the block
 -- itself (the value and a little graph), at most 10 times a second
 local function send_watch(node, v)
   local text = math.type(v) == "float" and string.format("%.4g", v) or tostring(v)

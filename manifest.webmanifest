@@ -1,8 +1,8 @@
 {
   "id": "./",
-  "name": "diii",
-  "short_name": "diii",
-  "description": "Live-coding and script manager for iii devices",
+  "name": "greenhouse",
+  "short_name": "greenhouse",
+  "description": "Live-code, patch and manage iii devices, by Voltage Foundry Modular",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

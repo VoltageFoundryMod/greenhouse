@@ -15,7 +15,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#101010">
-    <title>diii</title>
+    <title>greenhouse</title>
     <link rel="manifest" href="manifest.webmanifest">
     <link rel="icon" href="icons/logo.svg" type="image/svg+xml">
     <link rel="stylesheet" href="vendor/prism-code-editor.css">
@@ -34,7 +34,7 @@
         <header class="app-header">
             <div class="header-left">
                 <div class="title-pill">
-                    <h1>//// diii</h1>
+                    <h1>greenhouse</h1>
                 </div>
                 <div id="replStatusPill" class="repl-status-pill">
                     <span id="replStatusIndicator" class="repl-status-indicator"></span>
@@ -64,16 +64,16 @@
                 <button type="button" id="uploadBtn" class="repl-connection-btn"
                     title="upload .lua files (or drop them anywhere)">upload</button>
                 <button type="button" id="patchOpenBtn" class="repl-connection-btn"
-                    title="the patch editor: wire blocks into a script (works with no device connected too)">patch</button>
+                    title="graft, the patch editor: wire blocks into a script (works with no device connected too)">graft</button>
                 <button type="button" id="helpBtn" class="repl-connection-btn"
-                    title="diii shortcuts and the device's help()">help</button>
+                    title="greenhouse shortcuts and the device's help()">help</button>
             </div>
             <div class="header-right">
                 <button type="button" id="appUpdateBtn" class="repl-connection-btn app-update-btn"
-                    title="a newer diii was published: reload to use it" hidden>update ready ↻</button>
+                    title="a newer greenhouse was published: reload to use it" hidden>update ready ↻</button>
                 <a id="repoLink" class="repl-connection-btn" href="https://github.com/carlosedp/web-diii"
                     target="_blank" rel="noopener noreferrer"
-                    title="diii on GitHub: source, issues, device views">github</a>
+                    title="greenhouse on GitHub: source, issues, device views">github</a>
                 <button id="scriptReferenceBtn" class="repl-connection-btn"
                     title="iii reference (works offline)">reference</button>
             </div>
@@ -117,11 +117,11 @@
                 <div id="workArea" class="work-area">
                     <div class="repl-pane full-width" id="replPane">
                         <div class="repl-content">
-                            <section id="patchDrawer" class="patch-drawer" aria-label="patch editor" hidden>
+                            <section id="patchDrawer" class="patch-drawer" aria-label="graft, the patch editor" hidden>
                                 <div class="midi-drawer-bar">
                                     <button type="button" id="patchToggleBtn" class="midi-toggle" aria-expanded="false"
                                         aria-controls="patchBody"
-                                        title="wire blocks into a script, and play it live (a prototype: docs/VISUAL-EDITOR.md)">patch
+                                        title="graft, the patch editor: wire blocks into a script, and play it live (docs/VISUAL-EDITOR.md)">graft
                                         ▸</button>
                                     <span id="patchStatus" class="midi-status"></span>
                                     <div class="repl-actions-spacer"></div>
@@ -225,7 +225,7 @@
                                     <button type="button" id="welcomeCloseBtn" class="welcome-close"
                                         title="hide this page (it comes back on the next visit)">×</button>
                                     <div class="welcome-hero">
-                                        <h2 id="welcomeTitle" class="welcome-title">//// diii</h2>
+                                        <h2 id="welcomeTitle" class="welcome-title">greenhouse</h2>
                                         <p class="welcome-lede">Live-code iii devices from the browser: a REPL, the
                                             scripts on the device, an editor with the device's API, and a view of
                                             the device you can play.</p>
@@ -246,18 +246,18 @@
                                                 synth, a phone or a power bank.</p>
                                         </div>
                                         <div>
-                                            <h3 class="welcome-heading">what is diii?</h3>
-                                            <p>diii is the window into it, in the browser, with nothing to
+                                            <h3 class="welcome-heading">what is greenhouse?</h3>
+                                            <p>greenhouse is the window into it, in the browser, with nothing to
                                                 install: type Lua and the device answers at once, keep its scripts
                                                 in an editor that knows its functions, see and play the device on
-                                                screen, or wire blocks into a script in the patch editor
+                                                screen, or wire blocks into a script in graft, the patch editor,
                                                 without writing code.</p>
                                         </div>
                                     </div>
-                                    <h3 class="welcome-heading">patch editor</h3>
+                                    <h3 class="welcome-heading">graft, the patch editor</h3>
                                     <figure class="welcome-patch">
                                         <img src="img/patcher.webp"
-                                            alt="the patch editor: an encoder wired through a value block to a MIDI CC and the screen, a key toggling a note and its LED, and an LFO scaled onto another CC"
+                                            alt="graft, the patch editor: an encoder wired through a value block to a MIDI CC and the screen, a key toggling a note and its LED, and an LFO scaled onto another CC"
                                             width="1200" height="581" loading="lazy">
                                         <figcaption>
                                             <p>Wire blocks into a script without writing code: encoders, keys,
@@ -266,7 +266,7 @@
                                                 that goes to it live. Saved, it runs on its own, and the device
                                                 holds only the blocks it uses.</p>
                                             <button type="button" id="welcomePatchBtn" class="welcome-link-btn">open
-                                                the patch editor</button>
+                                                graft</button>
                                             <span class="welcome-note">works before connecting too</span>
                                         </figcaption>
                                     </figure>
@@ -281,7 +281,7 @@
                                             <span class="welcome-card-text">A fully customizable performance MIDI
                                                 controller: 12
                                                 encoders, 16 RGB keys and
-                                                a 2.42" OLED. diii shows its panel live
+                                                a 2.42" OLED. greenhouse shows its panel live
                                                 and plays it.</span>
                                         </a>
                                         <a class="welcome-card" href="https://vfmod.com/open-grid" target="_blank"
@@ -289,7 +289,7 @@
                                             <img src="img/open-grid.svg" alt="the Open Grid: a 16 by 8 grid of lit keys"
                                                 width="704" height="396" loading="lazy">
                                             <span class="welcome-card-name">Open Grid</span>
-                                            <span class="welcome-card-text">A DIY 16×8 grid running iii. diii mirrors
+                                            <span class="welcome-card-text">A DIY 16×8 grid running iii. greenhouse mirrors
                                                 its
                                                 LEDs and presses its keys, and updates its firmware.</span>
                                         </a>
@@ -315,13 +315,13 @@
                                         </a>
                                     </div>
                                     <table class="welcome-table">
-                                        <caption>what diii does with each</caption>
+                                        <caption>what greenhouse does with each</caption>
                                         <thead>
                                             <tr>
                                                 <th></th>
                                                 <th>console, files, editor</th>
                                                 <th>live view</th>
-                                                <th>patch editor</th>
+                                                <th>graft (patch editor)</th>
                                                 <th>firmware update</th>
                                             </tr>
                                         </thead>
@@ -338,7 +338,7 @@
                                                 <td>✓</td>
                                                 <td>LEDs and keys</td>
                                                 <td>✓ with its keys and LEDs</td>
-                                                <td>✓ from diii</td>
+                                                <td>✓ from greenhouse</td>
                                             </tr>
                                             <tr>
                                                 <th>monome grid, arc</th>
@@ -366,14 +366,14 @@
                                             every function, offline too</li>
                                         <li><button type="button" id="welcomeGuideBtn"
                                                 class="welcome-link-btn">patching guide</button>: blocks, wires,
-                                            the screen layout (the patch editor works before connecting too, to
+                                            the screen layout (graft works before connecting too, to
                                             look around)</li>
                                         <li>drop a <code>.lua</code> file anywhere to upload it; type
                                             <code>help()</code> once
                                             connected
                                         </li>
                                     </ul>
-                                    <p class="welcome-credit">diii is a fork of monome's
+                                    <p class="welcome-credit">greenhouse, by Voltage Foundry Modular, is a fork of monome's
                                         <a href="https://github.com/monome/web-diii" target="_blank"
                                             rel="noopener noreferrer">web-diii</a> (GPL-3.0), with device views and
                                         tools

@@ -1,4 +1,4 @@
--- blocks_achene.lua: achene's parts of the runtime for diii's patch
+-- blocks_achene.lua: achene's parts of the runtime for greenhouse's patch
 -- editor: encoders, pushes, keys and their LEDs, and the screen blocks.
 -- They follow blocks.lua's parts, which they build on (see there).
 

@@ -729,7 +729,7 @@ export const BLOCKS = {
         group: 'output',
         inputs: 1,
         outputs: 0,
-        doc: "prints values in diii's console, at most 10 times a second",
+        doc: "prints values in greenhouse's console, at most 10 times a second",
         params: { label: { type: 'text', label: 'label', default: 'value' } }
     },
     lua: {
@@ -870,7 +870,7 @@ export function patchDevice(patch) {
 }
 
 /**
- * What would go wrong opening a patch here: blocks this diii doesn't know,
+ * What would go wrong opening a patch here: blocks this greenhouse doesn't know,
  * a newer runtime than it carries, or blocks for another device.
  * @param {Patch} patch
  * @param {'achene' | 'grid' | null} [device] the device it would run on
@@ -887,10 +887,10 @@ export function patchProblems(patch, device) {
         );
     }
     const unknown = [...new Set(patch.nodes.filter((n) => !BLOCKS[n.type]).map((n) => n.type))];
-    if (unknown.length) problems.push(`blocks this diii doesn't know (left out): ${unknown.join(', ')}`);
+    if (unknown.length) problems.push(`blocks this greenhouse doesn't know (left out): ${unknown.join(', ')}`);
     if (patch.rt && patch.rt > RUNTIME_VERSION) {
         problems.push(
-            `made with a newer runtime (v${patch.rt}; this diii has v${RUNTIME_VERSION}): reload diii for the newest`
+            `made with a newer runtime (v${patch.rt}; this greenhouse has v${RUNTIME_VERSION}): reload greenhouse for the newest`
         );
     }
     return problems;
@@ -918,12 +918,12 @@ export function liveLines(patch) {
 export function patchFile(name, patch, runtime) {
     const json = JSON.stringify({ v: 1, rt: RUNTIME_VERSION, nodes: patch.nodes, wires: patch.wires });
     const lines = [
-        `-- diii patch: ${name.replace(/[^ -~]/g, '')}`,
-        '-- made in the patch drawer; open it there to change it'
+        `-- graft patch: ${name.replace(/[^ -~]/g, '')}`,
+        "-- made in graft, greenhouse's patch editor; open it there to change it"
     ];
     for (let i = 0; i < json.length; i += 300) lines.push(`--@patch ${json.slice(i, i + 300)}`);
     lines.push(
-        `-- the blocks runtime v${RUNTIME_VERSION} it runs on, built by diii with: ${runtime.parts.join(' ')}`,
+        `-- the blocks runtime v${RUNTIME_VERSION} it runs on, built by greenhouse with: ${runtime.parts.join(' ')}`,
         runtime.text.trimEnd(),
         'B.patch{',
         '  nodes = {'

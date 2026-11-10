@@ -1,4 +1,4 @@
--- blocks_grid.lua: the grid's parts of the runtime for diii's patch
+-- blocks_grid.lua: the grid's parts of the runtime for greenhouse's patch
 -- editor: single keys and LEDs, and widgets made of keys (button, fader,
 -- steps, keys, ripples). They follow blocks.lua's parts (see there).
 

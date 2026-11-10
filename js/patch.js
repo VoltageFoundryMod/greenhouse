@@ -1,4 +1,4 @@
-// The patch drawer: a visual editor for iii scripts (docs/VISUAL-EDITOR.md).
+// The patch drawer, graft: a visual editor for iii scripts (docs/VISUAL-EDITOR.md).
 // Blocks wired on a Drawflow canvas run on the device on a runtime built
 // for the patch from lua/blocks*.lua; while a patch runs, every edit goes to
 // the device live, one line at a time.
@@ -341,10 +341,10 @@ export const patchMethods = {
         const open = this.patchPanelOpen;
         this.elements.patchDrawer?.classList.toggle('open', open);
         if (this.elements.patchToggleBtn) {
-            this.elements.patchToggleBtn.textContent = open ? 'patch ▾' : 'patch ▸';
+            this.elements.patchToggleBtn.textContent = open ? 'graft ▾' : 'graft ▸';
             this.elements.patchToggleBtn.setAttribute('aria-expanded', String(open));
         }
-        if (open) this.ensurePatchEditor().catch((error) => this.outputLine(`patch: ${error.message}`));
+        if (open) this.ensurePatchEditor().catch((error) => this.outputLine(`graft: ${error.message}`));
         this.updatePatchStatus();
     },
 
@@ -939,7 +939,7 @@ export const patchMethods = {
      * a Mac), and ctrl+A for all of them. They act once the canvas was
      * clicked last and no field is being typed in, so copying text
      * elsewhere on the page works as usual. Copied blocks go to the system
-     * clipboard as text too, so they paste into another diii tab.
+     * clipboard as text too, so they paste into another greenhouse tab.
      * @param {any} editor
      */
     bindPatchClipboard(editor) {
@@ -1232,22 +1232,22 @@ export const patchMethods = {
         try {
             text = await this.readRemoteFile(name);
         } catch (error) {
-            this.outputLine(`patch: couldn't read ${name} (${error.message})`);
+            this.outputLine(`graft: couldn't read ${name} (${error.message})`);
             return;
         }
         const patch = readPatchFile(text);
         if (!patch) {
-            this.outputLine(`patch: ${name} isn't a patch (no --@patch lines); open it with edit instead`);
+            this.outputLine(`graft: ${name} isn't a patch (no --@patch lines); open it with edit instead`);
             return;
         }
         for (const problem of patchProblems(patch, this.patchTarget().device)) {
-            this.outputLine(`patch: ${name}: ${problem}`);
+            this.outputLine(`graft: ${name}: ${problem}`);
         }
         if (!this.patchPanelOpen) await this.togglePatchPanel(true);
         await this.ensurePatchEditor();
         this.loadPatch(patch);
         this.patchFileName = name;
-        this.outputLine(`patch: opened ${name}`);
+        this.outputLine(`graft: opened ${name}`);
         this.replacePatchOnDevice(liveLines(this.exportPatch()));
     },
 
@@ -1450,7 +1450,7 @@ export const patchMethods = {
         this.patchPending.clear();
         if (this.patchRunning) for (const send of edits) send();
         this.updatePatchStatus();
-        if (edits.length) this.outputLine(`patch: applied ${edits.length} edit${edits.length === 1 ? '' : 's'}`);
+        if (edits.length) this.outputLine(`graft: applied ${edits.length} edit${edits.length === 1 ? '' : 's'}`);
     },
 
     /** @param {boolean} on */
@@ -1604,22 +1604,22 @@ export const patchMethods = {
             await this.executeLuaCapture(`fs_run_file("${RUNTIME_RUN_FILE}")`);
             if (await loaded()) return done();
         }
-        this.outputLine(`patch: putting the blocks runtime on the device (${what})`);
+        this.outputLine(`graft: putting the blocks runtime on the device (${what})`);
         this.setPatchBusy(`sending the blocks runtime (${what})…`);
         if (!(await this.uploadChecked(RUNTIME_RUN_FILE, runtime.text, { keepOld: true }))) {
-            this.outputLine(`patch: ${RUNTIME_RUN_FILE} did not upload`);
+            this.outputLine(`graft: ${RUNTIME_RUN_FILE} did not upload`);
             return false;
         }
         this.setPatchBusy('starting the blocks runtime…');
         await this.executeLuaCapture(`fs_run_file("${RUNTIME_RUN_FILE}")`);
         if (await loaded()) return done();
-        this.outputLine(`patch: ${RUNTIME_RUN_FILE} did not start (see the lines above)`);
+        this.outputLine(`graft: ${RUNTIME_RUN_FILE} did not start (see the lines above)`);
         return false;
     },
 
     async runPatch() {
         if (!this.iiiDevice.isConnected) {
-            this.outputLine('patch: connect a device first');
+            this.outputLine('graft: connect a device first');
             return;
         }
         await this.ensurePatchEditor();
@@ -1629,7 +1629,7 @@ export const patchMethods = {
         try {
             ready = await this.ensurePatchRuntime();
         } catch (error) {
-            this.outputLine(`patch: ${error.message}`);
+            this.outputLine(`graft: ${error.message}`);
         }
         if (!ready) {
             // the runtime that was running may be gone too
@@ -1644,8 +1644,8 @@ export const patchMethods = {
         this.fetchPatchStats();
         this.outputLine(
             this.patchLive
-                ? 'patch: running; live, so edits go to the device as you make them'
-                : 'patch: running; edits wait until you press apply'
+                ? 'graft: running; live, so edits go to the device as you make them'
+                : 'graft: running; edits wait until you press apply'
         );
     },
 
@@ -1661,7 +1661,7 @@ export const patchMethods = {
 
     async savePatchToDevice() {
         if (!this.iiiDevice.isConnected) {
-            this.outputLine('patch: connect a device to save it');
+            this.outputLine('graft: connect a device to save it');
             return;
         }
         const answer = window.prompt('save the patch on the device as', this.patchFileName || 'patch.lua');
@@ -1676,14 +1676,14 @@ export const patchMethods = {
         try {
             text = patchFile(name.replace(/\.lua$/, ''), patch, await this.patchRuntime(patch));
         } catch (error) {
-            this.outputLine(`patch: ${error.message}`);
+            this.outputLine(`graft: ${error.message}`);
             return;
         }
         const written = await this.uploadChecked(name, text);
         this.outputLine(
             written
-                ? `patch: saved as ${name}; it runs on its own (first("${name}") makes it the start-up script)`
-                : `patch: ${name} did not save`
+                ? `graft: saved as ${name}; it runs on its own (first("${name}") makes it the start-up script)`
+                : `graft: ${name} did not save`
         );
         this.requestFileListRefresh?.();
     },
@@ -1712,7 +1712,7 @@ export const patchMethods = {
         try {
             text = patchFile(base, patch, await this.patchRuntime(patch));
         } catch (error) {
-            this.outputLine(`patch: ${error.message}`);
+            this.outputLine(`graft: ${error.message}`);
             return;
         }
         const url = URL.createObjectURL(new Blob([text], { type: 'text/x-lua' }));
@@ -1723,7 +1723,7 @@ export const patchMethods = {
         a.click();
         a.remove();
         setTimeout(() => URL.revokeObjectURL(url), 1000);
-        this.outputLine(`patch: exported ${base}.lua`);
+        this.outputLine(`graft: exported ${base}.lua`);
     },
 
     /**
@@ -1744,17 +1744,17 @@ export const patchMethods = {
             }
         }
         if (!patch) {
-            this.outputLine(`patch: ${file.name} has no patch in it (no --@patch lines)`);
+            this.outputLine(`graft: ${file.name} has no patch in it (no --@patch lines)`);
             return;
         }
         for (const problem of patchProblems(patch, this.patchTarget().device)) {
-            this.outputLine(`patch: ${file.name}: ${problem}`);
+            this.outputLine(`graft: ${file.name}: ${problem}`);
         }
         const count = Object.keys(this.patchEditor?.drawflow.drawflow[this.patchEditor.module].data || {}).length;
         if (count && !window.confirm(`Replace the canvas with ${file.name}?`)) return;
         this.loadPatch(patch);
         this.patchFileName = file.name.replace(/\.(json|txt)$/, '.lua');
-        this.outputLine(`patch: imported ${file.name}`);
+        this.outputLine(`graft: imported ${file.name}`);
         this.replacePatchOnDevice(liveLines(this.exportPatch()));
     },
 

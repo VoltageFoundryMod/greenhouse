@@ -166,7 +166,7 @@ export const firmwareUiMethods = {
         step(
             el(
                 'span',
-                'Drag the .uf2 onto RPI-RP2. The device installs it, restarts, and diii reconnects (or click connect).'
+                'Drag the .uf2 onto RPI-RP2. The device installs it, restarts, and greenhouse reconnects (or click connect).'
             )
         );
         rows.push(el('h3', 'how to update', 'reference-group'), steps);

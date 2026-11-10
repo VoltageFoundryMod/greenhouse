@@ -81,10 +81,10 @@ export function screenDiagram() {
 
 const GUIDE = `
 <button type="button" class="patch-overlay-close" data-close aria-label="close the guide">×</button>
-<h3>Patching guide</h3>
+<h3>graft: the patching guide</h3>
 <p>A patch is <b>blocks</b> joined by <b>wires</b>. Each block does one small thing; when something happens
 (an encoder turns, a beat ticks, a note comes in) a number travels along its wires to the next blocks.
-The patch runs on the device itself, and keeps running after it's saved, without diii.</p>
+The patch runs on the device itself, and keeps running after it's saved, without greenhouse.</p>
 
 <h4>Blocks</h4>
 <ul>
@@ -167,14 +167,14 @@ ${RECIPES.map(
 <li>Blocks that remember things (a steps pattern and its notes, a value, a toggle, a counter, a memory) keep it:
 <b>stop</b>, <b>save…</b> and <b>export…</b> ask the device for it, so <b>run</b>, a saved script and an
 exported file start again where you left off.</li>
-<li>A saved or exported patch carries the part of the blocks runtime it uses, so it runs on its own; diii
+<li>A saved or exported patch carries the part of the blocks runtime it uses, so it runs on its own; greenhouse
 tells you about blocks it doesn't know when you open or import one.</li>
 <li>The device holds only the blocks a patch uses. Adding a block of a new kind while it runs starts it
 again on a runtime with that block (what the blocks remember is kept).</li>
 <li><b>save…</b> and <b>open…</b> use the device; <b>export…</b> and <b>import…</b> use a file on your computer
 (the same format), so a patch can be made, kept and shared with no device connected: the <b>patch</b> button at the
 top opens the editor any time.</li>
-<li>Copied blocks (ctrl+C) paste into another diii tab too.</li>
+<li>Copied blocks (ctrl+C) paste into another greenhouse tab too.</li>
 </ul>
 
 <div data-for="grid">

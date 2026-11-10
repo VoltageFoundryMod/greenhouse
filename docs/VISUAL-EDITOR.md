@@ -1,8 +1,8 @@
-# Visual editor: patching iii scripts
+# graft: the patch editor for iii scripts
 
-Status: **design + prototype, phase 2** (November 2026). The prototype is the
-**patch** drawer (`js/patch.js`, `lua/blocks.lua`); this document is where
-the design lives and changes.
+Status: **design + prototype, phase 2** (November 2026). **graft** is
+greenhouse's patch editor (the **graft** drawer, `js/patch.js`,
+`lua/blocks*.lua`); this document is where the design lives and changes.
 
 ## Why
 
@@ -13,7 +13,7 @@ differently: an encoder drives a CC, a key toggles a note, an LFO moves a
 parameter, a value is shown on a screen or a key's LED.
 
 A patcher in the spirit of Max or Pure Data makes those patterns visible:
-boxes for sources, processors and outputs, wires between them. diii already
+boxes for sources, processors and outputs, wires between them. greenhouse already
 has what makes this pleasant: a live connection to the device, a view of the
 device to play (the achene panel, the virtual grid), and an editor for when
 code is the better tool. The patcher adds the missing middle.
@@ -21,7 +21,7 @@ code is the better tool. The patcher adds the missing middle.
 **Goals**
 
 - A useful script in minutes without writing Lua, played live as it's built.
-- The result is an ordinary `.lua` file on the device: it runs without diii,
+- The result is an ordinary `.lua` file on the device: it runs without greenhouse,
   can be read, edited, shared and kept in a script library.
 - Nothing is lost by switching to code: custom Lua lives inside the patch.
 - The same patch logic works on achene, a grid, and devices to come; only the
@@ -69,13 +69,13 @@ Two ways to turn a patch into Lua:
    the patch uses (below).
 
 The second keeps the generated file small and readable, makes custom blocks
-just Lua functions registered with the runtime, and lets diii update a
+just Lua functions registered with the runtime, and lets greenhouse update a
 running patch live by sending one node or wire at a time.
 
 ### blocks.lua
 
 ```lua
-B.version                -- the runtime's version; diii uploads a newer one
+B.version                -- the runtime's version; greenhouse uploads a newer one
 B.type(name, def)        -- registers a block type: def.inputs, def.outputs,
                          -- def.init(node), def.input(node, i, v),
                          -- def.tick(node, dt), def.stop(node), and
@@ -93,7 +93,7 @@ B.out(node, i, v)        -- what a block calls to send v from output i
 
 **Built for each patch** (runtime v9). The whole library held in RAM was
 most of an RP2040's heap (on the XIAO, a running patch left a 2.6 KB
-largest free block), so the source is in **parts**, and diii joins only
+largest free block), so the source is in **parts**, and greenhouse joins only
 the ones a patch uses. `blocks.lua` holds the core and the blocks any iii
 device runs, `blocks_achene.lua` achene's (encoders, pushes, keys, key
 LEDs, the screen blocks), `blocks_grid.lua` the grid's. A line
@@ -105,14 +105,14 @@ parts defining the patch's types and what those need, in file order,
 **compacted** (no comments, blank lines or indentation), and ends it with
 `B.build`, its fingerprint. Another device's parts are left out.
 
-- **Run**: diii puts that in `blocks_run.lua` and runs it, unless `B.build`
+- **Run**: greenhouse puts that in `blocks_run.lua` and runs it, unless `B.build`
   says it is running already; a file of the same size (after a restart) is
   run and checked before anything is uploaded, so flash is written only
   when the set of blocks changes. Before a new one compiles, the old `B` is
   cleared and collected, so the two are never in RAM together; the tick
   metro is kept (iii has 12).
 - **Live**: a block of a type the runtime running lacks (dragged in,
-  pasted, a new patch opened) makes diii run the patch again on a runtime
+  pasted, a new patch opened) makes greenhouse run the patch again on a runtime
   with it, its blocks' state kept; edits to blocks of types it has go
   live as before.
 - **Save and export**: the patch file carries its runtime, so it runs on
@@ -131,10 +131,10 @@ its own handlers for anything else.
 ### The patch file
 
 ```lua
--- diii patch: cutoff and a toggle
+-- graft patch: cutoff and a toggle
 --@patch {"v":1,"nodes":[{"id":1,"type":"encoder","x":40,"y":60,
 --@patch "params":{"n":5}}, ...],"wires":[[1,1,2,1], ...]}
--- the blocks runtime v9 it runs on, built by diii with: core encoder accum midi_cc
+-- the blocks runtime v9 it runs on, built by greenhouse with: core encoder accum midi_cc
 if B and B.clear then B.clear() end
 B = {tick_metro = B and B.tick_metro}
 ...                                    -- the parts, compacted
@@ -156,17 +156,17 @@ B.patch{
 
 ### Round trip
 
-- diii opens a `.lua` file with `--@patch` lines as a patch: **open…** in the
+- greenhouse opens a `.lua` file with `--@patch` lines as a patch: **open…** in the
   drawer lists the device's scripts, and a script's file menu has **patch**.
 - **Custom code** goes in a **lua** node: its code is part of the patch and
   survives the round trip.
 - Editing the generated Lua by hand outside a lua node **detaches** the file:
-  diii notices the code no longer matches the patch (it regenerates and
+  greenhouse notices the code no longer matches the patch (it regenerates and
   compares) and opens it as code, saying so. The patch can still be restored
   from the comment, losing the hand edits. Simple and honest; no attempt at
   parsing arbitrary Lua back into boxes.
 
-## In diii
+## In greenhouse
 
 - A **patch** drawer, like the achene and grid drawers: the canvas, a
   palette of blocks, and **run / stop / save**. Later it may become a view
@@ -178,12 +178,12 @@ B.patch{
   **apply (n)** sends them together (several changes to one block go as
   one), without restarting the patch. **save** writes the patch file; **run**
   on a saved file does `fs_run_file`.
-- **Patch files** start with `-- diii patch:`; the file list marks them with
+- **Patch files** start with `-- graft patch:` (`-- greenhouse patch:` before the rename); the file list marks them with
   a **patch** tag, and **open…** lists only them.
-- The runtime is uploaded when missing or older than the one diii carries.
+- The runtime is uploaded when missing or older than the one greenhouse carries.
 - **Device palettes**: the palette shows the connected device's own blocks
   (achene: encoders, pushes, keys, key LEDs, screen; grid: buttons, faders,
-  keys, LEDs) next to the shared ones. diii tells achene, Open Grid (it has
+  keys, LEDs) next to the shared ones. greenhouse tells achene, Open Grid (it has
   `og_mirror`), a stock grid and other iii devices apart, with the grid's
   size. Offline, **for:** in the bar picks the device (achene, grid 16×8,
   8×8, 16×16); connected, it shows the device and is locked. The examples
@@ -238,7 +238,7 @@ for that device:
 | sample & hold                                                                     | input 1 watched quietly; a trigger on input 2 sends the value it had then                                                           |
 | set var / get var _name_                                                          | a named value shared by the whole patch, without wires (Max's send/receive)                                                         |
 | watch                                                                             | passes values on and shows them on the block: the latest and a graph (10 a second)                                                  |
-| print _label_                                                                     | prints to diii's console, at most 10 a second                                                                                       |
+| print _label_                                                                     | prints to greenhouse's console, at most 10 a second                                                                                       |
 | lua _code_                                                                        | your code, for each message: `i`, `v`, `out(n, value)`, and `s` kept between calls                                                  |
 
 Gates (metro, clock in) go 1 then 0, so a note retriggers and a toggle or
@@ -309,7 +309,7 @@ goes first so a midi note block plays it. Output 3 is the step number. Its
 page of steps that's playing, with their LEDs (amber on, white playing, blue
 held). A press turns a step on or off; an encoder wired to input 3 then sets
 that step's note, for 2 seconds after the press or while the key is held, so
-press a step and dial its note with one hand (or one mouse, in diii's panel
+press a step and dial its note with one hand (or one mouse, in greenhouse's panel
 view). Otherwise the encoder transposes every step. The screen shows the
 step and note for a moment. Input 2 (a step number) turns a step on or off.
 Input 4 picks the page the keys show, counting steps through auto, page 1,
@@ -336,7 +336,7 @@ E2 either to cutoff and resonance or to the sequencer's notes and page;
 **arp**, the lua block making an arpeggio; **basics**, a first patch: an
 encoder on a CC and the screen, a key on a note and its LED, an LFO on a CC.
 
-diii sends the runtime again whenever it changes (its `B.build` is a
+greenhouse sends the runtime again whenever it changes (its `B.build` is a
 fingerprint of the text); one loaded again stops the one that was running
 and takes over its clock, so two never play at once.
 
@@ -381,7 +381,7 @@ click selects a block, shift- or ctrl-click adds or removes one; dragging a
 selected block moves the whole selection; space + drag or the middle button
 pans; ctrl+C / X / V copy, cut and paste the selection with the wires
 between its blocks (a paste lands under the mouse, and copied blocks paste
-into another diii tab too), ctrl+D duplicates it, ctrl+A selects every
+into another greenhouse tab too), ctrl+D duplicates it, ctrl+A selects every
 block; delete removes the selection, Esc lets go. Drawflow pans on a plain
 drag, zooms on ctrl+wheel only and has no group selection, so js/patch.js
 handles these first and wraps its drag handler to move the rest of a
@@ -403,7 +403,7 @@ Blocks that remember something keep it: a steps block its pattern, notes,
 length and page; value, counter and memory blocks their number; a toggle
 and a route their side; sample & hold its sample. The runtime reports it
 (`B.state()`, one `__webdiii_state` line per block, as JSON) and takes it
-back (`B.load(id, {...})`, or a fourth field in `B.patch`'s nodes). diii
+back (`B.load(id, {...})`, or a fourth field in `B.patch`'s nodes). greenhouse
 asks for it on **stop**, **save…**, **export…** and before **run** on a
 running patch, keeps it with the block (copying a block copies it too) and
 sends it with the patch, so a patch starts again where it was, on the
@@ -412,9 +412,9 @@ device or from a saved file.
 A patch file carries the runtime version it was made with (`rt`) and,
 from v9, the runtime itself, so on the device it can't meet an older one.
 Files saved before v9 `require` blocks.lua (and v8's modules), which
-still work while those files are on the device. In diii, opening or
+still work while those files are on the device. In greenhouse, opening or
 importing one lists the blocks it doesn't know and says when the file is
-newer than diii.
+newer than greenhouse.
 
 Limits: the whole patch runs on one 50 Hz metro (iii has 12), so blocks
 cost memory, not metros; the status shows the running patch's blocks and

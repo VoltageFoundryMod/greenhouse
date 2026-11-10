@@ -221,7 +221,7 @@ resize it (grid key and grid led stay one key), click it to select its block. A 
             const p = place(e);
             if (others.some((o) => overlaps(o, p))) {
                 this.outputLine?.(
-                    `patch: the grid layout: ${BLOCKS[node.name].label} would overlap another block there`
+                    `graft: the grid layout: ${BLOCKS[node.name].label} would overlap another block there`
                 );
                 this.renderPatchGrid();
                 return;

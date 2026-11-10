@@ -1,11 +1,12 @@
-# Publishes diii to GitHub Pages: https://diii.vfmod.com
+# Publishes greenhouse to GitHub Pages: https://greenhouse.vfmod.com
 #
 # tools/dist.mjs copies the site into dist/ (no build step) and gives the
 # service worker a cache name per commit, so installed copies (PWA) switch to
 # each release.
 #
 # Repository settings: Pages -> Source: GitHub Actions; custom domain
-# diii.vfmod.com (from CNAME) with Enforce HTTPS (Web Serial needs HTTPS).
+# greenhouse.vfmod.com (from CNAME) with Enforce HTTPS (Web Serial needs
+# HTTPS). diii.vfmod.com, its old address, redirects there.
 
 name: Pages
 

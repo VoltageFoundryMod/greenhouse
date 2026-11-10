@@ -51,7 +51,7 @@ for (const name of await readdir(root)) {
     if (!skip.has(name)) await cp(join(root, name), join(out, name), { recursive: true });
 }
 
-const cache = `diii-${revision()}`;
+const cache = `greenhouse-${revision()}`;
 const swPath = join(out, 'sw.js');
 const sw = await readFile(swPath, 'utf8');
 const stamped = sw.replace(/const CACHE = '[^']*';/, `const CACHE = '${cache}';`);

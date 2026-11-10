@@ -139,7 +139,7 @@ export const fileMethods = {
                 const patchBadge = document.createElement('span');
                 patchBadge.className = 'file-first-pill file-patch-pill';
                 patchBadge.textContent = 'patch';
-                patchBadge.title = 'made in the patch editor: ⋯ → edit patch opens it there';
+                patchBadge.title = 'made in graft, the patch editor: ⋯ → edit patch opens it there';
                 patchBadge.setAttribute('aria-label', `${entry.name} is a patch`);
                 main.appendChild(patchBadge);
             }
@@ -382,7 +382,8 @@ export const fileMethods = {
     },
 
     /**
-     * Scripts saved from the patch drawer start with "-- diii patch:"; ask
+     * Scripts saved from the patch drawer start with "-- graft patch:" ("-- diii
+     * patch:" before the rename); ask
      * the device which do. iii can only read a file whole, into one string,
      * and on a grid running a patch a big read can run Lua out of memory (and
      * the device into its watchdog). So: never the runtime's or iii's own
@@ -406,7 +407,7 @@ export const fileMethods = {
             const key = `${name}\t${size}`;
             if (!seen.has(key)) {
                 const lines = await this.executeLuaCapture(
-                    `do local s = fs_read_file(${JSON.stringify(name)}) print(s and s:find("^%-%- diii patch:") and "__webdiii_patch" or "-") s = nil collectgarbage() end`
+                    `do local s = fs_read_file(${JSON.stringify(name)}) print(s and s:find("^%-%- %a+ patch:") and "__webdiii_patch" or "-") s = nil collectgarbage() end`
                 );
                 seen.set(
                     key,

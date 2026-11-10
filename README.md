@@ -1,6 +1,15 @@
+# greenhouse
+
+**greenhouse**, by Voltage Foundry Modular, is where iii devices are tended from the browser:
+a REPL, the scripts on the device and an editor for them, a view of the device you can play,
+and **graft**, a patch editor that wires blocks into a script without code. It is a fork of
+monome's [web-diii](https://github.com/monome/web-diii), whose own description follows.
+
+---
+
 ![](docs/images/diii.png)
 
-# diii (fka web-diii)
+## diii (fka web-diii), upstream
 
 A web-based live-coding and management interface for iii devices, available [here](https://monome.org/diii). The iii sibling of [web-druid](https://github.com/dessertplanet/web-druid) that communicates with [crow](https://monome.org/docs/crow) and is in turn based on the python-based [druid](https://monome.org/docs/crow/druid) terminal app. Send commands, get text feedback, and manage the files on your iii device.
 
@@ -9,7 +18,7 @@ This repo has the source code for this static web app. For docs, go [here](https
 ## this fork
 
 A fork of [monome/web-diii](https://github.com/monome/web-diii) (GPL-3.0), published at
-**[diii.vfmod.com](https://diii.vfmod.com)**. It works with any iii device, and adds views and
+**[greenhouse.vfmod.com](https://greenhouse.vfmod.com)** (diii.vfmod.com redirects there). It works with any iii device, and adds views and
 tools for devices whose firmware supports them, so scripts can be tried without the hardware
 attached:
 
@@ -23,7 +32,8 @@ attached:
   keyboard plays them). **full screen** shows the panel alone, for playing. A XIAO breadboard
   build (4 encoders, 4 keys) greys out the rest.
 
-- a **patch** drawer (a prototype, with an achene connected): wire blocks (encoder, key, LFO,
+- **graft**, the patch editor (the **graft** drawer; any iii device, with achene's and the
+  grid's own blocks when one is connected): wire blocks (encoder, key, LFO,
   value, scale, toggle, MIDI CC and note, key LED, display) into a script and play it live; every
   edit goes to the device as you make it, and **save…** writes a script that runs on its own.
   See [docs/VISUAL-EDITOR.md](docs/VISUAL-EDITOR.md), and [docs/ROADMAP.md](docs/ROADMAP.md) for
@@ -31,7 +41,7 @@ attached:
 
 Also on top of upstream:
 
-- installs as an app (PWA) from any path; **update ready** in the header when a newer diii is
+- installs as an app (PWA) from any path; **update ready** in the header when a newer greenhouse is
   published;
 - **edit** in a file's menu opens a code editor next to the console (Ctrl+S, save as, run,
   autocomplete and help for iii functions, clickable errors, line wrap); Tab completes names in
@@ -104,4 +114,4 @@ to run locally for development on the site itself, run this in the web-diii root
 python3 -m http.server 8000
 ```
 
-This is **not** necessary for using diii offline, see the note above about installing as a progressive web app for the best experience there.
+This is **not** necessary for using greenhouse offline, see the note above about installing as a progressive web app for the best experience there.

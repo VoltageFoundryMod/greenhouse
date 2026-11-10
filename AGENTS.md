@@ -1,12 +1,20 @@
-# AGENTS.md: diii
+# AGENTS.md: greenhouse
 
 Context for anyone (agent or human) working here. Read `README.md` first.
 
 ## What this is
 
-A fork of monome's [web-diii](https://github.com/monome/web-diii): the browser app that talks to
-iii devices over Web Serial (REPL, files, editor). This fork adds **device views** for devices
-whose firmware supports them, published at https://diii.vfmod.com. Owner: Carlos de Paula.
+**greenhouse** (by Voltage Foundry Modular; was diii until November 2026): a fork of monome's
+[web-diii](https://github.com/monome/web-diii), the browser app that talks to iii devices over
+Web Serial (REPL, files, editor). This fork adds **device views** for devices whose firmware
+supports them and **graft**, the patch editor; published at https://greenhouse.vfmod.com
+(diii.vfmod.com redirects there). Owner: Carlos de Paula.
+
+The rename covers what people see (title, header, welcome page, manifest, messages, docs, the
+`-- graft patch:` header of saved patches). Internal names stay on purpose: `diii.js` and
+`diiiApp`, the `__webdiii_*` markers in device output and the `webdiii.` localStorage keys
+(renaming them would lose saved settings and patches for nothing anyone sees). Say
+"greenhouse" and "graft" in new text.
 
 Devices and their firmware repos:
 
@@ -47,7 +55,7 @@ split out with its history.
 
 `js/patch.js` (the drawer, live sending), `js/patch-blocks.js` (the blocks as data, Lua
 generation, `buildRuntime`), `lua/blocks*.lua` (the runtime's source, in `--@part name needs a b`
-parts; diii joins those a patch uses), `patch.css`, Drawflow in `vendor/` (bundled by `npm run
+parts; greenhouse joins those a patch uses), `patch.css`, Drawflow in `vendor/` (bundled by `npm run
 vendor`). A block exists twice, in `patch-blocks.js` and as a `B.type` (or screen `widget`) in a
 part of its own: keep them in step, keep each part's `needs` right (every part uses only the
 core's and its needs' locals), and bump `RUNTIME_VERSION` and `B.version` together when the
@@ -66,7 +74,7 @@ runtime changes. `tools/patch-preview.html` runs the drawer without a device. De
 
 - **Formatting**: Prettier (`.prettierrc.json`: 4 spaces, single quotes, 120 columns); run
   `make format` before committing; `make test` must pass.
-- **Commits**: small, one topic, imperative subject with a scope prefix (`diii:`, `docs:`,
+- **Commits**: small, one topic, imperative subject with a scope prefix (`greenhouse:`, `docs:`,
   `build:`, `tools:`). The body says what and why.
 - Keep generic fixes separate from device-specific work, so they can go to monome/web-diii as
   pull requests from a branch based on `upstream/main`.

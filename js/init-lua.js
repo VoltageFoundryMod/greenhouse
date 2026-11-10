@@ -56,7 +56,7 @@ export function disableStartupScript(text, name) {
     const out = text.replace(callPattern(name), (match, _quote, offset) => {
         if (inLineComment(text, offset)) return match;
         changed = true;
-        return `--[[ disabled by diii: ${match} ]]`;
+        return `--[[ disabled by greenhouse: ${match} ]]`;
     });
     return { text: out, changed };
 }

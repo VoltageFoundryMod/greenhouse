@@ -1,4 +1,4 @@
-// "update ready": tells when a newer diii was published (diii.vfmod.com) than
+// "update ready": tells when a newer greenhouse was published (greenhouse.vfmod.com) than
 // the copy this browser runs, and reloads into it.
 //
 // Each published build gets its own service-worker cache name (dist.py), so a
@@ -40,7 +40,7 @@ export const appUpdateMethods = {
         const button = this.elements.appUpdateBtn;
         if (!button || !button.hidden) return;
         button.hidden = false;
-        this.outputLine('a newer diii is ready: click "update ready" in the header to load it');
+        this.outputLine('a newer greenhouse is ready: click "update ready" in the header to load it');
     },
 
     // unsaved editor changes: the page asks before leaving (and the draft stays)

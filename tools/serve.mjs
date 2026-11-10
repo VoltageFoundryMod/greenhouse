@@ -66,7 +66,7 @@ self.addEventListener('activate', (event) => {
     event.waitUntil(
         caches
             .keys()
-            .then((keys) => Promise.all(keys.filter((k) => k.startsWith('diii')).map((k) => caches.delete(k))))
+            .then((keys) => Promise.all(keys.filter((k) => k.startsWith('diii') || k.startsWith('greenhouse')).map((k) => caches.delete(k))))
             .then(() => self.clients.claim())
     );
 });
@@ -141,6 +141,6 @@ createServer(async (req, res) => {
     }
 }).listen(port, '127.0.0.1', () => {
     const mode = watch ? ', reloading on changes' : '';
-    console.log(`diii at http://localhost:${port}${mode}  (Ctrl+C to stop)`);
+    console.log(`greenhouse at http://localhost:${port}${mode}  (Ctrl+C to stop)`);
     if (watch) console.log(`watching ${relative(process.cwd(), root) || '.'}`);
 });

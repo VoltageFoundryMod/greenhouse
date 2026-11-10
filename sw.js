@@ -1,5 +1,5 @@
 // Bump CACHE when the list below changes; old caches are deleted on activate.
-const CACHE = 'diii-v34';
+const CACHE = 'greenhouse-v35';
 
 // Relative to this file, so the app works from any path (e.g. GitHub Pages
 // project sites), not only from the site root.

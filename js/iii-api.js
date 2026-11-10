@@ -464,7 +464,7 @@ export const III_API = [
         device: 'og',
         name: 'og_mirror',
         sig: 'og_mirror(on)',
-        doc: "Streams LED frames as ^^grid(...) lines (diii's virtual grid)."
+        doc: "Streams LED frames as ^^grid(...) lines (greenhouse's virtual grid)."
     },
     {
         group: 'open grid',
@@ -672,7 +672,7 @@ export const III_API = [
         device: 'achene',
         name: 'ach_enc',
         sig: 'ach_enc(n, d)',
-        doc: "Injects an encoder turn, as if from the hardware (diii's achene view, tests)."
+        doc: "Injects an encoder turn, as if from the hardware (greenhouse's achene view, tests)."
     },
     {
         group: 'achene',
@@ -704,7 +704,7 @@ export const III_API = [
         device: 'achene',
         name: 'ach_mirror',
         sig: 'ach_mirror(on)',
-        doc: "Streams the key LEDs and screen as ^^achled / ^^achscr lines (diii's achene view)."
+        doc: "Streams the key LEDs and screen as ^^achled / ^^achscr lines (greenhouse's achene view)."
     }
 ];
 
