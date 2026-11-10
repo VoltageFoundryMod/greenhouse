@@ -109,7 +109,7 @@ export const firmwareUiMethods = {
         else if (release === null) rows.push(el('p', 'no firmware release published yet.'));
         else if (connected && current && !parseVersion(current)) {
             rows.push(
-                el('p', `latest Open Grid firmware: ${release.version}. This device runs other firmware (${current}).`)
+                el('p', `latest parterre firmware: ${release.version}. This device runs other firmware (${current}).`)
             );
         } else if (connected && !isNewer(release.version, current)) {
             rows.push(el('p', `up to date (latest release: ${release.version}).`));

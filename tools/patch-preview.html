@@ -122,7 +122,7 @@
                 app.patchCaps = { achene: true, grid: false, og: false, size: { x: 16, y: 8 }, kind: 'achene' };
             } else if (grid) {
                 const size = { x: Number(grid[2]), y: Number(grid[3]) };
-                const kind = `${grid[1] ? 'Open Grid' : 'grid'} ${size.x}×${size.y}`;
+                const kind = `${grid[1] ? 'parterre' : 'grid'} ${size.x}×${size.y}`;
                 app.patchCaps = { achene: false, grid: true, og: Boolean(grid[1]), size, kind };
             }
             if (caps) app.updatePatchTarget();

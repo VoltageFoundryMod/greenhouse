@@ -382,7 +382,7 @@ export const patchMethods = {
                 const kind = achene
                     ? 'achene'
                     : grid
-                      ? `${og ? 'Open Grid' : 'grid'} ${size.x}×${size.y}`
+                      ? `${og ? 'parterre' : 'grid'} ${size.x}×${size.y}`
                       : 'iii device';
                 caps = { achene, grid, og, size, kind };
             }

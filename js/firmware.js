@@ -3,10 +3,10 @@
 // helper. Releases carry the UF2s from `make dist`, named
 // iii-open-grid-og-X.Y.Z-<board>.uf2.
 
-export const RELEASES_PAGE = 'https://github.com/carlosedp/Open-Grid-Controller/releases';
+export const RELEASES_PAGE = 'https://github.com/carlosedp/parterre/releases';
 // The list, not /releases/latest: with no release yet, /latest answers 404,
 // which the browser logs as an error; the list is just empty.
-const RELEASES_API = 'https://api.github.com/repos/carlosedp/Open-Grid-Controller/releases?per_page=10';
+const RELEASES_API = 'https://api.github.com/repos/carlosedp/parterre/releases?per_page=10';
 
 /**
  * "og-0.3.6" (also "og-0.3.6-200mhz") -> [0, 3, 6]; null when it isn't an

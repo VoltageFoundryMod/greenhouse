@@ -18,7 +18,7 @@ The rename covers what people see (title, header, welcome page, manifest, messag
 
 Devices and their firmware repos:
 
-- **Open Grid Controller** (`github.com/carlosedp/Open-Grid-Controller`, locally
+- **parterre**, called Open Grid Controller until November 2026 (`github.com/carlosedp/parterre`, locally
   `../Open-Grid-Controller`): the virtual grid (`js/grid.js`), firmware updates
   (`js/firmware.js`, from that repo's GitHub releases), the `og_*` tools.
 - **achene** (locally `../achene`, not published yet): a MIDI controller with 12 encoders, 16

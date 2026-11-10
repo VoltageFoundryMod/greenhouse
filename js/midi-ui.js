@@ -60,7 +60,7 @@ export const midiUiMethods = {
                 this.midiMonitorSupported = probe.some((line) => line.trim() === 'true');
             }
             if (!this.midiMonitorSupported) {
-                showNote(on ? 'the MIDI monitor needs Open Grid firmware og-0.3.8 or later' : '');
+                showNote(on ? 'the MIDI monitor needs parterre firmware og-0.3.8 or later' : '');
                 return;
             }
             showNote('');

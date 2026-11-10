@@ -183,7 +183,7 @@ B.patch{
 - The runtime is uploaded when missing or older than the one greenhouse carries.
 - **Device palettes**: the palette shows the connected device's own blocks
   (achene: encoders, pushes, keys, key LEDs, screen; grid: buttons, faders,
-  keys, LEDs) next to the shared ones. greenhouse tells achene, Open Grid (it has
+  keys, LEDs) next to the shared ones. greenhouse tells achene, parterre (it has
   `og_mirror`), a stock grid and other iii devices apart, with the grid's
   size. Offline, **for:** in the bar picks the device (achene, grid 16×8,
   8×8, 16×16); connected, it shows the device and is locked. The examples
@@ -427,7 +427,7 @@ a tick each, and a line to the device stays under iii's 512 characters
 
 - The runtime costs Lua heap once, only for the blocks a patch uses; a
   patch costs a table per node. Roomy on the RP2350's ~400 KB; on an
-  RP2040 (the Open Grid, achene's Pico build) watch `og_mem()`'s largest
+  RP2040 (parterre, achene's Pico build) watch `og_mem()`'s largest
   block: the heap fragments.
 - The tick runs at 50 Hz by default: LFOs and slews are smooth enough for
   MIDI, and the device stays responsive. Outputs skip repeated values, so a

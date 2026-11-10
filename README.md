@@ -22,7 +22,7 @@ A fork of [monome/web-diii](https://github.com/monome/web-diii) (GPL-3.0), publi
 tools for devices whose firmware supports them, so scripts can be tried without the hardware
 attached:
 
-- [Open Grid Controller](https://github.com/carlosedp/Open-Grid-Controller): a **grid** drawer
+- [parterre](https://vfmod.com/parterre/) (repo: [carlosedp/parterre](https://github.com/carlosedp/parterre); it was called Open Grid until November 2026): a **grid** drawer
   that shows the grid's LEDs live and lets you press keys from the browser. Shift-click or
   right-click holds a key down (click it again to let go).
 - achene, a MIDI controller on iii (not published yet): an **achene** drawer with the
@@ -48,11 +48,11 @@ Also on top of upstream:
   the REPL; **+** creates a script, **rename** renames one; drag files in to upload several;
 - **backup** downloads every file on the device as one zip, **restore** uploads it again;
 - a **midi** drawer with the MIDI the device sends and receives;
-- **device ▾ → firmware** shows the firmware version and offers Open Grid updates.
+- **device ▾ → firmware** shows the firmware version and offers parterre updates.
 
 The extras that need a device's own firmware hide themselves or say so:
 
-|                                                                                               | Stock iii firmware                                             | Open Grid firmware                               |
+|                                                                                               | Stock iii firmware                                             | parterre firmware                                |
 | --------------------------------------------------------------------------------------------- | -------------------------------------------------------------- | ------------------------------------------------ |
 | REPL, history, Tab completion, uploads (several at once), run, new, delete, first / not first | ✅                                                             | ✅                                               |
 | Editor: autocomplete, hover help, reference, drafts, clickable errors, line wrap              | ✅                                                             | ✅                                               |
@@ -64,9 +64,9 @@ The extras that need a device's own firmware hide themselves or say so:
 | Virtual grid drawer (LEDs, press keys from the browser)                                       | ❌ hidden                                                      | ✅ (`og_mirror`, `og_key`)                       |
 | MIDI monitor list                                                                             | ❌ says it needs og-0.3.8                                      | ✅ og-0.3.8+                                     |
 | MIDI counts and clock tempo with the drawer closed                                            | ❌                                                             | ✅ og-0.3.9+                                     |
-| Firmware update dialog                                                                        | shows the version; no Open Grid updates offered                | ✅ newest release for your board                 |
+| Firmware update dialog                                                                        | shows the version; no parterre updates offered                 | ✅ newest release for your board                 |
 
-achene's firmware carries the same `og_` tools (it started from Open Grid's), so the Open Grid
+achene's firmware carries the same `og_` tools (it started from parterre's), so the parterre
 column applies to it too, except firmware updates.
 
 The ⚠ and ❌ rows on stock firmware are limits of iii itself; the fixes are in the

@@ -70,8 +70,9 @@ details live in the linked documents; this is the list.
   storage keys) stay on purpose. Left: renaming the GitHub repo
   (web-diii). The credit to monome's web-diii, the GPL-3.0 license and
   the upstream remote stay.
-- **Device pages on vfmod.com** (achene, Open Grid) for the opening page's
-  cards to link to.
+- **Device pages on vfmod.com**: done (November 2026). achene and parterre
+  (the Open Grid's new name) have pages at vfmod.com/achene/ and
+  vfmod.com/parterre/, which the opening page's cards link to.
 - **Visual editor, next blocks**: probability, curve, sample & hold,
   stepped values, a clock out, grid rows; user block files for code longer
   than the lua block takes.

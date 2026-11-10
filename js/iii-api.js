@@ -419,7 +419,7 @@ export const III_API = [
 
     // Open Grid firmware
     {
-        group: 'open grid',
+        group: 'parterre',
         kind: 'function',
         device: 'og',
         name: 'og_set_mode',
@@ -427,7 +427,7 @@ export const III_API = [
         doc: '0 = iii, 1 = monome serial (norns, serialosc). Saves the mode and reboots.'
     },
     {
-        group: 'open grid',
+        group: 'parterre',
         kind: 'function',
         device: 'og',
         name: 'og_keypads',
@@ -435,7 +435,7 @@ export const III_API = [
         doc: 'Returns a bitmask of the keypad boards that answer.'
     },
     {
-        group: 'open grid',
+        group: 'parterre',
         kind: 'function',
         device: 'og',
         name: 'og_mem',
@@ -443,7 +443,7 @@ export const III_API = [
         doc: 'Prints the C heap in KB and returns free, largest, used, peak, total, high_water (bytes); og_mem(true) only returns them.'
     },
     {
-        group: 'open grid',
+        group: 'parterre',
         kind: 'function',
         device: 'og',
         name: 'og_key',
@@ -451,7 +451,7 @@ export const III_API = [
         doc: 'Injects a key event as if pressed on the grid (1-based).'
     },
     {
-        group: 'open grid',
+        group: 'parterre',
         kind: 'function',
         device: 'og',
         name: 'og_led',
@@ -459,7 +459,7 @@ export const III_API = [
         doc: 'Sets the status LED color (0-255 each); og_led() returns it to the mode color.'
     },
     {
-        group: 'open grid',
+        group: 'parterre',
         kind: 'function',
         device: 'og',
         name: 'og_mirror',
@@ -467,7 +467,7 @@ export const III_API = [
         doc: "Streams LED frames as ^^grid(...) lines (greenhouse's virtual grid)."
     },
     {
-        group: 'open grid',
+        group: 'parterre',
         kind: 'function',
         device: 'og',
         name: 'og_dump_file',
@@ -475,7 +475,7 @@ export const III_API = [
         doc: 'Prints a file as base64 lines, then its size and CRC-32 (used by backups).'
     },
     {
-        group: 'open grid',
+        group: 'parterre',
         kind: 'function',
         device: 'og',
         name: 'og_rename_file',
