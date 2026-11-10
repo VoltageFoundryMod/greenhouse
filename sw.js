@@ -1,5 +1,5 @@
 // Bump CACHE when the list below changes; old caches are deleted on activate.
-const CACHE = 'diii-v33';
+const CACHE = 'diii-v34';
 
 // Relative to this file, so the app works from any path (e.g. GitHub Pages
 // project sites), not only from the site root.
@@ -18,6 +18,7 @@ const APP_SHELL_FILES = [
     './vendor/drawflow.css',
     './img/achene.webp',
     './img/open-grid.svg',
+    './img/patcher.webp',
     './diii.js',
     './js/achene.js',
     './js/achene-layout.js',

@@ -58,10 +58,18 @@ details live in the linked documents; this is the list.
 ## Next
 
 - **A name of our own.** The tool now covers several devices and a patch
-  editor; "diii" is monome's name for their app. Broad names rather than
-  botanical ones; keep the credit to monome's web-diii (README, about box,
-  the opening page), the GPL-3.0 license and the upstream remote, and
-  redirect diii.vfmod.com.
+  editor; "diii" is monome's name for their app. Proposed (November 2026),
+  on a garden theme that ties to glassgarden. (Carlos's stage name) and to
+  achene and pappus: **greenhouse** for the tool (a glass garden, where the
+  devices and their scripts are tended), at greenhouse.vfmod.com, and
+  **graft** for the patch editor (joining pieces so they grow as one). The
+  devices go out under **Voltage Foundry Modular**. To do before
+  settling: check the names for clashes (trademarks, ModularGrid, KVR,
+  GitHub; "rhizome" is taken by Squarp, "trellis" by Adafruit). Then:
+  rename the repo, title, docs and PWA cache; migrate the `webdiii.`
+  localStorage keys once so saved patches and settings carry over; keep
+  the credit to monome's web-diii (README, about box, the opening page),
+  the GPL-3.0 license and the upstream remote; redirect diii.vfmod.com.
 - **Device pages on vfmod.com** (achene, Open Grid) for the opening page's
   cards to link to.
 - **Visual editor, next blocks**: probability, curve, sample & hold,

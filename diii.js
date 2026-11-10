@@ -183,6 +183,7 @@ class diiiApp {
             patchImportInput: document.getElementById('patchImportInput'),
             patchGuideBtn: document.getElementById('patchGuideBtn'),
             welcomeGuideBtn: document.getElementById('welcomeGuideBtn'),
+            welcomePatchBtn: document.getElementById('welcomePatchBtn'),
             patchApplyBtn: document.getElementById('patchApplyBtn'),
             patchSaveBtn: document.getElementById('patchSaveBtn'),
             patchOpenSelect: document.getElementById('patchOpenSelect'),
@@ -303,6 +304,7 @@ class diiiApp {
         });
         on(this.elements.patchGuideBtn, 'click', () => this.togglePatchGuide());
         on(this.elements.welcomeGuideBtn, 'click', () => this.togglePatchGuide(true));
+        on(this.elements.welcomePatchBtn, 'click', () => this.showPatchEditor());
         on(this.elements.patchApplyBtn, 'click', () => this.applyPatchEdits());
         on(this.elements.patchSaveBtn, 'click', () => this.savePatchToDevice());
         // the list is the device's files as of now: fill it when it's about to open

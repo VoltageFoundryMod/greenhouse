@@ -193,6 +193,43 @@
     color: var(--neutral-medium);
 }
 
+/* the patch editor: a picture of it, and what it does */
+.welcome-patch {
+    display: grid;
+    grid-template-columns: minmax(0, 3fr) minmax(220px, 2fr);
+    gap: 16px 24px;
+    align-items: center;
+    max-width: 1100px;
+    margin: 0;
+}
+
+.welcome-patch img {
+    display: block;
+    width: 100%;
+    height: auto;
+    border: 1px solid var(--neutral-trim);
+    border-radius: 10px;
+    background: #121416;
+}
+
+.welcome-patch figcaption p {
+    margin: 0 0 12px;
+    font-size: 0.9rem;
+    line-height: 1.55;
+    color: var(--neutral-medium);
+}
+
+.welcome-patch figcaption .welcome-note {
+    display: block;
+    margin-top: 4px;
+}
+
+@media (max-width: 720px) {
+    .welcome-patch {
+        grid-template-columns: 1fr;
+    }
+}
+
 /* what iii and diii are, side by side */
 .welcome-what {
     display: grid;
