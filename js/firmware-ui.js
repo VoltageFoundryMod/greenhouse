@@ -2,20 +2,16 @@
 // device with the latest GitHub release and walks through flashing it.
 // Mixed into diiiApp (diii.js); `this` is the app.
 
-import { RELEASES_PAGE, fetchLatestRelease, isNewer, parseVersion } from './firmware.js';
-
-// first version with the filesystem at a fixed flash offset; devices on an
-// older one lose their files' place once when they update
-const FIXED_LAYOUT_VERSION = 'og-0.3.7';
+import { PRODUCTS, fetchLatestRelease, isNewer, parseVersion, productOf, releasesPage } from './firmware.js';
 
 export const firmwareUiMethods = {
-    // After connecting: version (and board, on Open Grid firmware) into the
-    // status pill, then one update check per session.
+    // After connecting: version (and board, on parterre's and achene's
+    // firmware) into the status pill, then one update check per session.
     async detectFirmware() {
         try {
             // one print per value: iii's print() puts each argument on its own line
             const lines = await this.executeLuaCapture(
-                'print(device_version())\nif og_board then print(og_board()) end'
+                'print(device_version())\nif og_board then print(og_board()) elseif ach_board then print(ach_board()) end'
             );
             const [version = '', board = ''] = lines.map((s) => String(s).trim());
             this.firmwareVersion = version || null;
@@ -40,9 +36,14 @@ export const firmwareUiMethods = {
         if (pill) pill.title = this.firmwareBoard ? `${this.firmwareVersion} for ${this.firmwareBoard}` : '';
     },
 
+    /** The product whose releases fit this device (parterre for one we don't know). */
+    firmwareProduct() {
+        return productOf(this.firmwareVersion) || PRODUCTS[0];
+    },
+
     async checkForFirmwareUpdate({ quiet = false } = {}) {
         try {
-            this.latestRelease = await fetchLatestRelease();
+            this.latestRelease = await fetchLatestRelease(this.firmwareProduct());
             this.firmwareCheckError = null;
         } catch (error) {
             this.latestRelease = undefined;
@@ -95,6 +96,7 @@ export const firmwareUiMethods = {
         };
 
         const connected = this.iiiDevice.isConnected;
+        const product = this.firmwareProduct();
         const release = this.latestRelease;
         const current = this.firmwareVersion;
         const board = this.firmwareBoard;
@@ -109,7 +111,10 @@ export const firmwareUiMethods = {
         else if (release === null) rows.push(el('p', 'no firmware release published yet.'));
         else if (connected && current && !parseVersion(current)) {
             rows.push(
-                el('p', `latest parterre firmware: ${release.version}. This device runs other firmware (${current}).`)
+                el(
+                    'p',
+                    `latest ${product.name} firmware: ${release.version}. This device runs other firmware (${current}).`
+                )
             );
         } else if (connected && !isNewer(release.version, current)) {
             rows.push(el('p', `up to date (latest release: ${release.version}).`));
@@ -124,7 +129,7 @@ export const firmwareUiMethods = {
             for (const [name, url] of Object.entries(release.uf2)) actions.append(link(`download for ${name}`, url));
         }
         if (release) actions.append(link('release notes ↗', release.page));
-        else actions.append(link('releases ↗', RELEASES_PAGE));
+        else actions.append(link('releases ↗', releasesPage(product)));
         actions.append(
             button(
                 'check again',
@@ -144,9 +149,9 @@ export const firmwareUiMethods = {
             li.append(...children);
             steps.append(li);
         };
-        // og-0.3.7 moved the files to a fixed place in flash; coming from an
-        // older version they have to be restored once after updating
-        const movesFiles = parseVersion(current) && isNewer(FIXED_LAYOUT_VERSION, current);
+        // a version that moved the files to a fixed place in flash: coming
+        // from an older one they have to be restored once after updating
+        const movesFiles = product.fixedLayout && parseVersion(current) && isNewer(product.fixedLayout, current);
         step(
             el('span', 'Back up your files first. '),
             button('backup', () => this.backupToZip(), 'download every file as one zip'),
@@ -161,12 +166,12 @@ export const firmwareUiMethods = {
         step(
             el('span', 'Put the device in bootloader mode: '),
             button('enter bootloader', () => this.bootloaderDevice(), 'restarts the device as a USB drive'),
-            el('span', ' It disconnects and shows up as a USB drive called RPI-RP2.')
+            el('span', ' It disconnects and shows up as a USB drive: RPI-RP2, or RP2350 on an RP2350 board.')
         );
         step(
             el(
                 'span',
-                'Drag the .uf2 onto RPI-RP2. The device installs it, restarts, and greenhouse reconnects (or click connect).'
+                'Drag the .uf2 onto that drive. The device installs it, restarts, and greenhouse reconnects (or click connect).'
             )
         );
         rows.push(el('h3', 'how to update', 'reference-group'), steps);

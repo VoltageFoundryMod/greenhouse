@@ -48,7 +48,8 @@ Also on top of upstream:
   the REPL; **+** creates a script, **rename** renames one; drag files in to upload several;
 - **backup** downloads every file on the device as one zip, **restore** uploads it again;
 - a **midi** drawer with the MIDI the device sends and receives;
-- **device ▾ → firmware** shows the firmware version and offers parterre updates.
+- **device ▾ → firmware** shows the firmware version and offers updates from parterre's and achene's
+  releases.
 
 The extras that need a device's own firmware hide themselves or say so:
 
@@ -67,7 +68,7 @@ The extras that need a device's own firmware hide themselves or say so:
 | Firmware update dialog                                                                        | shows the version; no parterre updates offered                 | ✅ newest release for your board                 |
 
 achene's firmware carries the same `og_` tools (it started from parterre's), so the parterre
-column applies to it too, except firmware updates.
+column applies to it too; its firmware updates come from achene's own releases.
 
 The ⚠ and ❌ rows on stock firmware are limits of iii itself; the fixes are in the
 [iii pull requests](https://codeberg.org/tehn/iii/pulls) (#10–#12).
