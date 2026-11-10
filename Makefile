@@ -11,7 +11,7 @@ PORT ?= 8000
 
 UPSTREAM ?= https://github.com/monome/web-diii
 
-.PHONY: all help serve dist clean install check format format-check vendor test upstream achene-layout
+.PHONY: all help serve dist clean install check format format-check vendor test upstream achene-layout manual-blocks
 
 all: serve
 
@@ -29,6 +29,7 @@ help:
 	@echo "  make vendor         rebuild vendor/ (the code editor bundle)"
 	@echo "Devices:"
 	@echo "  make achene-layout  copy achene's panel layout (../achene/hardware/layout.json) into js/"
+	@echo "  make manual-blocks  write graft's block reference (docs/manual/Blocks.md) from js/patch-blocks.js"
 	@echo "Upstream:"
 	@echo "  make upstream       merge monome/web-diii main into the current branch"
 	@echo "Options: PORT=8080"
@@ -71,3 +72,6 @@ upstream:
 achene-layout: node_modules
 	$(NODE) tools/achene-layout.mjs
 	$(NPM) exec -- prettier --log-level warn --write js/achene-layout.js
+
+manual-blocks:
+	$(NODE) tools/manual-blocks.mjs

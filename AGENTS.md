@@ -70,6 +70,15 @@ runtime changes. `tools/patch-preview.html` runs the drawer without a device. De
   lines out. Nothing is shared at build time with the firmware repos, so document every
   message on both sides.
 
+## The manual
+
+`docs/manual/Manual.md` is the user manual, written once and shared: achene's and parterre's
+printed manuals include it (`<!-- include: -->` in their `docs/manual/Manual.md`, built by
+achene's `tools/manual/pdf.mjs`). Text only one device needs goes between `<!-- if: achene -->`
+(or `grid`) and `<!-- end if -->`, so the other device's manual leaves it out.
+`docs/manual/Blocks.md`, graft's block reference, is generated: after changing a block, a recipe
+or an example in `js/patch-blocks.js`, run `make manual-blocks`.
+
 ## Conventions
 
 - **Formatting**: Prettier (`.prettierrc.json`: 4 spaces, single quotes, 120 columns); run
