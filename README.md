@@ -22,7 +22,7 @@ A fork of [monome/web-diii](https://github.com/monome/web-diii) (GPL-3.0), publi
 tools for devices whose firmware supports them, so scripts can be tried without the hardware
 attached:
 
-- [parterre](https://vfmod.com/parterre/) (repo: [carlosedp/parterre](https://github.com/carlosedp/parterre); it was called Open Grid until November 2026): a **grid** drawer
+- [parterre](https://vfmod.com/parterre/) (repo: [VoltageFoundryMod/parterre](https://github.com/VoltageFoundryMod/parterre); it was called Open Grid until November 2026): a **grid** drawer
   that shows the grid's LEDs live and lets you press keys from the browser. Shift-click or
   right-click holds a key down (click it again to let go).
 - achene, a MIDI controller on iii (not published yet): an **achene** drawer with the
