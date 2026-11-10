@@ -60,7 +60,7 @@ details live in the linked documents; this is the list.
 - **A name of our own**: done in November 2026, except the repo. "diii"
   is monome's name for their app, and the tool had grown past it. On a
   garden theme that ties to glassgarden. (Carlos's stage name) and to
-  achene and pappus: **greenhouse** for the tool (a glass garden, where
+  achene: **greenhouse** for the tool (a glass garden, where
   the devices and their scripts are tended) and **graft** for the patch
   editor (joining pieces so they grow as one); the devices go out under
   **Voltage Foundry Modular**. Published at greenhouse.vfmod.com, with
