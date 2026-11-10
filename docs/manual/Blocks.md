@@ -599,6 +599,8 @@ Your own code, run for each message: i (the input), v (the value), out(n, value)
 | --- | --- | --- |
 | code | example code | Lua code |
 
+<!-- pagebreak -->
+
 ## Recipes
 
 Small wirings to start from, in graft's guide (**? guide**, then **add**): each lands on the canvas

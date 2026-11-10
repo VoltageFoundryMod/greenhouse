@@ -89,6 +89,8 @@ for (const [group, title, about] of GROUPS) {
 }
 
 say(
+    '<!-- pagebreak -->',
+    '',
     '## Recipes',
     '',
     "Small wirings to start from, in graft's guide (**? guide**, then **add**): each lands on the canvas",
