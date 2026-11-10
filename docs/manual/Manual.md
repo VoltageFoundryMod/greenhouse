@@ -140,8 +140,7 @@ as on the panel:
 
 **? controls** shows this on the panel. The colour menu matches the screen
 to your OLED module (white, blue, yellow or green), and **full screen**
-shows the panel alone, for playing (Esc to leave). On a breadboard build
-with fewer controls, the ones it doesn't have are greyed out.
+shows the panel alone, for playing (Esc to leave).
 
 <!-- end if -->
 
