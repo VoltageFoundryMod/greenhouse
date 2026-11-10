@@ -1,5 +1,5 @@
 // Bump CACHE when the list below changes; old caches are deleted on activate.
-const CACHE = 'greenhouse-v35';
+const CACHE = 'greenhouse-v36';
 
 // Relative to this file, so the app works from any path (e.g. GitHub Pages
 // project sites), not only from the site root.
@@ -57,8 +57,10 @@ const APP_SHELL_FILES = [
     './vendor/prism-code-editor.css',
     './manifest.webmanifest',
     './icons/logo.svg',
+    './icons/favicon.svg',
     './icons/icon-192.png',
-    './icons/icon-512.png'
+    './icons/icon-512.png',
+    './icons/icon-maskable-512.png'
 ];
 
 self.addEventListener('install', (event) => {

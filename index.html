@@ -17,7 +17,8 @@
     <meta name="theme-color" content="#101010">
     <title>greenhouse</title>
     <link rel="manifest" href="manifest.webmanifest">
-    <link rel="icon" href="icons/logo.svg" type="image/svg+xml">
+    <link rel="icon" href="icons/favicon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
     <link rel="stylesheet" href="vendor/prism-code-editor.css">
     <link rel="stylesheet" href="style.css">
     <!-- visual refresh (experimental); ?classic shows the current look -->
@@ -34,7 +35,7 @@
         <header class="app-header">
             <div class="header-left">
                 <div class="title-pill">
-                    <h1>greenhouse</h1>
+                    <h1><img src="icons/favicon.svg" alt="" width="18" height="18">greenhouse</h1>
                 </div>
                 <div id="replStatusPill" class="repl-status-pill">
                     <span id="replStatusIndicator" class="repl-status-indicator"></span>
@@ -71,7 +72,7 @@
             <div class="header-right">
                 <button type="button" id="appUpdateBtn" class="repl-connection-btn app-update-btn"
                     title="a newer greenhouse was published: reload to use it" hidden>update ready ↻</button>
-                <a id="repoLink" class="repl-connection-btn" href="https://github.com/carlosedp/web-diii"
+                <a id="repoLink" class="repl-connection-btn" href="https://github.com/carlosedp/greenhouse"
                     target="_blank" rel="noopener noreferrer"
                     title="greenhouse on GitHub: source, issues, device views">github</a>
                 <button id="scriptReferenceBtn" class="repl-connection-btn"

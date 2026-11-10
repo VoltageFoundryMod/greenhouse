@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <title>greenhouse (maskable: the glyph inside the safe zone)</title>
+  <defs>
+    <!-- a glasshouse at night: deep green, and a pane of glass catching the light -->
+    <radialGradient id="bg" cx="0.5" cy="0.3" r="0.8">
+      <stop offset="0" stop-color="#1f6b47"/>
+      <stop offset="1" stop-color="#0b2a1f"/>
+    </radialGradient>
+    <linearGradient id="sheen" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0.25" stop-color="#fff" stop-opacity="0"/>
+      <stop offset="0.42" stop-color="#fff" stop-opacity="0.1"/>
+      <stop offset="0.5" stop-color="#fff" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect width="200" height="200" fill="url(#bg)"/>
+  <rect width="200" height="200" fill="url(#sheen)"/>
+  <g transform="translate(100 104) scale(0.78) translate(-100 -100)">
+    <!-- the glasshouse: a pitched roof over walls -->
+    <path d="M40 160 V90 L100 42 L160 90 V160 Z" fill="none" stroke="#e8f7ec" stroke-width="11" stroke-linejoin="round"/>
+    <!-- the sprout, its stem a patch wire from a port in the floor -->
+    <path d="M100 160 V104" fill="none" stroke="#e8f7ec" stroke-width="9" stroke-linecap="round"/>
+    <g fill="#8fe36b" stroke="#8fe36b" stroke-width="4" stroke-linejoin="round">
+      <path d="M100 124 C84 124 70 113 67 94 C86 94 100 105 100 124 Z"/>
+      <path d="M100 110 C116 110 130 99 133 80 C114 80 100 91 100 110 Z"/>
+    </g>
+    <circle cx="100" cy="160" r="10" fill="#0b2a1f" stroke="#e8f7ec" stroke-width="6"/>
+  </g>
+</svg>

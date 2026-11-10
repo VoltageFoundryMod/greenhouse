@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <title>greenhouse</title>
+  <defs>
+    <radialGradient id="bg" cx="0.5" cy="0.3" r="0.8">
+      <stop offset="0" stop-color="#1f6b47"/>
+      <stop offset="1" stop-color="#0b2a1f"/>
+    </radialGradient>
+  </defs>
+  <!-- the logo, bolder for a browser tab: no port, no glint, a bigger sprout -->
+  <rect width="64" height="64" rx="14" fill="url(#bg)"/>
+  <path d="M11 54 V29 L32 12 L53 29 V54 Z" fill="none" stroke="#e8f7ec" stroke-width="6" stroke-linejoin="round"/>
+  <path d="M32 54 V33" fill="none" stroke="#e8f7ec" stroke-width="5" stroke-linecap="round"/>
+  <g fill="#8fe36b" stroke="#8fe36b" stroke-width="2" stroke-linejoin="round">
+    <path d="M32 42 C25 42 19 37 18 29 C26 29 32 34 32 42 Z"/>
+    <path d="M32 37 C39 37 45 32 46 24 C38 24 32 29 32 37 Z"/>
+  </g>
+</svg>
