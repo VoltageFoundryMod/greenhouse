@@ -63,9 +63,10 @@ Two ways to turn a patch into Lua:
 1. **Generate flat code**: every wire becomes a function call. Fast and
    self-contained, but large, hard to read, and hand edits can't be mapped
    back to the patch.
-2. **A runtime plus data** (chosen): the device gets one library,
-   `blocks.lua`, with every block type; the patch script is a short
-   declaration of nodes and wires that the runtime builds and runs.
+2. **A runtime plus data** (chosen): a library of block types
+   (`lua/blocks*.lua`) and a short declaration of nodes and wires that the
+   runtime builds and runs. The device gets only the parts of the library
+   the patch uses (below).
 
 The second keeps the generated file small and readable, makes custom blocks
 just Lua functions registered with the runtime, and lets diii update a
@@ -90,19 +91,37 @@ B.patch{nodes = {...}, wires = {...}}  -- all of the above at once
 B.out(node, i, v)        -- what a block calls to send v from output i
 ```
 
-**Three files** (runtime v8). `blocks.lua` is the core and the blocks any
-iii device runs; `blocks_achene.lua` adds achene's (encoders, pushes, keys,
-key LEDs, the screen blocks) and `blocks_grid.lua` the grid's. One file
-grew past what iii could compile on an RP2040 (it compiles each upload in
-RAM, and failed with "not enough memory"). diii uploads the core and the
-connected device's module (and any other the patch uses), each **compacted**:
-no comments, blank lines or indentation, about 30% smaller; the repo keeps
-the commented source. Each file starts with its own build
-(`BLOCKS_BUILD`, `BLOCKS_ACHENE_BUILD`, `BLOCKS_GRID_BUILD`), so only a
-changed one is sent again. Modules reach the core through `B` (`B.round`,
-`B.SCALES`, `B.ticks`); `B.types` survives a reload of the core, so the
-modules' types stay. A saved patch requires the core and the modules its
-blocks need.
+**Built for each patch** (runtime v9). The whole library held in RAM was
+most of an RP2040's heap (on the XIAO, a running patch left a 2.6 KB
+largest free block), so the source is in **parts**, and diii joins only
+the ones a patch uses. `blocks.lua` holds the core and the blocks any iii
+device runs, `blocks_achene.lua` achene's (encoders, pushes, keys, key
+LEDs, the screen blocks), `blocks_grid.lua` the grid's. A line
+`--@part name needs a b` starts a part: one per block type (with its
+helpers), plus shared ones (`scales`, `screen`, `widgets`, `grid`,
+`gnotes`, `sends`); `needs` lists the earlier parts whose locals or `B`
+fields it uses. `buildRuntime` (`js/patch-blocks.js`) takes the core, the
+parts defining the patch's types and what those need, in file order,
+**compacted** (no comments, blank lines or indentation), and ends it with
+`B.build`, its fingerprint. Another device's parts are left out.
+
+- **Run**: diii puts that in `blocks_run.lua` and runs it, unless `B.build`
+  says it is running already; a file of the same size (after a restart) is
+  run and checked before anything is uploaded, so flash is written only
+  when the set of blocks changes. Before a new one compiles, the old `B` is
+  cleared and collected, so the two are never in RAM together; the tick
+  metro is kept (iii has 12).
+- **Live**: a block of a type the runtime running lacks (dragged in,
+  pasted, a new patch opened) makes diii run the patch again on a runtime
+  with it, its blocks' state kept; edits to blocks of types it has go
+  live as before.
+- **Save and export**: the patch file carries its runtime, so it runs on
+  its own on any device of its kind, with nothing else on it.
+
+Measured on the PC (64-bit Lua, which reads higher than the device but
+tracks it), a running example went from 105-128 KB to 44-87 KB. Every type
+is checked alone in a test build: it compiles, uses no other part's local
+as a global (a missing `needs`), and runs.
 
 The runtime owns iii's event functions (`event_enc`, `event_key`,
 `event_enc_key`, `event_grid`, `event_midi`) while a patch runs and routes
@@ -115,7 +134,11 @@ its own handlers for anything else.
 -- diii patch: cutoff and a toggle
 --@patch {"v":1,"nodes":[{"id":1,"type":"encoder","x":40,"y":60,
 --@patch "params":{"n":5}}, ...],"wires":[[1,1,2,1], ...]}
-require("blocks.lua")
+-- the blocks runtime v9 it runs on, built by diii with: core encoder accum midi_cc
+if B and B.clear then B.clear() end
+B = {tick_metro = B and B.tick_metro}
+...                                    -- the parts, compacted
+B.build = "1a2b3c4d"
 B.patch{
   nodes = {
     {1, "encoder", {n = 5}},
@@ -313,8 +336,8 @@ E2 either to cutoff and resonance or to the sequencer's notes and page;
 **arp**, the lua block making an arpeggio; **basics**, a first patch: an
 encoder on a CC and the screen, a key on a note and its LED, an LFO on a CC.
 
-diii uploads blocks.lua again whenever it changes (its first line carries a
-fingerprint of the text); a copy loaded again stops the one that was running
+diii sends the runtime again whenever it changes (its `B.build` is a
+fingerprint of the text); one loaded again stops the one that was running
 and takes over its clock, so two never play at once.
 
 The **screen** button in the drawer opens the layout builder
@@ -386,10 +409,12 @@ running patch, keeps it with the block (copying a block copies it too) and
 sends it with the patch, so a patch starts again where it was, on the
 device or from a saved file.
 
-A patch file carries the runtime version it was made with (`rt`). On the
-device, a file that needs a newer blocks.lua prints so instead of failing
-on blocks it lacks; in diii, opening or importing one lists the blocks it
-doesn't know and says when the file is newer than diii.
+A patch file carries the runtime version it was made with (`rt`) and,
+from v9, the runtime itself, so on the device it can't meet an older one.
+Files saved before v9 `require` blocks.lua (and v8's modules), which
+still work while those files are on the device. In diii, opening or
+importing one lists the blocks it doesn't know and says when the file is
+newer than diii.
 
 Limits: the whole patch runs on one 50 Hz metro (iii has 12), so blocks
 cost memory, not metros; the status shows the running patch's blocks and
@@ -400,9 +425,10 @@ a tick each, and a line to the device stays under iii's 512 characters
 
 ## Memory and timing
 
-- The runtime costs Lua heap once; a patch costs a table per node. Fine on
-  the RP2350's ~400 KB; worth measuring on the RP2040 (og_mem) as blocks
-  grow.
+- The runtime costs Lua heap once, only for the blocks a patch uses; a
+  patch costs a table per node. Roomy on the RP2350's ~400 KB; on an
+  RP2040 (the Open Grid, achene's Pico build) watch `og_mem()`'s largest
+  block: the heap fragments.
 - The tick runs at 50 Hz by default: LFOs and slews are smooth enough for
   MIDI, and the device stays responsive. Outputs skip repeated values, so a
   slow LFO doesn't flood MIDI.

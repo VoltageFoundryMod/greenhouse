@@ -9,6 +9,7 @@
         "dist": "node tools/dist.mjs",
         "vendor": "node tools/vendor-editor.mjs",
         "check": "tsc -p tsconfig.json",
+        "check:runtime": "node tools/check-runtime.mjs",
         "format": "prettier --log-level warn --write diii.js sw.js js tools",
         "format:check": "prettier --log-level warn --check diii.js sw.js js tools"
     },

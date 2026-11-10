@@ -1,21 +1,25 @@
 -- blocks.lua: the runtime for diii's patch editor (docs/VISUAL-EDITOR.md)
 --
--- The core and the blocks any iii device can run. A device's own blocks
--- are in a module loaded after this one: blocks_achene.lua (encoders, keys,
--- the screen), blocks_grid.lua (grid widgets). diii uploads the core and
--- the module for the device; a saved patch requires what it uses. Split so
--- that iii can compile each file in the memory of an RP2040.
+-- The runtime's source, in parts: a "--@part name needs a b" line starts
+-- one, named for the block type it defines (or for helpers others need).
+-- blocks_achene.lua and blocks_grid.lua hold each device's own parts. diii
+-- joins the core and the parts a patch uses, in these files' order, into
+-- one script (js/patch-blocks.js, buildRuntime): what it runs on the
+-- device and what a saved patch carries, so an RP2040 holds only the
+-- blocks it runs.
 --
 -- A patch is nodes joined by wires; messages are numbers pushed along the
--- wires when something happens. diii uploads this file and builds patches
--- with B.node / B.wire (live) or B.patch{...} (a saved patch file).
+-- wires when something happens. diii builds patches with B.node / B.wire
+-- (live) or B.patch{...} (a saved patch file).
 
--- Loaded again (diii sends a newer copy): stop the copy that's running
--- first, or its clock and patch would carry on beside this one.
+--@part core
+-- A runtime sent again (another patch) replaces the one running: stop that
+-- first, or its clock and patch would carry on beside this one. Its tick
+-- metro is kept: iii has 12.
 if B and B.clear then B.clear() end
-B = B or {}
-B.version = 8
-B.types = B.types or {} -- kept: a module's types outlive a reload of the core
+B = {tick_metro = B and B.tick_metro}
+B.version = 9
+B.types = {}
 
 local nodes = {}      -- id -> node
 local vars = {}       -- name -> value, for set var / get var
@@ -261,7 +265,7 @@ end
 
 local function round(v) return math.floor(v + 0.5) end
 B.round = round
-B.ticks = ticks
+B.ticks = 0
 
 -- a gate on a clock: 1 at each beat, 0 halfway to the next
 local function gate(node, phase)
@@ -280,6 +284,7 @@ end
 
 -- ------------------------------------------------------------- sources
 
+--@part lfo
 B.type("lfo", {
   outputs = 1,
   init = function(node) node.phase = 0 end,
@@ -294,6 +299,7 @@ B.type("lfo", {
   end,
 })
 
+--@part metro
 -- 1 at each beat, 0 halfway; input 1 turns it off (0) and on (not 0)
 -- Input 2 sets the tempo in BPM (then ms is unused): `per` beats come for
 -- each quarter note (2 for eighths, 4 for sixteenths). It steps on the 50 Hz
@@ -324,6 +330,7 @@ B.type("metro", {
   end,
 })
 
+--@part clock
 -- MIDI clock in: a gate every `div` clocks (24 = a quarter note); output 2
 -- is 1 on start and 0 on stop
 B.type("clock", {
@@ -346,6 +353,7 @@ B.type("clock", {
   end,
 })
 
+--@part midi_in_cc
 B.type("midi_in_cc", {
   outputs = 1,
   init = function(node) node.listen("midi") end,
@@ -354,6 +362,7 @@ B.type("midi_in_cc", {
   end,
 })
 
+--@part midi_in_note
 -- output 1: the note number when one starts; output 2: 1 on, 0 off
 B.type("midi_in_note", {
   outputs = 2,
@@ -370,6 +379,7 @@ B.type("midi_in_note", {
 
 -- ------------------------------------------------------------- processors
 
+--@part accum
 B.type("accum", {
   inputs = 1, outputs = 1,
   init = function(node) node.v = node.p.start or 64 end,
@@ -382,6 +392,7 @@ B.type("accum", {
   end,
 })
 
+--@part scale
 B.type("scale", {
   inputs = 1, outputs = 1,
   input = function(node, _, v)
@@ -390,6 +401,7 @@ B.type("scale", {
   end,
 })
 
+--@part toggle
 -- sends its state at the start too (0), so a metro it switches waits for it
 B.type("toggle", {
   inputs = 1, outputs = 1,
@@ -405,6 +417,7 @@ B.type("toggle", {
   end,
 })
 
+--@part counter
 -- input 1 (not 0): the next step, wrapping from hi to lo; input 2: back to
 -- lo. The first step after the start or a reset is lo itself, so a
 -- sequencer plays step 1 first.
@@ -435,6 +448,7 @@ B.type("counter", {
   end,
 })
 
+--@part random
 -- a whole number from lo to hi each time the input isn't 0
 B.type("random", {
   inputs = 1, outputs = 1,
@@ -446,6 +460,7 @@ B.type("random", {
   end,
 })
 
+--@part scales
 local SCALES = {
   chromatic = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11},
   major = {0, 2, 4, 5, 7, 9, 11},
@@ -456,6 +471,7 @@ local SCALES = {
 }
 B.SCALES = SCALES
 
+--@part quantize needs scales
 -- the nearest note of the scale (ties go down)
 B.type("quantize", {
   inputs = 1, outputs = 1,
@@ -474,6 +490,7 @@ B.type("quantize", {
   end,
 })
 
+--@part slew
 -- glides to each new value over `time` seconds (0: at once)
 B.type("slew", {
   inputs = 1, outputs = 1,
@@ -496,6 +513,7 @@ B.type("slew", {
   end,
 })
 
+--@part gate
 -- passes input 1 while input 2 is open (not 0); starts open
 B.type("gate", {
   inputs = 2, outputs = 1,
@@ -506,6 +524,7 @@ B.type("gate", {
   end,
 })
 
+--@part route
 -- route: input 1 goes out of output 1 while input 2 is 0. If pick is 1
 -- then output 1 is 0 and output 2 gets the input value.
 -- (a toggle on input 2 picks which)
@@ -520,6 +539,7 @@ B.type("route", {
   end,
 })
 
+--@part sample
 -- sample & hold: input 1 is watched quietly; a trigger on input 2 (not 0)
 -- sends the value input 1 had then
 B.type("sample", {
@@ -533,6 +553,7 @@ B.type("sample", {
   load = function(node, st) if type(st.v) == "number" then node.v = st.v end end,
 })
 
+--@part constant
 -- a fixed number: sent at the start, and again on anything at its input
 B.type("constant", {
   inputs = 1, outputs = 1,
@@ -540,6 +561,7 @@ B.type("constant", {
   input = function(node) B.out(node, 1, node.p.value or 0) end,
 })
 
+--@part lua
 -- custom code: the code runs for each message with node, i (the input),
 -- v (the value), out(n, value) to send, and s, a table kept between calls
 B.type("lua", {
@@ -564,6 +586,7 @@ B.type("lua", {
 
 -- ------------------------------------------------------------- math
 
+--@part math
 local function truth(c) return c and 1 or 0 end
 
 local OPS = {
@@ -595,6 +618,7 @@ B.type("math", {
   end,
 })
 
+--@part func
 local FUNCS = {
   sin = math.sin, cos = math.cos, tan = math.tan, abs = math.abs,
   neg = function(v) return -v end,
@@ -616,6 +640,7 @@ B.type("func", {
   end,
 })
 
+--@part change
 -- passes a value only when it differs from the last one
 B.type("change", {
   inputs = 1, outputs = 1,
@@ -628,6 +653,7 @@ B.type("change", {
 
 -- ------------------------------------------------------------- memory
 
+--@part memory
 -- input 1 stores and sends; input 2 stores without sending; input 3 (not 0)
 -- sends what's stored
 B.type("memory", {
@@ -647,6 +673,7 @@ B.type("memory", {
   end,
 })
 
+--@part var_set
 -- named values shared by the whole patch, without wires: set var stores
 -- and every get var of the same name sends it on
 B.type("var_set", {
@@ -660,6 +687,7 @@ B.type("var_set", {
   end,
 })
 
+--@part var_get
 B.type("var_get", {
   outputs = 1,
   init = function(node) node.listen("var") end,
@@ -671,6 +699,7 @@ B.type("var_get", {
 
 -- ------------------------------------------------------------- outputs
 
+--@part midi_cc
 local function send_cc(node, v)
   local value = clamp(round(v), 0, 127)
   if value == node.last then return end
@@ -683,6 +712,7 @@ B.type("midi_cc", {
   input = function(node, _, v) B.limit(node, v, send_cc) end,
 })
 
+--@part midi_note
 -- input 1 (not 0): note on, 0: note off; input 2 sets the note number
 B.type("midi_note", {
   inputs = 2,
@@ -705,6 +735,7 @@ B.type("midi_note", {
   end,
 })
 
+--@part sends
 -- prints to the REPL (diii's console), at most 10 a second
 local function send_print(node, v)
   local text = math.type(v) == "float" and string.format("%.3f", v) or tostring(v)
@@ -718,6 +749,7 @@ local function send_watch(node, v)
   print("^^pw(" .. node.id .. "," .. text .. ")")
 end
 
+--@part watch needs sends
 B.type("watch", {
   inputs = 1, outputs = 1,
   input = function(node, _, v)
@@ -726,9 +758,8 @@ B.type("watch", {
   end,
 })
 
+--@part print needs sends
 B.type("print", {
   inputs = 1,
   input = function(node, _, v) B.limit(node, v, send_print, 5) end,
 })
-
-print("blocks " .. B.version)

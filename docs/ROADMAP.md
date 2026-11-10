@@ -49,6 +49,11 @@ details live in the linked documents; this is the list.
 - **Visual editor, the grid (part B), runtime v8**: a step grid, an
   isomorphic keyboard and ripples (rings spreading from a press, an echo
   for each key they grow), with sequencer, keys and ripples examples.
+- **Visual editor, runtime v9 built per patch**: the runtime's source is
+  in parts, and diii sends only the core and the parts a patch uses (on
+  the PC, 44-87 KB running instead of 105-128 KB), so patches fit an
+  RP2040; a new block type while running reruns the patch, and a saved
+  patch carries its own runtime.
 
 ## Next
 

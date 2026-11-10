@@ -25,7 +25,7 @@ help:
 	@echo "  make check          type-check the modules listed in tsconfig.json"
 	@echo "  make format         format the JS in place (Prettier)"
 	@echo "  make format-check   fail if anything is not formatted"
-	@echo "  make test           format-check and check, as before a commit"
+	@echo "  make test           format-check, check and the runtime parts' needs, as before a commit"
 	@echo "  make vendor         rebuild vendor/ (the code editor bundle)"
 	@echo "Devices:"
 	@echo "  make achene-layout  copy achene's panel layout (../achene/hardware/layout.json) into js/"
@@ -59,6 +59,7 @@ format-check: node_modules
 	$(NPM) run format:check
 
 test: format-check check
+	$(NODE) tools/check-runtime.mjs
 
 vendor: node_modules
 	$(NPM) run vendor

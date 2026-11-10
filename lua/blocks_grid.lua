@@ -1,16 +1,8 @@
--- blocks_grid.lua: the grid's blocks for diii's patch editor: single keys
--- and LEDs, and widgets made of keys (button, fader, steps, keys, ripples).
--- Loaded after blocks.lua, which it builds on (docs/VISUAL-EDITOR.md).
+-- blocks_grid.lua: the grid's parts of the runtime for diii's patch
+-- editor: single keys and LEDs, and widgets made of keys (button, fader,
+-- steps, keys, ripples). They follow blocks.lua's parts (see there).
 
-if not (B and B.type) then error("blocks_grid.lua: load blocks.lua first") end
-B.grid_version = 8
--- on another device (achene), skip it: its blocks would only take memory
-if not grid_led then
-  print("blocks_grid: not a grid, skipped")
-  return
-end
-local round, SCALES = B.round, B.SCALES
-
+--@part grid_key
 B.type("grid_key", {
   outputs = 1,
   init = function(node) node.listen("grid") end,
@@ -21,6 +13,7 @@ B.type("grid_key", {
 
 -- ------------------------------------------------------------- grid
 
+--@part grid
 -- The grid blocks draw into one picture of levels (0-15), sent at most once
 -- a tick with one grid_refresh, and a press goes to the block under it. A
 -- grid widget has an area (x, y, w, h in keys) and
@@ -80,6 +73,7 @@ local function gevent(node, _, gx, gy, z)
   if i >= 1 and i <= w and j >= 1 and j <= h then node.def.gpress(node, i, j, z, w, h) end
 end
 
+--@part grid_led needs grid
 B.type("grid_led", {
   inputs = 1,
   input = function(node, _, v)
@@ -94,6 +88,7 @@ B.type("grid_led", {
   end,
 })
 
+--@part gbutton needs grid
 -- A button of one key or more. momentary: 1 pressed, 0 let go; toggle: each
 -- press flips it, 1 or 0; trigger: 1 on each press. Lit while held or on;
 -- its input lights it (and sets a toggle) without sending.
@@ -141,6 +136,7 @@ B.type("gbutton", {
   end,
 })
 
+--@part gfader needs grid
 -- A fader: a row (or column) of keys from lo to hi, vertical when taller than
 -- wide (or as set), bottom or left being lo; a wide one moves as one. A press
 -- sends its value; the input moves it without sending.
@@ -202,6 +198,7 @@ B.type("gfader", {
 
 -- ------------------------------------------------------------- grid: steps, keys, ripples
 
+--@part gnotes needs scales
 -- the d-th note of a scale from base (d from 0; below 0 goes down)
 local function degree_note(base, scale, d)
   local st = SCALES[scale or "major"] or SCALES.major
@@ -220,6 +217,7 @@ local function gnote_off(node, note)
   midi_note_off(note, 0, node.p.ch or 1)
 end
 
+--@part gsteps needs gnotes grid
 -- A step grid: each column a step, each row a note of the scale from note
 -- (the bottom row lowest); one key high, a row of steps that are on or off.
 -- A press puts its step on that row, or turns it off when it is there.
@@ -340,6 +338,7 @@ B.type("gsteps", {
   end,
 })
 
+--@part gkeys needs grid gnotes scales
 -- An isomorphic keyboard: notes rise by a semitone to the right and by row
 -- (5, a fourth, as on Push and Launchpad) going up, from note at the bottom
 -- left. The root's keys are lit brighter, the scale's dimmer; a held note
@@ -406,6 +405,7 @@ B.type("gkeys", {
   end,
 })
 
+--@part gripples needs gnotes grid
 -- Ripples: a press drops a stone. It plays the key's note (a scale from
 -- note: a step to the right, a step going up) and a ring spreads from the
 -- key at speed keys a second, fading as it goes. Each key it grows plays
@@ -509,5 +509,3 @@ B.type("gripples", {
     end
   end,
 })
-
-print("blocks_grid " .. B.grid_version)

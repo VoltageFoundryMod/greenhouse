@@ -167,8 +167,10 @@ ${RECIPES.map(
 <li>Blocks that remember things (a steps pattern and its notes, a value, a toggle, a counter, a memory) keep it:
 <b>stop</b>, <b>save…</b> and <b>export…</b> ask the device for it, so <b>run</b>, a saved script and an
 exported file start again where you left off.</li>
-<li>A patch file says which blocks runtime it needs: on a device with an older one it prints so instead of
-failing, and diii tells you about blocks it doesn't know when you open or import one.</li>
+<li>A saved or exported patch carries the part of the blocks runtime it uses, so it runs on its own; diii
+tells you about blocks it doesn't know when you open or import one.</li>
+<li>The device holds only the blocks a patch uses. Adding a block of a new kind while it runs starts it
+again on a runtime with that block (what the blocks remember is kept).</li>
 <li><b>save…</b> and <b>open…</b> use the device; <b>export…</b> and <b>import…</b> use a file on your computer
 (the same format), so a patch can be made, kept and shared with no device connected: the <b>patch</b> button at the
 top opens the editor any time.</li>

@@ -392,7 +392,14 @@ export const fileMethods = {
      */
     async refreshPatchFileNames(entries) {
         const seen = (this.patchFileSeen ??= new Map()); // "name\tsize" -> is a patch
-        const skip = new Set(['init.lua', 'lib.lua', 'blocks.lua', 'blocks_achene.lua', 'blocks_grid.lua']);
+        const skip = new Set([
+            'init.lua',
+            'lib.lua',
+            'blocks_run.lua',
+            'blocks.lua',
+            'blocks_achene.lua',
+            'blocks_grid.lua'
+        ]);
         const names = new Set();
         for (const { name, size = 0 } of entries) {
             if (!name.endsWith('.lua') || skip.has(name) || isDataFile(name) || size >= 32768) continue;

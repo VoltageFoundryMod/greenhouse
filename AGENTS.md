@@ -46,10 +46,12 @@ split out with its history.
 ## Patch editor
 
 `js/patch.js` (the drawer, live sending), `js/patch-blocks.js` (the blocks as data, Lua
-generation), `lua/blocks.lua` (the runtime diii uploads to the device), `patch.css`, Drawflow in
-`vendor/` (bundled by `npm run vendor`). A block exists twice, in `patch-blocks.js` and as a
-`B.type` in `blocks.lua`: keep them in step, and bump `RUNTIME_VERSION` and `B.version` together
-when the runtime changes. `tools/patch-preview.html` runs the drawer without a device. Design:
+generation, `buildRuntime`), `lua/blocks*.lua` (the runtime's source, in `--@part name needs a b`
+parts; diii joins those a patch uses), `patch.css`, Drawflow in `vendor/` (bundled by `npm run
+vendor`). A block exists twice, in `patch-blocks.js` and as a `B.type` (or screen `widget`) in a
+part of its own: keep them in step, keep each part's `needs` right (every part uses only the
+core's and its needs' locals), and bump `RUNTIME_VERSION` and `B.version` together when the
+runtime changes. `tools/patch-preview.html` runs the drawer without a device. Design:
 `docs/VISUAL-EDITOR.md`; plans: `docs/ROADMAP.md`.
 
 ## Device views

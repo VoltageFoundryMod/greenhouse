@@ -1,6 +1,7 @@
 // The patch drawer: a visual editor for iii scripts (docs/VISUAL-EDITOR.md).
-// Blocks wired on a Drawflow canvas run on the device through lua/blocks.lua;
-// while a patch runs, every edit goes to the device live, one line at a time.
+// Blocks wired on a Drawflow canvas run on the device on a runtime built
+// for the patch from lua/blocks*.lua; while a patch runs, every edit goes to
+// the device live, one line at a time.
 // Mixed into diiiApp (diii.js); `this` is the app.
 
 import {
@@ -8,18 +9,20 @@ import {
     CODE_MAX,
     EXAMPLES,
     EXAMPLE_MENU,
-    RUNTIME_VERSION,
+    RUNTIME_DEVICE_FILES,
+    RUNTIME_RUN_FILE,
+    RUNTIME_SOURCES,
+    buildRuntime,
     defaultParams,
     examplePatch,
     liveLines,
     luaParams,
-    RUNTIME_FILES,
-    compactLua,
+    parseRuntime,
     patchDevice,
     patchFile,
     patchProblems,
-    readPatchFile,
-    runtimeModules
+    patchTypes,
+    readPatchFile
 } from './patch-blocks.js';
 
 const DRAWER_KEY = 'webdiii.patchDrawer';
@@ -50,20 +53,6 @@ const GROUPS = [
 /** @param {string} text */
 const escapeHtml = (text) =>
     String(text).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c] || c);
-
-/**
- * A short fingerprint of a text (FNV-1a, 32 bits, in hex), to tell one
- * blocks.lua from another.
- * @param {string} text
- */
-function fingerprint(text) {
-    let h = 0x811c9dc5;
-    for (let i = 0; i < text.length; i++) {
-        h ^= text.charCodeAt(i);
-        h = Math.imul(h, 0x01000193) >>> 0;
-    }
-    return h.toString(16).padStart(8, '0');
-}
 
 /**
  * About how big a block is on the canvas, before it exists: its title, a
@@ -414,16 +403,26 @@ export const patchMethods = {
     updatePatchStatus() {
         const status = this.elements.patchStatus;
         const waiting = this.patchPending?.size || 0;
+        const busy = this.patchBusy;
         if (status) {
-            status.textContent = !this.patchRunning
-                ? 'stopped'
-                : this.patchLive
-                  ? `running${this.patchStats ? ` · ${this.patchStats}` : ''} · live: edits go to the device as you make them`
-                  : waiting
-                    ? `running · ${waiting} edit${waiting === 1 ? '' : 's'} waiting for apply`
-                    : 'running · edits wait for apply';
+            const stats = [this.patchStats, this.patchRuntimeInfo].filter(Boolean).join(' · ');
+            status.textContent = busy
+                ? busy
+                : !this.patchRunning
+                  ? 'stopped'
+                  : this.patchLive
+                    ? `running${stats ? ` · ${stats}` : ''} · live: edits go to the device as you make them`
+                    : waiting
+                      ? `running · ${waiting} edit${waiting === 1 ? '' : 's'} waiting for apply`
+                      : 'running · edits wait for apply';
+            status.classList.toggle('patch-busy', Boolean(busy));
         }
-        this.elements.patchRunBtn?.classList.toggle('active', this.patchRunning);
+        const run = this.elements.patchRunBtn;
+        if (run) {
+            run.classList.toggle('active', this.patchRunning);
+            run.classList.toggle('busy', Boolean(busy));
+            run.disabled = Boolean(busy);
+        }
         const live = this.elements.patchLiveBtn;
         if (live) {
             live.classList.toggle('active', this.patchLive);
@@ -1256,7 +1255,7 @@ export const patchMethods = {
     fillPatchOpenList() {
         const select = this.elements.patchOpenSelect;
         if (!select) return;
-        const skip = new Set([...Object.values(RUNTIME_FILES).map((f) => f.file), 'lib.lua', 'init.lua']);
+        const skip = new Set([...RUNTIME_DEVICE_FILES, 'lib.lua', 'init.lua']);
         const names = (this.fileEntries || [])
             .map((entry) => entry.name)
             .filter((name) => name.endsWith('.lua') && !skip.has(name))
@@ -1429,6 +1428,11 @@ export const patchMethods = {
     replacePatchOnDevice(lines) {
         if (!this.patchRunning) return;
         const send = () => {
+            // blocks the runtime running lacks: build one with them and run again
+            if (this.patchLacksTypes(patchTypes(this.exportPatch()))) {
+                this.rerunPatch();
+                return;
+            }
             for (const line of lines) this.sendPatchLine(line);
         };
         if (this.patchLive) {
@@ -1476,6 +1480,11 @@ export const patchMethods = {
         if (!this.patchEditor?.drawflow.drawflow[this.patchEditor.module].data[id]) return;
         const node = this.patchEditor.getNodeFromId(id);
         if (!node || !BLOCKS[node.name]) return;
+        // a type the runtime running lacks: build one with it and run again
+        if (this.patchLacksTypes([node.name])) {
+            this.rerunPatch();
+            return;
+        }
         // B.node replaces a node and keeps its wires
         this.sendPatchLine(`B.node(${id}, "${node.name}", ${luaParams(node.name, node.data)})`);
     },
@@ -1500,61 +1509,112 @@ export const patchMethods = {
         this.sendPatchLine(`B.${verb}(${Number(c.output_id)}, ${out}, ${Number(c.input_id)}, ${inp})`);
     },
 
-    /**
-     * Puts lua/blocks.lua on the device when it has none, an older one, or a
-     * different one: the uploaded file starts with BLOCKS_BUILD, a
-     * fingerprint of the runtime's text, so any change to it reaches the
-     * device, not only version bumps.
-     */
-    async ensurePatchRuntime() {
-        // the core and the connected device's module only: another device's
-        // blocks do nothing here, and on a grid all three files run it out of
-        // memory. A device of unknown kind gets what the patch uses.
-        const device = this.patchTarget().device ?? (this.patchEditor ? patchDevice(this.exportPatch()) : null);
-        const parts = new Set(['core', ...runtimeModules(device)]);
-        for (const part of parts) {
-            if (!(await this.ensureRuntimeFile(/** @type {keyof typeof RUNTIME_FILES} */ (part)))) return false;
+    /** The runtime's parts, read once from lua/blocks*.lua (from this module's place, so tools/ works too). */
+    async runtimeParts() {
+        this.patchRuntimeSource ??= (async () => {
+            /** @type {Record<string, string>} */
+            const texts = {};
+            for (const { file } of RUNTIME_SOURCES) {
+                const response = await fetch(new URL(`../lua/${file}`, import.meta.url));
+                if (!response.ok) throw new Error(`couldn't fetch lua/${file} (${response.status})`);
+                texts[file] = await response.text();
+            }
+            return parseRuntime(texts);
+        })();
+        try {
+            return await this.patchRuntimeSource;
+        } catch (error) {
+            this.patchRuntimeSource = null; // try again next time
+            throw error;
         }
-        return true;
     },
 
     /**
-     * One runtime file: loaded already (same build), on the device but not
-     * loaded (run it), or uploaded, compacted, with its build first.
-     * @param {keyof typeof RUNTIME_FILES} part
+     * The runtime for a patch, on the device it is for: the core and the
+     * parts its blocks use (buildRuntime).
+     * @param {import('./patch-blocks.js').Patch} patch
      */
-    async ensureRuntimeFile(part) {
-        const { file, build: global, version } = RUNTIME_FILES[part];
-        // from this module's place, so it works from any page (the app, tools/)
-        const response = await fetch(new URL(`../lua/${file}`, import.meta.url));
-        if (!response.ok) throw new Error(`couldn't fetch lua/${file} (${response.status})`);
-        const text = compactLua(await response.text());
-        const build = fingerprint(text);
-        const current = async () => {
-            const lines = await this.executeLuaCapture(`print(${version} or 0, ${global} or "-")`);
-            const [v, b] = lines
-                .map((l) => String(l).trim())
-                .join(' ')
-                .split(/\s+/);
-            return (Number(v) || 0) >= RUNTIME_VERSION && b === build;
+    async patchRuntime(patch) {
+        const device = this.patchTarget().device ?? patchDevice(patch);
+        return buildRuntime(await this.runtimeParts(), patchTypes(patch), device === 'mixed' ? null : device);
+    },
+
+    /**
+     * Whether the runtime running lacks any of these block types (diii
+     * knows which it built; unknown blocks don't count).
+     * @param {string[]} types
+     */
+    patchLacksTypes(types) {
+        const have = this.patchRuntimeTypes;
+        return this.patchRunning && Boolean(have) && types.some((t) => BLOCKS[t] && !have.has(t));
+    },
+
+    /**
+     * What the drawer is busy with (loading the runtime), in its status
+     * and on the run button; null when done.
+     * @param {string | null} text
+     */
+    setPatchBusy(text) {
+        this.patchBusy = text;
+        this.updatePatchStatus();
+    },
+
+    /** Runs the patch again (once, however many edits ask): a runtime with new blocks. */
+    rerunPatch() {
+        if (this.patchRerun) return;
+        this.patchRerun = Promise.resolve()
+            .then(() => this.runPatch())
+            .finally(() => {
+                this.patchRerun = null;
+            });
+    },
+
+    /**
+     * Puts the runtime for the patch on the canvas on the device and runs
+     * it, unless it is the one running already (B.build is its
+     * fingerprint). It goes in RUNTIME_RUN_FILE, written only when it
+     * changes: after a restart, a file of the same size is run and checked
+     * before anything is uploaded.
+     */
+    async ensurePatchRuntime() {
+        const runtime = await this.patchRuntime(this.exportPatch());
+        const size = new TextEncoder().encode(runtime.text).length;
+        const what = `${runtime.parts.length} parts, ${Math.round(size / 1024)} KB`;
+        const loaded = async () =>
+            (await this.executeLuaCapture('print(B and B.build or "-")')).some(
+                (l) => String(l).trim() === runtime.build
+            );
+        const done = () => {
+            this.patchRuntimeTypes = new Set(runtime.types);
+            this.patchRuntimeInfo = `runtime ${what}`;
+            return true;
         };
-        if (await current()) return true;
-        // on the device but not loaded yet (after a restart)?
-        const files = await this.executeLuaCapture(
-            `for _, f in ipairs(fs_list_files()) do if f == "${file}" then print("yes") end end`
+        if (await loaded()) return done();
+        // let go of the runtime running before the next one compiles: on an
+        // RP2040 both at once may not fit (the tick metro is kept, iii has 12)
+        await this.executeLuaCapture(
+            'if B and B.clear then B.clear() B = {tick_metro = B.tick_metro} end collectgarbage() collectgarbage()'
         );
-        if (files.some((l) => String(l).trim() === 'yes')) {
-            await this.executeLuaCapture(`fs_run_file("${file}")`);
-            if (await current()) return true;
+        this.setPatchBusy('loading the blocks runtime…');
+        const sizes = await this.executeLuaCapture(
+            `for _, f in ipairs(fs_list_files()) do if f == "${RUNTIME_RUN_FILE}" then print(fs_file_size(f)) end end`
+        );
+        const have = Number(String(sizes[0] ?? '').trim());
+        if (have === size || have === size + 1) {
+            await this.executeLuaCapture(`fs_run_file("${RUNTIME_RUN_FILE}")`);
+            if (await loaded()) return done();
         }
-        this.outputLine(`patch: putting the blocks runtime (${file}) on the device`);
-        const upload = `${global} = "${build}" -- set by diii: which ${file} this is\n${text}`;
-        if (!(await this.uploadChecked(file, upload, { keepOld: true }))) {
-            this.outputLine(`patch: ${file} did not upload`);
+        this.outputLine(`patch: putting the blocks runtime on the device (${what})`);
+        this.setPatchBusy(`sending the blocks runtime (${what})…`);
+        if (!(await this.uploadChecked(RUNTIME_RUN_FILE, runtime.text, { keepOld: true }))) {
+            this.outputLine(`patch: ${RUNTIME_RUN_FILE} did not upload`);
             return false;
         }
-        await this.executeLuaCapture(`fs_run_file("${file}")`);
-        return current();
+        this.setPatchBusy('starting the blocks runtime…');
+        await this.executeLuaCapture(`fs_run_file("${RUNTIME_RUN_FILE}")`);
+        if (await loaded()) return done();
+        this.outputLine(`patch: ${RUNTIME_RUN_FILE} did not start (see the lines above)`);
+        return false;
     },
 
     async runPatch() {
@@ -1563,17 +1623,24 @@ export const patchMethods = {
             return;
         }
         await this.ensurePatchEditor();
+        // what the blocks remember, before a new runtime replaces them
+        if (this.patchRunning) await this.fetchPatchState();
+        let ready = false;
         try {
-            if (!(await this.ensurePatchRuntime())) return;
+            ready = await this.ensurePatchRuntime();
         } catch (error) {
             this.outputLine(`patch: ${error.message}`);
+        }
+        if (!ready) {
+            // the runtime that was running may be gone too
+            this.patchRunning = false;
+            this.setPatchBusy(null);
             return;
         }
-        if (this.patchRunning) await this.fetchPatchState();
         for (const line of liveLines(this.exportPatch())) this.sendPatchLine(line);
         this.patchRunning = true;
         this.patchPending.clear();
-        this.updatePatchStatus();
+        this.setPatchBusy(null);
         this.fetchPatchStats();
         this.outputLine(
             this.patchLive
@@ -1603,8 +1670,16 @@ export const patchMethods = {
         if (!name.endsWith('.lua')) name += '.lua';
         this.patchFileName = name;
         if (this.patchRunning) await this.fetchPatchState();
-        await this.ensurePatchRuntime();
-        const written = await this.uploadChecked(name, patchFile(name.replace(/\.lua$/, ''), this.exportPatch()));
+        // the file carries its own runtime: it needs nothing else on the device
+        const patch = this.exportPatch();
+        let text;
+        try {
+            text = patchFile(name.replace(/\.lua$/, ''), patch, await this.patchRuntime(patch));
+        } catch (error) {
+            this.outputLine(`patch: ${error.message}`);
+            return;
+        }
+        const written = await this.uploadChecked(name, text);
         this.outputLine(
             written
                 ? `patch: saved as ${name}; it runs on its own (first("${name}") makes it the start-up script)`
@@ -1632,7 +1707,14 @@ export const patchMethods = {
                 .trim()
                 .replace(/[^\w.-]/g, '_')
                 .replace(/\.lua$/, '') || 'patch';
-        const text = patchFile(base, this.exportPatch());
+        const patch = this.exportPatch();
+        let text;
+        try {
+            text = patchFile(base, patch, await this.patchRuntime(patch));
+        } catch (error) {
+            this.outputLine(`patch: ${error.message}`);
+            return;
+        }
         const url = URL.createObjectURL(new Blob([text], { type: 'text/x-lua' }));
         const a = document.createElement('a');
         a.href = url;
@@ -1695,6 +1777,9 @@ export const patchMethods = {
 
     patchDisconnected() {
         this.patchRunning = false;
+        this.patchRuntimeTypes = null;
+        this.patchRuntimeInfo = '';
+        this.patchBusy = null;
         this.patchPending.clear();
         this.patchCaps = null;
         this.updatePatchTarget();

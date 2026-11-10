@@ -1,17 +1,9 @@
--- blocks_achene.lua: achene's blocks for diii's patch editor: encoders,
--- pushes, keys and their LEDs, and the screen blocks. Loaded after
--- blocks.lua, which it builds on (docs/VISUAL-EDITOR.md).
-
-if not (B and B.type) then error("blocks_achene.lua: load blocks.lua first") end
-B.achene_version = 8
--- on another device (a grid), skip it: its blocks would only take memory
-if not (key_led and screen_clear) then
-  print("blocks_achene: not an achene, skipped")
-  return
-end
-local round = B.round
+-- blocks_achene.lua: achene's parts of the runtime for diii's patch
+-- editor: encoders, pushes, keys and their LEDs, and the screen blocks.
+-- They follow blocks.lua's parts, which they build on (see there).
 
 -- ------------------------------------------------------------- screen
+--@part screen
 
 -- display nodes draw into eight slots (two columns of four) on the OLED;
 -- B.redraw runs on the tick and redraws only when something changed
@@ -51,6 +43,7 @@ end
 
 -- ------------------------------------------------------------- controls
 
+--@part encoder
 B.type("encoder", {
   outputs = 1,
   init = function(node) node.listen("enc") end,
@@ -59,6 +52,7 @@ B.type("encoder", {
   end,
 })
 
+--@part enc_push
 B.type("enc_push", {
   outputs = 1,
   init = function(node) node.listen("enc_key") end,
@@ -67,6 +61,7 @@ B.type("enc_push", {
   end,
 })
 
+--@part key
 B.type("key", {
   outputs = 1,
   init = function(node) node.listen("key") end,
@@ -75,6 +70,7 @@ B.type("key", {
   end,
 })
 
+--@part key_led
 local COLOURS = {
   white = {255, 255, 255}, red = {255, 0, 0}, amber = {255, 120, 0},
   green = {0, 255, 60}, cyan = {0, 200, 255}, blue = {0, 40, 255}, pink = {255, 0, 120},
@@ -97,6 +93,7 @@ B.type("key_led", {
   end,
 })
 
+--@part display needs screen
 B.type("display", {
   inputs = 1,
   init = function(node) slot_set(node.p.slot or 1, node.p.label or "", 0) end,
@@ -112,6 +109,7 @@ B.type("display", {
 
 -- ------------------------------------------------------------- screen blocks
 
+--@part widgets needs screen
 -- The screen as a grid that matches the panel: four columns of 32 px under
 -- E1-E4 and over K1-K4, and rows: top (what the encoders above do), middle
 -- (or its top and bottom halves) and bottom (what the keys below do).
@@ -176,6 +174,7 @@ local function take(node, _, v)
   screen_dirty = true
 end
 
+--@part enc_label needs widgets screen
 -- the name over an encoder, with its value as a line underneath; turning
 -- it shows the number for a moment
 widget("enc_label", {
@@ -192,6 +191,7 @@ widget("enc_label", {
   end,
 })
 
+--@part key_label needs widgets
 -- the name over a key: shown inverted while the input isn't 0
 widget("key_label", {
   inputs = 1, where = "bottom",
@@ -206,6 +206,7 @@ widget("key_label", {
   end,
 })
 
+--@part slider needs widgets
 -- a vertical bar, its value over it (when there's room) and its name under it
 widget("slider", {
   inputs = 1, where = "middle",
@@ -227,6 +228,7 @@ widget("slider", {
   end,
 })
 
+--@part knob needs widgets
 -- an arc from about 7 o'clock to 5 o'clock, the number inside, the name under
 widget("knob", {
   inputs = 1, where = "middle",
@@ -262,6 +264,7 @@ widget("knob", {
   end,
 })
 
+--@part number needs widgets
 -- a name and a number
 widget("number", {
   inputs = 1, where = "middle",
@@ -280,6 +283,7 @@ widget("number", {
   end,
 })
 
+--@part graph needs screen widgets
 -- the last values, scrolling from the right (25 a second at most)
 local function graph_push(node, v)
   node.head = node.head + 1
@@ -308,6 +312,7 @@ widget("graph", {
   end,
 })
 
+--@part text needs widgets
 -- fixed words
 widget("text", {
   where = "middle top",
@@ -316,6 +321,7 @@ widget("text", {
   end,
 })
 
+--@part steps needs screen widgets
 -- steps: a step sequencer of up to 32 steps, each on or off with a note.
 -- Input 1 is the playing step (1..n, e.g. from a counter): it sends the
 -- step's number (output 3), its note (output 2), then, when the step is on,
@@ -576,5 +582,3 @@ widget("steps", {
     end
   end,
 })
-
-print("blocks_achene " .. B.achene_version)

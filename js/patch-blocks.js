@@ -3,27 +3,119 @@
 // Each block here matches a B.type in lua/blocks.lua: same name, inputs,
 // outputs and parameters.
 
-/** Version of the runtime (lua/blocks*.lua) this diii carries; the device gets it when older. */
-export const RUNTIME_VERSION = 8;
+/** Version of the runtime (lua/blocks*.lua) this diii carries; a patch file says which it was made with. */
+export const RUNTIME_VERSION = 9;
 
 /**
- * The runtime's files: the core (any iii device) and a module per device,
- * each with the global its build goes in and the expression of its version.
+ * The runtime's source files, in the order their parts join: the core and
+ * the blocks any iii device runs, then each device's own (docs/VISUAL-EDITOR.md).
+ * @type {{ file: string, device: 'achene' | 'grid' | null }[]}
  */
-export const RUNTIME_FILES = {
-    core: { file: 'blocks.lua', build: 'BLOCKS_BUILD', version: 'B and B.version' },
-    achene: { file: 'blocks_achene.lua', build: 'BLOCKS_ACHENE_BUILD', version: 'B and B.achene_version' },
-    grid: { file: 'blocks_grid.lua', build: 'BLOCKS_GRID_BUILD', version: 'B and B.grid_version' }
-};
+export const RUNTIME_SOURCES = [
+    { file: 'blocks.lua', device: null },
+    { file: 'blocks_achene.lua', device: 'achene' },
+    { file: 'blocks_grid.lua', device: 'grid' }
+];
+
+/** The script diii runs on the device: the runtime built for the patch on the canvas. */
+export const RUNTIME_RUN_FILE = 'blocks_run.lua';
+
+/** Files of the runtime on a device: the run script, and v8's whole files (still there on older setups). */
+export const RUNTIME_DEVICE_FILES = [RUNTIME_RUN_FILE, ...RUNTIME_SOURCES.map((s) => s.file)];
 
 /**
- * The runtime modules a device (or a patch, by patchDevice) needs beside the core.
- * @param {'achene' | 'grid' | 'mixed' | null | undefined} device
- * @returns {('achene' | 'grid')[]}
+ * A short fingerprint of a text (FNV-1a, 32 bits, in hex), to tell one
+ * runtime build from another.
+ * @param {string} text
  */
-export function runtimeModules(device) {
-    if (device === 'mixed') return ['achene', 'grid'];
-    return device ? [device] : [];
+export function fingerprint(text) {
+    let h = 0x811c9dc5;
+    for (let i = 0; i < text.length; i++) {
+        h ^= text.charCodeAt(i);
+        h = Math.imul(h, 0x01000193) >>> 0;
+    }
+    return h.toString(16).padStart(8, '0');
+}
+
+/**
+ * @typedef {object} RuntimePart
+ * @property {string} name
+ * @property {string[]} needs the parts it uses (they come before it)
+ * @property {string[]} types the block types it defines
+ * @property {'achene' | 'grid' | null} device
+ * @property {string} code compacted
+ * @property {string} source as written (for tools/check-runtime.mjs)
+ */
+
+/**
+ * The runtime's parts: each "--@part name needs a b" line starts one.
+ * @param {Record<string, string>} texts file name -> its text, for RUNTIME_SOURCES
+ * @returns {RuntimePart[]}
+ */
+export function parseRuntime(texts) {
+    /** @type {RuntimePart[]} */
+    const parts = [];
+    for (const { file, device } of RUNTIME_SOURCES) {
+        /** @type {{ name: string, needs: string[], lines: string[] } | null} */
+        let cur = null;
+        const close = () => {
+            if (!cur) return;
+            const body = cur.lines.join('\n');
+            const types = [...body.matchAll(/^\s*(?:B\.type|widget)\("(\w+)"/gm)].map((m) => m[1]);
+            parts.push({ name: cur.name, needs: cur.needs, types, device, code: compactLua(body), source: body });
+        };
+        for (const line of String(texts[file] ?? '').split(/\r?\n/)) {
+            const m = /^--@part (\w+)(?: needs ([\w ]+))?\s*$/.exec(line);
+            if (m) {
+                close();
+                cur = { name: m[1], needs: m[2] ? m[2].trim().split(/\s+/) : [], lines: [] };
+            } else if (cur) cur.lines.push(line);
+        }
+        close();
+    }
+    return parts;
+}
+
+/**
+ * The runtime for a set of block types: the core, the parts that define
+ * them and the parts those need, in source order. On a device of a known
+ * kind, another device's blocks are left out (they would do nothing).
+ * @param {RuntimePart[]} parts from parseRuntime
+ * @param {Iterable<string>} types
+ * @param {'achene' | 'grid' | null} [device]
+ * @returns {{ text: string, build: string, parts: string[], types: string[] }}
+ */
+export function buildRuntime(parts, types, device) {
+    const byName = new Map(parts.map((p) => [p.name, p]));
+    const fits = (/** @type {RuntimePart} */ p) => !device || !p.device || p.device === device;
+    const take = new Set(['core']);
+    const add = (/** @type {string} */ name) => {
+        const p = byName.get(name);
+        if (!p || take.has(name)) return;
+        take.add(name);
+        p.needs.forEach(add);
+    };
+    for (const t of types) {
+        const p = parts.find((q) => q.types.includes(t));
+        if (p && fits(p)) add(p.name);
+    }
+    const chosen = parts.filter((p) => take.has(p.name));
+    const code = chosen.map((p) => p.code).join('');
+    const build = fingerprint(code);
+    return {
+        text: `${code}B.build = "${build}"\n`,
+        build,
+        parts: chosen.map((p) => p.name),
+        types: chosen.flatMap((p) => p.types)
+    };
+}
+
+/**
+ * The block types a patch uses.
+ * @param {Patch} patch
+ */
+export function patchTypes(patch) {
+    return [...new Set(patch.nodes.map((n) => n.type))];
 }
 
 /**
@@ -818,27 +910,21 @@ export function liveLines(patch) {
 
 /**
  * A patch as a script file: the editor's copy in --@patch comment lines,
- * then the Lua that runs it. Every line stays well under iii's 512.
+ * the runtime built for it (buildRuntime), then the Lua that runs it. It
+ * needs nothing else on the device. Every line stays well under iii's 512.
  * @param {string} name @param {Patch} patch
+ * @param {{ text: string, parts: string[] }} runtime
  */
-export function patchFile(name, patch) {
+export function patchFile(name, patch, runtime) {
     const json = JSON.stringify({ v: 1, rt: RUNTIME_VERSION, nodes: patch.nodes, wires: patch.wires });
     const lines = [
         `-- diii patch: ${name.replace(/[^ -~]/g, '')}`,
         '-- made in the patch drawer; open it there to change it'
     ];
     for (let i = 0; i < json.length; i += 300) lines.push(`--@patch ${json.slice(i, i + 300)}`);
-    const modules = runtimeModules(patchDevice(patch));
-    const versions = [RUNTIME_FILES.core, ...modules.map((m) => RUNTIME_FILES[m])]
-        .map((f) => `(${f.version.replace('B and ', '')} or 0) < ${RUNTIME_VERSION}`)
-        .join(' or ');
     lines.push(
-        // each file only when it isn't loaded yet: a reload would hold two copies at once
-        ...[RUNTIME_FILES.core, ...modules.map((m) => RUNTIME_FILES[m])].map(
-            (f) => `if (${f.version} or 0) < ${RUNTIME_VERSION} then require("${f.file}") end`
-        ),
-        // an older runtime on the device: say so rather than fail on blocks it lacks
-        `if ${versions} then print("this patch needs the blocks runtime v${RUNTIME_VERSION}: open diii's patch editor and press run to update it") end`,
+        `-- the blocks runtime v${RUNTIME_VERSION} it runs on, built by diii with: ${runtime.parts.join(' ')}`,
+        runtime.text.trimEnd(),
         'B.patch{',
         '  nodes = {'
     );

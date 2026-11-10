@@ -19,6 +19,32 @@
     flex: none;
 }
 
+/* loading the blocks runtime: the status pulses, run waits */
+.patch-drawer .midi-status.patch-busy {
+    color: var(--accent, #4fc1ff);
+    animation: patch-busy 1s ease-in-out infinite alternate;
+}
+
+.patch-controls .repl-action-btn.busy {
+    cursor: progress;
+    opacity: 0.6;
+}
+
+@keyframes patch-busy {
+    from {
+        opacity: 1;
+    }
+    to {
+        opacity: 0.45;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .patch-drawer .midi-status.patch-busy {
+        animation: none;
+    }
+}
+
 /* on the right, also when a long status or wider menus wrap them below */
 .patch-controls {
     margin-left: auto;
