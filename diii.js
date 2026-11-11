@@ -123,6 +123,7 @@ class diiiApp {
             replPane: document.getElementById('replPane'),
             uploadBtn: document.getElementById('uploadBtn'),
             reinitBtn: document.getElementById('reinitBtn'),
+            stopScriptBtn: document.getElementById('stopScriptBtn'),
             firmwareBtn: document.getElementById('firmwareBtn'),
             midiDrawer: document.getElementById('midiDrawer'),
             midiToggleBtn: document.getElementById('midiToggleBtn'),
@@ -233,6 +234,7 @@ class diiiApp {
         on(this.elements.explorerResizer, 'keydown', (e) => this.handleExplorerResizerKeydown(e));
         on(this.elements.uploadBtn, 'click', () => this.openUploadPicker());
         on(this.elements.reinitBtn, 'click', () => this.reinitDevice());
+        on(this.elements.stopScriptBtn, 'click', () => this.stopScript());
         on(this.elements.firmwareBtn, 'click', () => this.openFirmwareDialog());
         on(this.elements.midiToggleBtn, 'click', () => this.setMidiDrawerOpen(!this.midiDrawerOpen));
         on(this.elements.midiShowIn, 'change', (e) => this.getMidiMonitor().setFilter('in', e.target.checked));

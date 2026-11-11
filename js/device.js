@@ -351,6 +351,24 @@ export const deviceMethods = {
         this.iiiDevice.writeLine('^^i');
     },
 
+    // ^^c and lib.lua: no script runs, as after a boot with no first script
+    // (init.lua stays, so the next boot or re-init runs it again).
+    async stopScript() {
+        if (!this.iiiDevice.isConnected) {
+            this.outputLine('Error: Not connected to usb device');
+            return;
+        }
+        this.releaseAllGridKeys();
+        this.releaseAllAcheneKeys();
+        this.outputLine('> ^^c (stop script)');
+        await this.cleanLuaState();
+        // a graft patch stopped with it
+        this.patchRunning = false;
+        this.patchPending?.clear();
+        this.patchStats = '';
+        this.updatePatchStatus?.();
+    },
+
     async reformatFs() {
         if (!this.iiiDevice.isConnected) {
             this.outputLine('Error: Not connected to usb device');
