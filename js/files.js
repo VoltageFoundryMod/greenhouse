@@ -563,7 +563,8 @@ export const fileMethods = {
 
     /**
      * Stops whatever script runs (its metros too) and starts a Lua state
-     * with only lib.lua in it: iii's ^^c, which leaves lib.lua to us.
+     * with only lib.lua in it and the LEDs dark, as a boot with no first
+     * script leaves it: iii's ^^c, which leaves lib.lua to us.
      */
     async cleanLuaState() {
         this.queueSuppressedOutputLine('-- re-init with no script', 8000);
@@ -572,6 +573,13 @@ export const fileMethods = {
         await this.iiiDevice.writeLine('^^c');
         await this.delay(500);
         await this.executeLua(`fs_run_file("lib.lua")`);
+        // the LEDs and screen keep what the old script drew (a boot clears
+        // them): parterre's grid, achene's keys and OLED, when there
+        await this.executeLua(
+            'if grid_led_all then grid_led_all(0) grid_refresh() end ' +
+                'if key_led_all then key_led_all(0, 0, 0) key_led_refresh() end ' +
+                'if screen_clear then screen_clear() screen_refresh() end'
+        );
     },
 
     // og_rename_file() (Open Grid firmware) renames in one step; elsewhere the
