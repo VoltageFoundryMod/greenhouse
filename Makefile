@@ -11,13 +11,13 @@ PORT ?= 8000
 
 UPSTREAM ?= https://github.com/monome/web-diii
 
-.PHONY: all help serve dist clean install check format format-check vendor test upstream achene-layout manual-blocks
+.PHONY: all help web dist clean install check format format-check vendor test upstream achene-layout manual-blocks
 
-all: serve
+all: web
 
 help:
 	@echo "Development:"
-	@echo "  make serve          serve diii at http://localhost:$(PORT), reloading on edits"
+	@echo "  make web            serve greenhouse at http://localhost:$(PORT), reloading on edits"
 	@echo "  make dist           the site into dist/, as GitHub Pages publishes it"
 	@echo "  make clean          remove dist/"
 	@echo "Tools (installed by the targets that need them):"
@@ -34,7 +34,7 @@ help:
 	@echo "  make upstream       merge monome/web-diii main into the current branch"
 	@echo "Options: PORT=8080"
 
-serve:
+web:
 	$(NODE) tools/serve.mjs $(PORT) --watch
 
 dist:
