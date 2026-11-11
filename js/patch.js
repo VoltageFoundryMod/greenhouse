@@ -1590,11 +1590,19 @@ export const patchMethods = {
             return true;
         };
         if (await loaded()) return done();
-        // let go of the runtime running before the next one compiles: on an
-        // RP2040 both at once may not fit (the tick metro is kept, iii has 12)
-        await this.executeLuaCapture(
-            'if B and B.clear then B.clear() B = {tick_metro = B.tick_metro} end collectgarbage() collectgarbage()'
-        );
+        const running = await this.executeLuaCapture('print(B and B.build and "graft" or "other")');
+        if (running.some((l) => String(l).trim() === 'graft')) {
+            // let go of the runtime running before the next one compiles: on an
+            // RP2040 both at once may not fit (the tick metro is kept, iii has 12)
+            await this.executeLuaCapture(
+                'if B.clear then B.clear() end B = {tick_metro = B.tick_metro} collectgarbage() collectgarbage()'
+            );
+        } else {
+            // another script (a first() one, say) or none: stop it, its metros
+            // and handlers would run on beside the patch and keep its memory
+            this.setPatchBusy('stopping the running script…');
+            await this.cleanLuaState();
+        }
         this.setPatchBusy('loading the blocks runtime…');
         const sizes = await this.executeLuaCapture(
             `for _, f in ipairs(fs_list_files()) do if f == "${RUNTIME_RUN_FILE}" then print(fs_file_size(f)) end end`
