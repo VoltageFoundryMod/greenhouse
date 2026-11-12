@@ -94,6 +94,7 @@ export const deviceMethods = {
                 await this.detectAchene();
                 await this.detectPatchCaps();
                 await this.detectFirmware();
+                await this.detectModeSwitch();
                 await this.resumeMidiMonitor();
                 await this.requestFileListRefresh();
                 return true;
@@ -362,6 +363,44 @@ export const deviceMethods = {
         }
         this.outputLine('> ^^b');
         this.iiiDevice.writeLine('^^b');
+    },
+
+    // parterre runs either iii or monome's serial protocol (norns, serialosc);
+    // pt_set_mode(1) (og_set_mode before 0.4) saves serial mode and reboots. Others don't
+    // have it, so the menu item stays hidden for them.
+    async detectModeSwitch() {
+        let supported = false;
+        try {
+            const lines = await this.executeLuaCapture('print((pt_set_mode or og_set_mode) ~= nil)');
+            supported = lines.some((line) => String(line).trim() === 'true');
+        } catch {
+            // disconnected: leave it hidden
+        }
+        if (this.elements.monomeModeBtn) this.elements.monomeModeBtn.hidden = !supported;
+    },
+
+    // Serial mode has no REPL, so greenhouse can't switch it back: the user does,
+    // on the grid. Don't keep trying to reconnect to a device that is gone.
+    async monomeModeDevice() {
+        if (!this.iiiDevice.isConnected) {
+            this.outputLine('Error: Not connected to usb device');
+            return;
+        }
+        if (
+            !window.confirm(
+                'Reboot the grid in monome mode (for norns, serialosc)?\n\n' +
+                    'greenhouse disconnects and cannot reach it in that mode. To come back to iii, ' +
+                    'hold the top-left key while plugging the grid in (or hold BOOT for 2 seconds while it runs).'
+            )
+        ) {
+            return;
+        }
+        this.releaseAllGridKeys();
+        this.autoReconnectEnabled = false;
+        this.clearAutoReconnectTimer();
+        this.outputLine('> (pt_set_mode or og_set_mode)(1)');
+        this.outputLine('Rebooting in monome mode. To come back to iii: hold the top-left key while plugging in.');
+        await this.iiiDevice.writeLine('(pt_set_mode or og_set_mode)(1)').catch(() => {});
     },
 
     // ^^i: restart Lua and run lib.lua and init.lua (the "first" script)

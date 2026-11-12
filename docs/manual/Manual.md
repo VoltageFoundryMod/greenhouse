@@ -81,18 +81,26 @@ script. **+** at the top of the list makes a new, empty one.
 
 **device ▾** in the header:
 
-| item       | does                                                                                   |
-| ---------- | -------------------------------------------------------------------------------------- |
-| re-init    | restarts Lua and runs the start-up script again, without rebooting                     |
-| reboot     | restarts the device; greenhouse reconnects                                              |
-| bootloader | restarts the device as a USB drive, for a firmware update                               |
-| backup     | downloads every file on the device as one zip                                           |
-| restore    | uploads the files of a backup zip                                                       |
-| reformat   | erases every file on the device                                                         |
-| firmware   | the device's firmware version, and updates where its maker publishes them              |
+| item        | does                                                                          |
+| ----------- | ----------------------------------------------------------------------------- |
+| re-init     | restarts Lua and runs the start-up script again, without rebooting            |
+| stop script | stops the running script and clears the LEDs, as after a start with no script |
+| reboot      | restarts the device; greenhouse reconnects                                    |
+| bootloader  | restarts the device as a USB drive, for a firmware update                     |
+| backup      | downloads every file on the device as one zip                                 |
+| restore     | uploads the files of a backup zip                                             |
+| reformat    | erases every file on the device                                               |
+| firmware    | the device's firmware version, and updates where its maker publishes them     |
 
 > **Warning:** **reformat** erases every script on the device. Make a
 > **backup** first.
+
+<!-- if: grid -->
+On parterre the menu also has **monome mode**: the grid restarts as a monome grid, for norns or
+serialosc. Greenhouse can't reach it in that mode, so it disconnects. To come back to iii, hold
+the top-left key while plugging the grid in (or hold BOOT for 2 seconds while it runs); once it's
+back, greenhouse connects to it again (if it doesn't, press **connect**).
+<!-- end if -->
 
 ## The editor
 

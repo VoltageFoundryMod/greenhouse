@@ -142,6 +142,7 @@ class diiiApp {
             firmwareCloseBtn: document.getElementById('firmwareCloseBtn'),
             restartBtn: document.getElementById('restartBtn'),
             bootloaderBtn: document.getElementById('bootloaderBtn'),
+            monomeModeBtn: document.getElementById('monomeModeBtn'),
             reformatBtn: document.getElementById('reformatBtn'),
             backupBtn: document.getElementById('backupBtn'),
             restoreBtn: document.getElementById('restoreBtn'),
@@ -258,6 +259,7 @@ class diiiApp {
         });
         on(this.elements.restartBtn, 'click', () => this.restartDevice());
         on(this.elements.bootloaderBtn, 'click', () => this.bootloaderDevice());
+        on(this.elements.monomeModeBtn, 'click', () => this.monomeModeDevice());
         on(this.elements.reformatBtn, 'click', () => this.reformatFs());
         on(this.elements.backupBtn, 'click', () => this.backupToZip());
         on(this.elements.restoreBtn, 'click', () => this.restoreFromZip());
