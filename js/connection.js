@@ -1,9 +1,11 @@
 // Web Serial connection to an iii device: line framing and writes.
 
+// The USB ids every iii device shows up with.
+export const iiiPortFilter = { usbVendorId: 0xcafe, usbProductId: 0x1101 };
+
 export class iiiConnection {
     constructor() {
         this.port = null;
-        this.preferredPort = null;
         this.reader = null;
         this.writer = null;
         this.readableStreamClosed = null;
@@ -18,17 +20,12 @@ export class iiiConnection {
         this._textEncoder = new TextEncoder();
     }
 
+    // With no port, the browser's chooser asks which device to use. (Never reuse
+    // an earlier port here: after an unplug it may be dead, and the chooser
+    // would never come up again until a reload.)
     async connect(port = null) {
         try {
-            this.port = port || this.preferredPort;
-
-            if (!this.port) {
-                this.port = await navigator.serial.requestPort({
-                    filters: [{ usbVendorId: 0xcafe, usbProductId: 0x1101 }]
-                });
-            }
-
-            this.preferredPort = this.port;
+            this.port = port || (await navigator.serial.requestPort({ filters: [iiiPortFilter] }));
 
             await this.port.open({
                 baudRate: 115200,

@@ -38,6 +38,8 @@ class diiiApp {
         this.autoReconnectTimer = null;
         this.reconnectDelayMs = 900;
         this.isManualDisconnect = false;
+        // set by the disconnect button: plugging a device in then doesn't connect it
+        this.userDisconnected = false;
 
         this.commandHistory = [];
         this.historyIndex = -1;

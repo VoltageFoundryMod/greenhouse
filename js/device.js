@@ -1,6 +1,8 @@
 // Connecting, reconnecting, and the device buttons (reboot, bootloader, ...).
 // Mixed into diiiApp (diii.js); `this` is the app.
 
+import { iiiPortFilter } from './connection.js';
+
 export const deviceMethods = {
     async toggleConnection() {
         if (this.iiiDevice.isConnected) {
@@ -28,6 +30,16 @@ export const deviceMethods = {
                     if (matchingPort) {
                         reconnectPort = matchingPort;
                         this.selectedPort = matchingPort;
+                    } else if (auto) {
+                        // not plugged in (yet): try again later
+                        this.scheduleAutoReconnect();
+                        return false;
+                    } else {
+                        // gone, or plugged back in without the browser's permission
+                        // carrying over: let the chooser ask again
+                        reconnectPort = null;
+                        this.selectedPort = null;
+                        this.selectedPortInfo = null;
                     }
                 } catch {
                     // ignore and fall back to the remembered port object
@@ -46,6 +58,7 @@ export const deviceMethods = {
             }
 
             if (connected) {
+                this.userDisconnected = false;
                 this.selectedPort = this.iiiDevice.port;
                 this.selectedPortInfo = this.getPortInfo(this.selectedPort);
                 this.hasConnectedThisSession = true;
@@ -141,6 +154,7 @@ export const deviceMethods = {
     async disconnect(manual = true) {
         this.isManualDisconnect = manual;
         if (manual) {
+            this.userDisconnected = true;
             this.autoReconnectEnabled = false;
             this.clearAutoReconnectTimer();
         }
@@ -213,17 +227,29 @@ export const deviceMethods = {
         this.isManualDisconnect = false;
     },
 
+    // An iii device the page already has permission for was plugged in: connect
+    // to it, unless one is connected (or connecting) or the user disconnected.
+    // Devices without permission send no event; "connect" asks for them.
     handleSerialPortConnect(event) {
-        if (!this.autoReconnectEnabled || this.iiiDevice.isConnected || !this.selectedPort) {
+        if (this.iiiDevice.isConnected || this.pendingConnectAttemptType || this.userDisconnected) {
             return;
         }
 
         const eventPort = event?.port;
-        if (eventPort && !this.isSamePort(eventPort, this.selectedPort, this.selectedPortInfo)) {
+        if (!eventPort || !this.isIiiPort(eventPort)) {
             return;
         }
 
+        this.selectedPort = eventPort;
+        this.selectedPortInfo = this.getPortInfo(eventPort);
+        this.autoReconnectEnabled = true;
+        this.clearAutoReconnectTimer();
         this.scheduleAutoReconnect(150);
+    },
+
+    isIiiPort(port) {
+        const info = this.getPortInfo(port);
+        return info?.usbVendorId === iiiPortFilter.usbVendorId && info?.usbProductId === iiiPortFilter.usbProductId;
     },
 
     async handleSerialPortDisconnect(event) {
