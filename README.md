@@ -67,11 +67,9 @@ The extras that need a device's own firmware hide themselves or say so:
 | MIDI counts and clock tempo with the drawer closed                                            | ❌                                                               | ✅ og-0.3.9+                                     |
 | Firmware update dialog                                                                        | shows the version and links to monome's firmware; no UF2 offered | ✅ newest release for your board                 |
 
-The firmware calls behind these are greenhouse's tools, `gh_*` (parterre 0.4 and later; until
-0.3.16 they were `og_*`, and parterre keeps those names working). greenhouse uses the `gh_` name
-and falls back to the `og_` one, so older parterre builds and achene, which carries the same
-tools as `og_*` (it started from parterre's), work too. achene's firmware updates come from
-achene's own releases.
+The firmware calls behind these are greenhouse's tools, `gh_*`: parterre 0.4 and later and
+achene 0.0.6 and later have them (until then they were `og_*`; update the firmware). achene's
+firmware updates come from achene's own releases.
 
 The ⚠ and ❌ rows on stock firmware are limits of iii itself; the fixes are in the
 [iii pull requests](https://codeberg.org/tehn/iii/pulls) (#10–#12).

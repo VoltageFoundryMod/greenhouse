@@ -8,7 +8,7 @@
 //   ^^achled(<rrggbb x keys>)     when the key LEDs change
 //   ^^achscr(<page 0-7>,<256 hex>) for each OLED page that changed
 //   ach_enc(n, d), ach_enc_key(n, z), ach_key(n, z)   input, as from the hardware
-//   ach_board(), enc_count(), key_count()             what this build has
+//   gh_board(), enc_count(), key_count()              what this build has
 
 import { AchenePanel } from './achene-panel.js';
 import { ACHENE_LAYOUT } from './achene-layout.js';
@@ -56,7 +56,7 @@ export const acheneMethods = {
         let info = null;
         try {
             const lines = await this.executeLuaCapture(
-                'print(ach_mirror ~= nil and (ach_board() .. " " .. enc_count() .. " " .. key_count()) or "none")'
+                'print(ach_mirror ~= nil and (gh_board() .. " " .. enc_count() .. " " .. key_count()) or "none")'
             );
             const match = lines
                 .map((line) => String(line).trim())

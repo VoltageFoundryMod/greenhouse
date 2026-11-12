@@ -56,7 +56,7 @@ export const midiUiMethods = {
         }
         try {
             if (this.midiMonitorSupported === undefined) {
-                const probe = await this.executeLuaCapture('print((gh_midi_monitor or og_midi_monitor) ~= nil)');
+                const probe = await this.executeLuaCapture('print(gh_midi_monitor ~= nil)');
                 this.midiMonitorSupported = probe.some((line) => line.trim() === 'true');
             }
             if (!this.midiMonitorSupported) {
@@ -64,7 +64,7 @@ export const midiUiMethods = {
                 return;
             }
             showNote('');
-            await this.executeLua(`(gh_midi_monitor or og_midi_monitor)(${on ? 'true' : 'false'})`);
+            await this.executeLua(`gh_midi_monitor(${on ? 'true' : 'false'})`);
         } catch {
             // device busy or gone; connect() turns it on again
         }
@@ -76,10 +76,10 @@ export const midiUiMethods = {
     async resumeMidiMonitor() {
         this.midiMonitorSupported = undefined;
         try {
-            const probe = await this.executeLuaCapture('print((gh_midi_counts or og_midi_counts) ~= nil)');
+            const probe = await this.executeLuaCapture('print(gh_midi_counts ~= nil)');
             if (probe.some((line) => line.trim() === 'true')) {
                 this.getMidiMonitor();
-                await this.executeLua('(gh_midi_counts or og_midi_counts)(true)');
+                await this.executeLua('gh_midi_counts(true)');
             }
         } catch {
             // device busy; the next connect tries again

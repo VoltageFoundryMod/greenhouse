@@ -271,7 +271,7 @@ export const fileMethods = {
             );
             // free flash, Lua's memory and (parterre, achene) the C heap, in one request
             const memLines = await this.executeLuaCapture(
-                'do local f, t local m = gh_mem or og_mem if m then local a, _, _, _, b = m(true) f, t = a, b end print(fs_free_space(), math.floor(collectgarbage("count") * 1024), f or "", t or "") end'
+                'do local f, t if gh_mem then local a, _, _, _, b = gh_mem(true) f, t = a, b end print(fs_free_space(), math.floor(collectgarbage("count") * 1024), f or "", t or "") end'
             );
 
             const entries = this.parseFileEntriesFromLs(lsLines);
@@ -598,9 +598,9 @@ export const fileMethods = {
 
         try {
             const quoted = `${this.luaQuote(fileName)}, ${this.luaQuote(newName)}`;
-            const probe = await this.executeLuaCapture('print((gh_rename_file or og_rename_file) ~= nil)');
+            const probe = await this.executeLuaCapture('print(gh_rename_file ~= nil)');
             if (probe.some((line) => line.trim() === 'true')) {
-                const result = await this.executeLuaCapture(`print((gh_rename_file or og_rename_file)(${quoted}))`);
+                const result = await this.executeLuaCapture(`print(gh_rename_file(${quoted}))`);
                 if (!result.some((line) => line.trim() === 'true')) {
                     throw new Error(result.join(' ').trim() || 'no answer');
                 }

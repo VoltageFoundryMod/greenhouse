@@ -11,7 +11,7 @@ export const firmwareUiMethods = {
         try {
             // one print per value: iii's print() puts each argument on its own line
             const lines = await this.executeLuaCapture(
-                'print(device_version())\nlocal b = gh_board or og_board or ach_board\nif b then print(b()) end'
+                'print(device_version())\nif gh_board then print(gh_board()) end'
             );
             const [version = '', board = ''] = lines.map((s) => String(s).trim());
             this.firmwareVersion = version || null;

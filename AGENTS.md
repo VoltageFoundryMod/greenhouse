@@ -21,9 +21,8 @@ Devices and their firmware repos:
 - **parterre**, called Open Grid Controller until November 2026 (`github.com/VoltageFoundryMod/parterre`, locally
   `../parterre`): the virtual grid (`js/grid.js`), firmware updates
   (`js/firmware.js`, from that repo's GitHub releases: versions `parterre-X.Y.Z`, `og-X.Y.Z`
-  before 0.4), greenhouse's tools `gh_*` (until 0.4 `og_*`; probe and call the `gh_` name with
-  the `og_` one as fallback, `(gh_key or og_key)(...)`, since older builds and achene only have
-  `og_*`) and parterre's own `pt_*`.
+  before 0.4), greenhouse's tools `gh_*` (achene has them too; `og_*` until parterre 0.4 and achene
+  0.0.6, no longer called) and parterre's own `pt_*`.
 - **achene** (locally `../achene`, not published yet): a MIDI controller with 12 encoders, 16
   RGB keys and a 128×64 OLED. Its view: `js/achene.js` (the app side: detection, drawer,
   mirror, sending), `js/achene-panel.js` (the panel, no serial; also runs in
@@ -67,7 +66,7 @@ runtime changes. `tools/patch-preview.html` runs the drawer without a device. De
 
 ## Device views
 
-- A view **detects its device** with a Lua probe (e.g. `print((gh_mirror or og_mirror) ~= nil and ...)`) and
+- A view **detects its device** with a Lua probe (e.g. `print(gh_mirror ~= nil and ...)`) and
   stays hidden otherwise; stock iii devices must keep working.
 - Views talk to the firmware only through the serial protocol: Lua calls in, `^^name(...)`
   lines out. Nothing is shared at build time with the firmware repos, so document every

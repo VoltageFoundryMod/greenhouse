@@ -417,8 +417,8 @@ export const III_API = [
     },
     { group: 'files', kind: 'function', name: 'fs_reformat', sig: 'fs_reformat()', doc: 'Erases every file.' },
 
-    // parterre firmware (0.4+; before, every one of these was og_*, and the
-    // og_ names still work there). gh_* are the calls greenhouse uses.
+    // parterre firmware (0.4+; before, every one of these was og_*). gh_* are
+    // the calls greenhouse uses; achene has them too.
     {
         group: 'parterre',
         kind: 'function',
@@ -687,9 +687,9 @@ export const III_API = [
         group: 'achene',
         kind: 'function',
         device: 'achene',
-        name: 'ach_board',
-        sig: 'ach_board()',
-        doc: 'The board the firmware was built for, e.g. "pico2" or "xiao_rp2040".'
+        name: 'ach_led',
+        sig: 'ach_led(r, g, b)',
+        doc: "Takes over the board's status LED (0-255 each, brightness from the brightest channel); ach_led() gives it back."
     },
     {
         group: 'achene',

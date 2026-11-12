@@ -58,7 +58,7 @@ export function decodeDump(name, lines) {
  * @returns {Promise<boolean>}
  */
 export async function hasExactFiles(device) {
-    const probe = await device.capture('print((gh_dump_file or og_dump_file) ~= nil)');
+    const probe = await device.capture('print(gh_dump_file ~= nil)');
     return probe.some((line) => line.trim() === 'true');
 }
 
@@ -105,7 +105,7 @@ export async function readFileInChunks(device, name) {
  * @returns {Promise<Uint8Array>}
  */
 export async function readDeviceFile(device, name, exact) {
-    if (exact) return decodeDump(name, await device.capture(`(gh_dump_file or og_dump_file)(${luaQuote(name)})`));
+    if (exact) return decodeDump(name, await device.capture(`gh_dump_file(${luaQuote(name)})`));
     return readFileInChunks(device, name);
 }
 

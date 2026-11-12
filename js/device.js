@@ -366,12 +366,12 @@ export const deviceMethods = {
     },
 
     // parterre runs either iii or monome's serial protocol (norns, serialosc);
-    // pt_set_mode(1) (og_set_mode before 0.4) saves serial mode and reboots. Others don't
+    // pt_set_mode(1) saves serial mode and reboots. Other firmware doesn't
     // have it, so the menu item stays hidden for them.
     async detectModeSwitch() {
         let supported = false;
         try {
-            const lines = await this.executeLuaCapture('print((pt_set_mode or og_set_mode) ~= nil)');
+            const lines = await this.executeLuaCapture('print(pt_set_mode ~= nil)');
             supported = lines.some((line) => String(line).trim() === 'true');
         } catch {
             // disconnected: leave it hidden
@@ -398,9 +398,9 @@ export const deviceMethods = {
         this.releaseAllGridKeys();
         this.autoReconnectEnabled = false;
         this.clearAutoReconnectTimer();
-        this.outputLine('> (pt_set_mode or og_set_mode)(1)');
+        this.outputLine('> pt_set_mode(1)');
         this.outputLine('Rebooting in monome mode. To come back to iii: hold the top-left key while plugging in.');
-        await this.iiiDevice.writeLine('(pt_set_mode or og_set_mode)(1)').catch(() => {});
+        await this.iiiDevice.writeLine('pt_set_mode(1)').catch(() => {});
     },
 
     // ^^i: restart Lua and run lib.lua and init.lua (the "first" script)
