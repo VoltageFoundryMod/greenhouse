@@ -105,18 +105,37 @@ export const firmwareUiMethods = {
             el('p', connected ? `this device: ${current || 'unknown'}${board ? ` for ${board}` : ''}` : 'not connected')
         );
 
+        // Firmware greenhouse doesn't publish (monome's own iii reports e.g.
+        // "v260324"), or a version it couldn't read: offer no UF2 and no
+        // steps. A UF2 for another board flashes fine and then doesn't work.
+        if (connected && !parseVersion(current)) {
+            rows.push(
+                el(
+                    'p',
+                    `This device runs other firmware${current ? ` (${current})` : ''}, such as monome's own iii. ` +
+                        'greenhouse only updates the firmware it knows (parterre, achene), so it offers no file here. ' +
+                        "monome's firmware and how to install it are on monome's pages. Moving to parterre " +
+                        '(unofficial) is done by hand, with the UF2 for your board from its releases page; ' +
+                        'back up your files first: they are erased.'
+                )
+            );
+            const actions = el('div', '', 'firmware-actions');
+            actions.append(
+                link("monome's iii firmware ↗", 'https://github.com/monome/iii/releases/latest'),
+                link('installing iii ↗', 'https://monome.org/docs/iii/'),
+                link(`${product.name} releases ↗`, releasesPage(product)),
+                button('backup', () => this.backupToZip(), 'download every file as one zip')
+            );
+            rows.push(actions);
+            body.replaceChildren(...rows);
+            return;
+        }
+
         if (release === undefined && !this.firmwareCheckError) rows.push(el('p', 'checking for updates...'));
         else if (this.firmwareCheckError)
             rows.push(el('p', `couldn't check for updates (${this.firmwareCheckError}); offline?`));
         else if (release === null) rows.push(el('p', 'no firmware release published yet.'));
-        else if (connected && current && !parseVersion(current)) {
-            rows.push(
-                el(
-                    'p',
-                    `latest ${product.name} firmware: ${release.version}. This device runs other firmware (${current}).`
-                )
-            );
-        } else if (connected && !isNewer(release.version, current)) {
+        else if (connected && !isNewer(release.version, current)) {
             rows.push(el('p', `up to date (latest release: ${release.version}).`));
         } else {
             rows.push(el('p', `update available: ${release.version}`, 'firmware-update'));
