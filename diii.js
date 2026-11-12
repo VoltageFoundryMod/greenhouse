@@ -66,7 +66,7 @@ class diiiApp {
         this.explorerResizeStartWidth = this.explorerWidthDefault;
 
         // Virtual grid: shows the LEDs of devices that can mirror them
-        // (og_mirror, Open Grid firmware) and sends presses with og_key.
+        // (gh_mirror, parterre firmware) and sends presses with gh_key.
         this.gridSupported = false;
         this.gridPanelOpen = false;
         this.gridSize = { x: 16, y: 8 };

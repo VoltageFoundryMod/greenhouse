@@ -269,9 +269,9 @@ export const fileMethods = {
             const lsLines = await this.executeLuaCapture(
                 'for _, __name in ipairs(fs_list_files()) do local __size = fs_file_size(__name) or 0; print("__webdiii_file\\t" .. __name .. "\\t" .. tostring(__size)) end'
             );
-            // free flash, Lua's memory and (Open Grid) the C heap, in one request
+            // free flash, Lua's memory and (parterre, achene) the C heap, in one request
             const memLines = await this.executeLuaCapture(
-                'do local f, t if og_mem then local a, _, _, _, b = og_mem(true) f, t = a, b end print(fs_free_space(), math.floor(collectgarbage("count") * 1024), f or "", t or "") end'
+                'do local f, t local m = gh_mem or og_mem if m then local a, _, _, _, b = m(true) f, t = a, b end print(fs_free_space(), math.floor(collectgarbage("count") * 1024), f or "", t or "") end'
             );
 
             const entries = this.parseFileEntriesFromLs(lsLines);
@@ -371,7 +371,7 @@ export const fileMethods = {
     },
 
     // iii's print() puts each argument on its own line (not tab-separated like
-    // standard Lua): flash, lua, heapFree, heapTotal (bytes). Without og_mem the
+    // standard Lua): flash, lua, heapFree, heapTotal (bytes). Without gh_mem the
     // heap values are "" and their empty lines don't arrive.
     parseDeviceMemory(lines) {
         const [, lua, heapFree, heapTotal] = lines.map((line) => Number.parseInt(line, 10));
@@ -438,8 +438,8 @@ export const fileMethods = {
         this.firstBadgeFileNames = hasMatchingFile ? new Set([targetName]) : new Set();
     },
 
-    // A file's text, exactly (blank lines included, any size): og_dump_file on
-    // Open Grid firmware, read in pieces elsewhere; without the '\0' uploads end with.
+    // A file's text, exactly (blank lines included, any size): gh_dump_file on
+    // parterre firmware, read in pieces elsewhere; without the '\0' uploads end with.
     async readRemoteFile(fileName) {
         const api = this.backupApi();
         const data = await readDeviceFile(api, fileName, await hasExactFiles(api));
@@ -582,7 +582,7 @@ export const fileMethods = {
         );
     },
 
-    // og_rename_file() (Open Grid firmware) renames in one step; elsewhere the
+    // gh_rename_file() (parterre, achene) renames in one step; elsewhere the
     // file is copied (compile-checked) and the old one deleted. A "first"
     // script stays first, and an open editor follows the new name.
     async renameFile(fileName) {
@@ -598,9 +598,9 @@ export const fileMethods = {
 
         try {
             const quoted = `${this.luaQuote(fileName)}, ${this.luaQuote(newName)}`;
-            const probe = await this.executeLuaCapture('print(og_rename_file ~= nil)');
+            const probe = await this.executeLuaCapture('print((gh_rename_file or og_rename_file) ~= nil)');
             if (probe.some((line) => line.trim() === 'true')) {
-                const result = await this.executeLuaCapture(`print(og_rename_file(${quoted}))`);
+                const result = await this.executeLuaCapture(`print((gh_rename_file or og_rename_file)(${quoted}))`);
                 if (!result.some((line) => line.trim() === 'true')) {
                     throw new Error(result.join(' ').trim() || 'no answer');
                 }

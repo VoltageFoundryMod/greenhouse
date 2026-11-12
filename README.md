@@ -57,18 +57,21 @@ The extras that need a device's own firmware hide themselves or say so:
 | --------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- | ------------------------------------------------ |
 | REPL, history, Tab completion, uploads (several at once), run, new, delete, first / not first | ✅                                                               | ✅                                               |
 | Editor: autocomplete, hover help, reference, drafts, clickable errors, line wrap              | ✅                                                               | ✅                                               |
-| Read, edit, download, backup: files come back exactly (blank lines and all)                   | ✅ slower: read in 3 KB pieces                                   | ✅ fast (`og_dump_file`, og-0.3.4+)              |
-| Rename                                                                                        | ✅ copy, then delete                                             | ✅ one atomic step (`og_rename_file`, og-0.3.5+) |
+| Read, edit, download, backup: files come back exactly (blank lines and all)                   | ✅ slower: read in 3 KB pieces                                   | ✅ fast (`gh_dump_file`, og-0.3.4+)              |
+| Rename                                                                                        | ✅ copy, then delete                                             | ✅ one atomic step (`gh_rename_file`, og-0.3.5+) |
 | Save from the editor with a syntax error                                                      | ⚠ the device's copy is deleted (your text stays in the editor)  | ✅ the device keeps the old file                 |
 | Scripts bigger than 32 KB                                                                     | ❌ stock iii's upload limit                                      | ✅                                               |
-| Memory in the explorer footer                                                                 | Lua's share only                                                 | ✅ Lua and the C heap (`og_mem`)                 |
-| Virtual grid drawer (LEDs, press keys from the browser)                                       | ❌ hidden                                                        | ✅ (`og_mirror`, `og_key`)                       |
+| Memory in the explorer footer                                                                 | Lua's share only                                                 | ✅ Lua and the C heap (`gh_mem`)                 |
+| Virtual grid drawer (LEDs, press keys from the browser)                                       | ❌ hidden                                                        | ✅ (`gh_mirror`, `gh_key`)                       |
 | MIDI monitor list                                                                             | ❌ says it needs og-0.3.8                                        | ✅ og-0.3.8+                                     |
 | MIDI counts and clock tempo with the drawer closed                                            | ❌                                                               | ✅ og-0.3.9+                                     |
 | Firmware update dialog                                                                        | shows the version and links to monome's firmware; no UF2 offered | ✅ newest release for your board                 |
 
-achene's firmware carries the same `og_` tools (it started from parterre's), so the parterre
-column applies to it too; its firmware updates come from achene's own releases.
+The firmware calls behind these are greenhouse's tools, `gh_*` (parterre 0.4 and later; until
+0.3.16 they were `og_*`, and parterre keeps those names working). greenhouse uses the `gh_` name
+and falls back to the `og_` one, so older parterre builds and achene, which carries the same
+tools as `og_*` (it started from parterre's), work too. achene's firmware updates come from
+achene's own releases.
 
 The ⚠ and ❌ rows on stock firmware are limits of iii itself; the fixes are in the
 [iii pull requests](https://codeberg.org/tehn/iii/pulls) (#10–#12).

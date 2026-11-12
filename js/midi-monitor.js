@@ -28,7 +28,7 @@ export class MidiMonitor {
         /** @type {ReturnType<typeof setTimeout> | 0} */
         this.statusTimer = 0;
         /**
-         * Counts from the device (og_midi_counts, og-0.3.9+): totals since it
+         * Counts from the device (gh_midi_counts, og-0.3.9+): totals since it
          * booted, and the totals at the last clear. null: count our own rows.
          * @type {{ in: number, out: number, bpm: number | null, base: { in: number, out: number } } | null}
          */

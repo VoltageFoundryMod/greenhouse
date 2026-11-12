@@ -1,9 +1,9 @@
 // @ts-check
 // iii's Lua API, for the editor's autocomplete and hover help and the offline
 // reference. Wording follows monome.org/docs/iii/code; functions the page
-// doesn't cover (fs_*, midi_tx, device_reset, og_*) are described from the
-// firmware. `device` limits an entry to grids, arcs, Open Grid firmware or
-// achene (its controls, key LEDs and screen; from achene's firmware help).
+// doesn't cover (fs_*, midi_tx, device_reset, pt_*, gh_*) are described from
+// the firmware. `device` limits an entry to grids, arcs, parterre firmware,
+// firmware with greenhouse's tools, or achene (its controls, key LEDs and screen; from achene's firmware help).
 
 /**
  * @typedef {object} ApiEntry
@@ -12,7 +12,7 @@
  * @property {string} doc one or two sentences
  * @property {string} group section in the reference
  * @property {'function' | 'event' | 'method' | 'property'} kind
- * @property {'grid' | 'arc' | 'og' | 'achene'} [device]
+ * @property {'grid' | 'arc' | 'parterre' | 'greenhouse' | 'achene'} [device]
  */
 
 /** @type {ApiEntry[]} */
@@ -417,70 +417,95 @@ export const III_API = [
     },
     { group: 'files', kind: 'function', name: 'fs_reformat', sig: 'fs_reformat()', doc: 'Erases every file.' },
 
-    // Open Grid firmware
+    // parterre firmware (0.4+; before, every one of these was og_*, and the
+    // og_ names still work there). gh_* are the calls greenhouse uses.
     {
         group: 'parterre',
         kind: 'function',
-        device: 'og',
-        name: 'og_set_mode',
-        sig: 'og_set_mode(m)',
+        device: 'parterre',
+        name: 'pt_set_mode',
+        sig: 'pt_set_mode(m)',
         doc: '0 = iii, 1 = monome serial (norns, serialosc). Saves the mode and reboots.'
     },
     {
         group: 'parterre',
         kind: 'function',
-        device: 'og',
-        name: 'og_keypads',
-        sig: 'og_keypads()',
-        doc: 'Returns a bitmask of the keypad boards that answer.'
+        device: 'parterre',
+        name: 'pt_keypads',
+        sig: 'pt_keypads()',
+        doc: 'Returns a bitmask of the keypad boards that answer (Open Grid kit).'
     },
     {
         group: 'parterre',
         kind: 'function',
-        device: 'og',
-        name: 'og_mem',
-        sig: 'og_mem(quiet)',
-        doc: 'Prints the C heap in KB and returns free, largest, used, peak, total, high_water (bytes); og_mem(true) only returns them.'
+        device: 'parterre',
+        name: 'pt_led',
+        sig: 'pt_led(r, g, b)',
+        doc: 'Sets the status LED color (0-255 each); pt_led() returns it to the mode color.'
     },
     {
-        group: 'parterre',
+        group: 'greenhouse tools',
         kind: 'function',
-        device: 'og',
-        name: 'og_key',
-        sig: 'og_key(x, y, z)',
+        device: 'greenhouse',
+        name: 'gh_mem',
+        sig: 'gh_mem(quiet)',
+        doc: 'Prints the C heap in KB and returns free, largest, used, peak, total, high_water (bytes); gh_mem(true) only returns them.'
+    },
+    {
+        group: 'greenhouse tools',
+        kind: 'function',
+        device: 'greenhouse',
+        name: 'gh_key',
+        sig: 'gh_key(x, y, z)',
         doc: 'Injects a key event as if pressed on the grid (1-based).'
     },
     {
-        group: 'parterre',
+        group: 'greenhouse tools',
         kind: 'function',
-        device: 'og',
-        name: 'og_led',
-        sig: 'og_led(r, g, b)',
-        doc: 'Sets the status LED color (0-255 each); og_led() returns it to the mode color.'
+        device: 'greenhouse',
+        name: 'gh_mirror',
+        sig: 'gh_mirror(on)',
+        doc: "Streams LED frames as ^^grid(...) lines (greenhouse's grid view)."
     },
     {
-        group: 'parterre',
+        group: 'greenhouse tools',
         kind: 'function',
-        device: 'og',
-        name: 'og_mirror',
-        sig: 'og_mirror(on)',
-        doc: "Streams LED frames as ^^grid(...) lines (greenhouse's virtual grid)."
-    },
-    {
-        group: 'parterre',
-        kind: 'function',
-        device: 'og',
-        name: 'og_dump_file',
-        sig: 'og_dump_file(name)',
+        device: 'greenhouse',
+        name: 'gh_dump_file',
+        sig: 'gh_dump_file(name)',
         doc: 'Prints a file as base64 lines, then its size and CRC-32 (used by backups).'
     },
     {
-        group: 'parterre',
+        group: 'greenhouse tools',
         kind: 'function',
-        device: 'og',
-        name: 'og_rename_file',
-        sig: 'og_rename_file(old, new)',
+        device: 'greenhouse',
+        name: 'gh_rename_file',
+        sig: 'gh_rename_file(old, new)',
         doc: 'Renames a file in one step, replacing new if it exists.'
+    },
+    {
+        group: 'greenhouse tools',
+        kind: 'function',
+        device: 'greenhouse',
+        name: 'gh_board',
+        sig: 'gh_board()',
+        doc: 'Returns the board this firmware is built for, e.g. "rp2040_zero" (picks the update file).'
+    },
+    {
+        group: 'greenhouse tools',
+        kind: 'function',
+        device: 'greenhouse',
+        name: 'gh_midi_monitor',
+        sig: 'gh_midi_monitor(on)',
+        doc: 'Reports every MIDI message sent and received as ^^midi(...) lines (the MIDI monitor).'
+    },
+    {
+        group: 'greenhouse tools',
+        kind: 'function',
+        device: 'greenhouse',
+        name: 'gh_midi_counts',
+        sig: 'gh_midi_counts(on)',
+        doc: 'Reports MIDI totals and the clock tempo as ^^midic(...) lines, at most twice a second.'
     },
     {
         group: 'achene',
@@ -786,12 +811,15 @@ export const LUA_GLOBALS = [
 
 /**
  * The entries that apply to a device.
- * @param {{ deviceId?: string | null, openGrid?: boolean }} device
+ * `tools`: the firmware has greenhouse's tools (parterre, achene); parterre's
+ * own pt_* calls then also show on grids.
+ * @param {{ deviceId?: string | null, tools?: boolean }} device
  * @returns {ApiEntry[]}
  */
-export function apiFor({ deviceId = null, openGrid = false } = {}) {
+export function apiFor({ deviceId = null, tools = false } = {}) {
     return III_API.filter((entry) => {
-        if (entry.device === 'og') return openGrid;
+        if (entry.device === 'greenhouse') return tools;
+        if (entry.device === 'parterre') return tools && (!deviceId || deviceId === 'grid');
         if (entry.device && deviceId && entry.device !== deviceId) return false;
         return true;
     });

@@ -1,8 +1,8 @@
 // @ts-check
 // Backup and restore of every file on the device, as one zip.
 //
-// Files are read byte for byte on any iii firmware: with og_dump_file() (Open
-// Grid) as base64 lines plus "size crc32"; elsewhere a few KB at a time, each
+// Files are read byte for byte on any iii firmware: with gh_dump_file() (parterre,
+// achene) as base64 lines plus "size crc32"; elsewhere a few KB at a time, each
 // piece turned into hex by Lua on the device (readFileInChunks). cat() lost
 // blank lines (diii drops empty output lines) and, on stock iii, everything
 // past its 16 KB output buffer.
@@ -31,7 +31,7 @@ export function luaQuote(value) {
 }
 
 /**
- * Decodes og_dump_file() output and checks its size and CRC.
+ * Decodes gh_dump_file() output and checks its size and CRC.
  * @param {string} name
  * @param {string[]} lines base64 lines, then "size crc32"
  * @returns {Uint8Array}
@@ -52,13 +52,13 @@ export function decodeDump(name, lines) {
 }
 
 /**
- * Whether the device has og_dump_file() (Open Grid firmware), i.e. exact file
+ * Whether the device has gh_dump_file() (parterre, achene), i.e. exact file
  * reads, and uploads that keep the old file when the new one doesn't compile.
  * @param {DeviceApi} device
  * @returns {Promise<boolean>}
  */
 export async function hasExactFiles(device) {
-    const probe = await device.capture('print(og_dump_file ~= nil)');
+    const probe = await device.capture('print((gh_dump_file or og_dump_file) ~= nil)');
     return probe.some((line) => line.trim() === 'true');
 }
 
@@ -68,10 +68,10 @@ export async function hasExactFiles(device) {
 const CHUNK_BYTES = 3072;
 
 /**
- * Reads a file on firmware without og_dump_file(): its size, then one command
+ * Reads a file on firmware without gh_dump_file(): its size, then one command
  * per CHUNK_BYTES that prints that piece as hex (Lua encodes it on the device,
  * so blank lines, '\r' and '\0' come through), each checked for length.
- * Slower than og_dump_file (Lua reads the whole file for every piece), but
+ * Slower than gh_dump_file (Lua reads the whole file for every piece), but
  * exact, and works for any size.
  * @param {DeviceApi} device
  * @param {string} name
@@ -98,14 +98,14 @@ export async function readFileInChunks(device, name) {
 }
 
 /**
- * Reads one file exactly: og_dump_file() when there is one, else in chunks.
+ * Reads one file exactly: gh_dump_file() when there is one, else in chunks.
  * @param {DeviceApi} device
  * @param {string} name
- * @param {boolean} exact result of hasExactFiles() (og_dump_file available)
+ * @param {boolean} exact result of hasExactFiles() (gh_dump_file available)
  * @returns {Promise<Uint8Array>}
  */
 export async function readDeviceFile(device, name, exact) {
-    if (exact) return decodeDump(name, await device.capture(`og_dump_file(${luaQuote(name)})`));
+    if (exact) return decodeDump(name, await device.capture(`(gh_dump_file or og_dump_file)(${luaQuote(name)})`));
     return readFileInChunks(device, name);
 }
 
@@ -116,7 +116,7 @@ export async function readDeviceFile(device, name, exact) {
  */
 export async function backupDevice(device) {
     const exact = await hasExactFiles(device);
-    if (!exact) device.log('backup: this firmware has no og_dump_file(); reading in pieces (slower)');
+    if (!exact) device.log('backup: this firmware has no gh_dump_file(); reading in pieces (slower)');
 
     const names = (await device.capture('for _, n in ipairs(fs_list_files()) do print(n) end'))
         .map((line) => line.trim())

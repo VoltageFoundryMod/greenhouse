@@ -59,7 +59,7 @@ export const uploadMethods = {
     },
 
     // keepOld: the firmware replaces the file only once the new one compiles
-    // (Open Grid), so don't delete it first; stock iii writes without
+    // (parterre), so don't delete it first; stock iii writes without
     // truncating, so a shorter file would keep the old one's tail.
     // onProgress(fraction) follows the lines sent.
     async sendScriptLinesToiii(fileName, text, { keepOld = false, onProgress = null } = {}) {

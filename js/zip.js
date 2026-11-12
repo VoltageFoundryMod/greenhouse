@@ -16,7 +16,7 @@ const CRC_TABLE = (() => {
 })();
 
 /**
- * CRC-32 as used by zip (and og_dump_file).
+ * CRC-32 as used by zip (and gh_dump_file).
  * @param {Uint8Array} data
  * @returns {number}
  */

@@ -1,5 +1,5 @@
 // Virtual grid: shows the LEDs of devices that can mirror them
-// (og_mirror, Open Grid firmware) and sends presses with og_key.
+// (gh_mirror, parterre firmware) and sends presses with gh_key.
 // Mixed into diiiApp (diii.js); `this` is the app.
 
 export const gridMethods = {
@@ -7,7 +7,7 @@ export const gridMethods = {
         let size = null;
         try {
             const lines = await this.executeLuaCapture(
-                'print(og_mirror ~= nil and grid_size_x ~= nil and (grid_size_x() .. "x" .. grid_size_y()) or "none")'
+                'print((gh_mirror or og_mirror) ~= nil and grid_size_x ~= nil and (grid_size_x() .. "x" .. grid_size_y()) or "none")'
             );
             const match = lines
                 .map((line) => String(line).trim())
@@ -103,7 +103,7 @@ export const gridMethods = {
 
     async setGridMirror(on) {
         try {
-            await this.executeLua(`og_mirror(${on ? 'true' : 'false'})`);
+            await this.executeLua(`(gh_mirror or og_mirror)(${on ? 'true' : 'false'})`);
         } catch {
             // disconnected; detectVirtualGrid() re-enables on reconnect
         }
@@ -194,6 +194,6 @@ export const gridMethods = {
 
     sendGridKey(cell, z) {
         if (!this.iiiDevice.isConnected || this.uploadInProgress) return;
-        this.executeLua(`og_key(${cell.dataset.x},${cell.dataset.y},${z})`).catch(() => {});
+        this.executeLua(`(gh_key or og_key)(${cell.dataset.x},${cell.dataset.y},${z})`).catch(() => {});
     }
 };

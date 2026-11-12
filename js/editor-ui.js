@@ -116,13 +116,13 @@ export const editorUiMethods = {
         if (draft) this.outputLine(`unsaved changes to ${draft.name} are kept; open it with edit to restore them`);
     },
 
-    // iii functions for the connected device: grid, arc or achene, plus og_*
-    // on Open Grid firmware (known once a file was read: og_dump_file exists)
+    // iii functions for the connected device: grid, arc or achene, plus gh_* and pt_*
+    // on firmware with greenhouse's tools (known once a file was read: gh_dump_file exists)
     currentApi() {
         const id = String(this.connectedDeviceLabel || '').toLowerCase();
         return apiFor({
             deviceId: id === 'grid' || id === 'arc' || id === 'achene' ? id : null,
-            openGrid: Boolean(this.editorExactFiles || this.gridSupported)
+            tools: Boolean(this.editorExactFiles || this.gridSupported)
         });
     },
 
@@ -142,7 +142,7 @@ export const editorUiMethods = {
     renderReferenceList() {
         if (!this.elements.referenceList) return;
         // not connected: everything, so the reference is useful offline too
-        const entries = this.iiiDevice.isConnected ? this.currentApi() : apiFor({ openGrid: true });
+        const entries = this.iiiDevice.isConnected ? this.currentApi() : apiFor({ tools: true });
         renderReference(this.elements.referenceList, entries, this.elements.referenceSearch?.value || '');
     },
 
@@ -230,7 +230,7 @@ export const editorUiMethods = {
         editor.focus();
     },
 
-    // Uploads the editor's text as fileName. On Open Grid firmware the old file
+    // Uploads the editor's text as fileName. On parterre firmware the old file
     // stays until the new one compiles; true when the device wrote it.
     async saveEditorAs(fileName) {
         if (!this.iiiDevice.isConnected) {

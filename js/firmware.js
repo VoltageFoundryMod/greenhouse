@@ -7,7 +7,7 @@
 /**
  * @typedef {object} Product
  * @property {string} name what greenhouse calls it
- * @property {string} prefix its versions: "<prefix>-X.Y.Z"
+ * @property {string[]} prefixes its versions: "<prefix>-X.Y.Z" (a renamed product keeps its old prefix)
  * @property {string} repo "owner/name" on GitHub
  * @property {RegExp} asset a release asset: (1) the version, (2) the board
  * @property {string} [fixedLayout] first version with the files at a fixed place in flash
@@ -17,16 +17,18 @@
 export const PRODUCTS = [
     {
         name: 'parterre',
-        prefix: 'og',
+        // parterre-X.Y.Z since 0.4.0, og-X.Y.Z (Open Grid) before
+        prefixes: ['parterre', 'og'],
         repo: 'VoltageFoundryMod/parterre',
-        asset: /^iii-open-grid-(og-\d+\.\d+\.\d+)-([a-z0-9_]+)\.uf2$/,
+        // parterre-0.4.0-rp2040_zero.uf2; before 0.4, iii-open-grid-og-0.3.16-rp2040_zero.uf2
+        asset: /^(?:iii-open-grid-)?((?:parterre|og)-\d+\.\d+\.\d+)-([a-z0-9_]+)\.uf2$/,
         // og-0.3.7 moved the files to a fixed place in flash; coming from an
         // older version they have to be restored once after updating
         fixedLayout: 'og-0.3.7'
     },
     {
         name: 'achene',
-        prefix: 'ach',
+        prefixes: ['ach'],
         repo: 'VoltageFoundryMod/achene',
         asset: /^achene-(ach-\d+\.\d+\.\d+)-([a-z0-9_]+)\.uf2$/
     }
@@ -36,14 +38,15 @@ export const PRODUCTS = [
 export const releasesPage = (product) => `https://github.com/${product.repo}/releases`;
 
 /**
- * The product a version belongs to ("og-0.3.6" -> parterre, "ach-0.0.5" ->
- * achene); null for others (stock iii reports e.g. "v260324").
+ * The product a version belongs to ("parterre-0.4.0" and "og-0.3.6" ->
+ * parterre, "ach-0.0.5" -> achene); null for others (stock iii reports e.g.
+ * "v260324").
  * @param {string | null | undefined} version
  * @returns {Product | null}
  */
 export function productOf(version) {
     const prefix = String(version || '').match(/^([a-z]+)-\d+\.\d+\.\d+/)?.[1];
-    return PRODUCTS.find((p) => p.prefix === prefix) || null;
+    return PRODUCTS.find((p) => prefix !== undefined && p.prefixes.includes(prefix)) || null;
 }
 
 /**

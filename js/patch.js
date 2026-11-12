@@ -367,7 +367,7 @@ export const patchMethods = {
         let caps = { achene: false, grid: false, og: false, size: { x: 16, y: 8 }, kind: 'iii device' };
         try {
             const lines = await this.executeLuaCapture(
-                'print("caps:" .. (key_led and "a" or "-") .. (grid_led and "g" or "-") .. (og_mirror and "o" or "-")' +
+                'print("caps:" .. (key_led and "a" or "-") .. (grid_led and "g" or "-") .. ((gh_mirror or og_mirror) and "o" or "-")' +
                     ' .. (grid_size_x and (grid_size_x() .. "x" .. grid_size_y()) or ""))'
             );
             const m = lines
