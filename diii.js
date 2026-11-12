@@ -228,7 +228,6 @@ class diiiApp {
         };
 
         on(this.elements.connectionBtn, 'click', () => this.toggleConnection());
-        on(this.elements.replStatusPill, 'click', () => this.toggleConnection());
         on(this.elements.replInput, 'keydown', (e) => this.handleReplInput(e));
         on(document, 'keydown', (e) => this.handleGlobalShortcuts(e));
         on(this.elements.toggleExplorerBtn, 'click', () => this.toggleExplorer());

@@ -593,15 +593,6 @@ body.is-resizing-explorer * {
     border: 1px solid var(--neutral-trim);
     border-radius: 999px;
     padding: 6px 10px;
-    cursor: pointer;
-    transition:
-        color 0.2s,
-        border-color 0.2s;
-}
-
-.repl-status-pill:hover {
-    color: var(--interactive-selected);
-    border-color: var(--interactive-medium);
 }
 
 .header-left .repl-status-pill {
