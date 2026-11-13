@@ -214,6 +214,30 @@ local function fmt(v)
   return string.format(math.abs(v) < 10 and "%.2f" or "%.1f", v)
 end
 
+local NOTE_NAMES = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"}
+
+local function note_name(n)
+  n = math.floor(n + 0.5)
+  return NOTE_NAMES[n % 12 + 1] .. (n // 12 - 1)
+end
+
+-- a value as a block shows it, from its `as` field: names for lo, lo+1...
+-- ("off,on", "sine,tri,saw"), a format where # is the number ("ch #"),
+-- note for a note name (C4), any other text after the number ("ms"), or
+-- nothing for the number alone
+local function show(node, v)
+  local as = node.p.as
+  if not as or as == "" then return fmt(v) end
+  if as == "note" then return note_name(v) end
+  if as:find(",", 1, true) then
+    local names = {}
+    for name in (as .. ","):gmatch("([^,]*),") do names[#names + 1] = name end
+    return names[clamp(round(v - (node.p.lo or 0)) + 1, 1, #names)]
+  end
+  if as:find("#", 1, true) then return (as:gsub("#", fmt(v))) end
+  return fmt(v) .. " " .. as
+end
+
 -- text cut to fit w and centred in it
 local function text_in(x, y, w, s, c)
   s = tostring(s)
@@ -264,7 +288,7 @@ widget("enc_label", {
   end,
   draw = function(node, x, y, w, h)
     local recent = node.changed and B.ticks - node.changed < 40
-    text_in(x, y, w - 2, recent and fmt(node.v) or (node.p.label or ""))
+    text_in(x, y, w - 2, recent and show(node, node.v) or (node.p.label or ""))
     local len = math.floor((w - 4) * norm(node, node.v) + 0.5)
     if len > 0 then screen_line(x + 1, y + h - 1, x + len, y + h - 1, 1) end
   end,
@@ -293,7 +317,7 @@ widget("slider", {
   draw = function(node, x, y, w, h)
     local top = y + 1
     if h >= 30 then
-      text_in(x, y, w - 2, fmt(node.v))
+      text_in(x, y, w - 2, show(node, node.v))
       top = y + 9
     end
     text_in(x, y + h - 8, w - 2, node.p.label or "")
@@ -338,7 +362,7 @@ widget("knob", {
     -- the needle: from the centre to the arc; the number sits in the gap
     -- at the bottom of the arc, out of its way
     screen_line(cx, cy, ex, ey, 1)
-    if r >= 8 then text_in(cx - r + 4, cy + r - 6, 2 * r - 7, fmt(node.v)) end
+    if r >= 8 then text_in(cx - r + 4, cy + r - 6, 2 * r - 7, show(node, node.v)) end
     text_in(x, y + h - 8, w - 2, node.p.label or "")
   end,
 })
@@ -352,10 +376,10 @@ widget("number", {
     if h >= 18 then
       local top = y + (h - 18) // 2
       text_in(x, top, w - 2, node.p.label or "")
-      text_in(x, top + 10, w - 2, fmt(node.v))
+      text_in(x, top + 10, w - 2, show(node, node.v))
     else
       -- one line: the number always whole, the label shortened to fit
-      local num, label = fmt(node.v), node.p.label or ""
+      local num, label = show(node, node.v), node.p.label or ""
       while #label > 0 and screen_text_width(label .. " " .. num) > w - 2 do label = label:sub(1, -2) end
       text_in(x, y + (h - 8) // 2, w - 2, label ~= "" and (label .. " " .. num) or num)
     end
@@ -418,7 +442,7 @@ widget("bars", {
       bottom = y + h - 9
       local recent = node.changed and B.ticks - node.changed < 40
       local label = node.p.label or ""
-      if recent then label = fmt(node.vals[node.which] or 0) end
+      if recent then label = show(node, node.vals[node.which] or 0) end
       text_in(x, bottom + 1, w - 2, label)
     end
     local cw = (w - 1) // n
@@ -474,12 +498,6 @@ local STEP_KEYS = {
   ["K1-K4"] = {1, 2, 3, 4}, ["K5-K8"] = {5, 6, 7, 8}, ["K10-K13"] = {10, 11, 12, 13},
   ["K5-K8 K10-K13"] = {5, 6, 7, 8, 10, 11, 12, 13},
 }
-local NOTE_NAMES = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"}
-
-local function note_name(n)
-  n = math.floor(n)
-  return NOTE_NAMES[n % 12 + 1] .. (n // 12 - 1)
-end
 
 local function step_count(node) return clamp(math.floor(node.len or node.p.steps or 8), 1, 64) end
 

@@ -102,6 +102,7 @@ A name over an encoder (top row) with its value as a line; turning shows the num
 | setting | default | takes |
 | --- | --- | --- |
 | label | `cutoff` | text |
+| shows as | (empty) | names for lo, lo+1… (off,on), a format with # for the number (ch #), note (C4), a unit (ms), or empty for the number |
 | row | `top` | `top`, `middle`, `middle top`, `middle bottom`, `bottom` |
 | column | `1` | 1 to 4 |
 | width | `1` | 1 to 4 |
@@ -132,6 +133,7 @@ A vertical bar with its name and value.
 | setting | default | takes |
 | --- | --- | --- |
 | label | `level` | text |
+| shows as | (empty) | names for lo, lo+1… (off,on), a format with # for the number (ch #), note (C4), a unit (ms), or empty for the number |
 | row | `middle` | `top`, `middle`, `middle top`, `middle bottom`, `bottom` |
 | column | `1` | 1 to 4 |
 | width | `1` | 1 to 4 |
@@ -148,6 +150,7 @@ Up to four thin vertical bars, one per input, side by side: two of one column ea
 | setting | default | takes |
 | --- | --- | --- |
 | label | `E5-E8` | text |
+| shows as | (empty) | names for lo, lo+1… (off,on), a format with # for the number (ch #), note (C4), a unit (ms), or empty for the number |
 | bars | `4` | 1 to 4 |
 | style | `frame` | `frame`, `solid` |
 | row | `middle` | `top`, `middle`, `middle top`, `middle bottom`, `bottom` |
@@ -166,6 +169,7 @@ An arc with the value inside and the name under it (largest in the full middle r
 | setting | default | takes |
 | --- | --- | --- |
 | label | `res` | text |
+| shows as | (empty) | names for lo, lo+1… (off,on), a format with # for the number (ch #), note (C4), a unit (ms), or empty for the number |
 | row | `middle` | `top`, `middle`, `middle top`, `middle bottom`, `bottom` |
 | column | `1` | 1 to 4 |
 | width | `1` | 1 to 4 |
@@ -182,6 +186,7 @@ A name and its value as text.
 | setting | default | takes |
 | --- | --- | --- |
 | label | `bpm` | text |
+| shows as | (empty) | names for lo, lo+1… (off,on), a format with # for the number (ch #), note (C4), a unit (ms), or empty for the number |
 | row | `middle top` | `top`, `middle`, `middle top`, `middle bottom`, `bottom` |
 | column | `1` | 1 to 4 |
 | width | `1` | 1 to 4 |

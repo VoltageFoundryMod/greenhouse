@@ -90,13 +90,13 @@ function nodeHtml(type) {
                       : p.type === 'code'
                         ? 'Lua; drag the corner to resize'
                         : 'type a number or use the arrows';
-            const attrs = `df-${key} title="${escapeHtml(`${p.label}: ${how}`)}"`;
+            const attrs = `df-${key} title="${escapeHtml(`${p.label}: ${p.help || how}`)}"`;
             let input;
             if (p.type === 'select') {
                 const options = (p.options || []).map((o) => `<option>${escapeHtml(o)}</option>`).join('');
                 input = `<select ${attrs}>${options}</select>`;
             } else if (p.type === 'text') {
-                input = `<input type="text" maxlength="20" ${attrs}>`;
+                input = `<input type="text" maxlength="${p.len ?? 20}" ${attrs}>`;
             } else if (p.type === 'code') {
                 // its own row: code wants the width
                 return (

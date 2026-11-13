@@ -149,6 +149,7 @@ export function compactLua(text) {
  * @property {boolean} [wire] a number can set it by wire too: the block gets an input for it, after its own
  *   (wiredParams), shown while a wire is drawn and while one is plugged in
  * @property {number} [len] longest text it takes (20 when not given)
+ * @property {string} [help] what it takes, for its tooltip and the manual (instead of a generic hint)
  *
  * @typedef {object} Block
  * @property {string} label
@@ -162,6 +163,16 @@ export function compactLua(text) {
  */
 
 const COLOURS = ['white', 'red', 'amber', 'green', 'cyan', 'blue', 'pink'];
+
+/** How a screen block shows its value (lua: show): names, a format with #, note, or a unit. */
+/** @type {Param} */
+const AS = {
+    type: 'text',
+    label: 'shows as',
+    default: '',
+    len: 60,
+    help: 'names for lo, lo+1… (off,on), a format with # for the number (ch #), note (C4), a unit (ms), or empty for the number'
+};
 
 /** The page a control or screen block belongs to: it acts and shows only while a page block shows that page. */
 /** @type {Param} */
@@ -650,6 +661,7 @@ export const BLOCKS = {
         doc: 'a name over an encoder (top row) with its value as a line; turning shows the number for a moment',
         params: {
             label: { type: 'text', label: 'label', default: 'cutoff' },
+            as: AS,
             ...place('top', 1),
             lo: { type: 'number', label: 'lo', default: 0, wire: true },
             hi: { type: 'number', label: 'hi', default: 127, wire: true }
@@ -674,6 +686,7 @@ export const BLOCKS = {
         doc: 'a vertical bar with its name and value',
         params: {
             label: { type: 'text', label: 'label', default: 'level' },
+            as: AS,
             ...place('middle', 1),
             lo: { type: 'number', label: 'lo', default: 0, wire: true },
             hi: { type: 'number', label: 'hi', default: 127, wire: true }
@@ -687,6 +700,7 @@ export const BLOCKS = {
         doc: 'up to four thin vertical bars, one per input, side by side: two of one column each put eight values (E5–E12) on half the screen. In the full middle row its name sits under them, and the bar just moved shows its number there for a moment',
         params: {
             label: { type: 'text', label: 'label', default: 'E5-E8' },
+            as: AS,
             bars: { type: 'int', label: 'bars', default: 4, min: 1, max: 4 },
             style: { type: 'select', label: 'style', default: 'frame', options: ['frame', 'solid'] },
             ...place('middle', 1),
@@ -702,6 +716,7 @@ export const BLOCKS = {
         doc: 'an arc with the value inside and the name under it (largest in the full middle row)',
         params: {
             label: { type: 'text', label: 'label', default: 'res' },
+            as: AS,
             ...place('middle', 1),
             lo: { type: 'number', label: 'lo', default: 0, wire: true },
             hi: { type: 'number', label: 'hi', default: 127, wire: true }
@@ -715,6 +730,7 @@ export const BLOCKS = {
         doc: 'a name and its value as text',
         params: {
             label: { type: 'text', label: 'label', default: 'bpm' },
+            as: AS,
             ...place('middle top', 1)
         }
     },

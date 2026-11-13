@@ -37,6 +37,7 @@ const code = (s) => '`' + String(s).replace(/`/g, "'") + '`';
 function range(p) {
     if (p.type === 'select') return (p.options ?? []).map((o) => code(o)).join(', ');
     if (p.type === 'code') return 'Lua code';
+    if (p.help) return p.help;
     if (p.type === 'text') return 'text';
     const lo = p.min,
         hi = p.max;
