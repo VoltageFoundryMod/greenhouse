@@ -139,6 +139,24 @@ A vertical bar with its name and value.
 | lo • | `0` | a number |
 | hi • | `127` | a number |
 
+### bars
+
+Up to four thin vertical bars, one per input, side by side: two of one column each put eight values (E5–E12) on half the screen. In the full middle row its name sits under them, and the bar just moved shows its number there for a moment.
+
+*4 inputs (and 2 for settings •), no outputs*
+
+| setting | default | takes |
+| --- | --- | --- |
+| label | `E5-E8` | text |
+| bars | `4` | 1 to 4 |
+| style | `frame` | `frame`, `solid` |
+| row | `middle` | `top`, `middle`, `middle top`, `middle bottom`, `bottom` |
+| column | `1` | 1 to 4 |
+| width | `1` | 1 to 4 |
+| page | `always` | `always`, `1`, `2`, `3`, `4` |
+| lo • | `0` | a number |
+| hi • | `127` | a number |
+
 ### knob
 
 An arc with the value inside and the name under it (largest in the full middle row).
@@ -664,6 +682,7 @@ beside what is there.
 | One key, two jobs for an encoder | key → toggle → route (2), encoder → route (1) → two values | route sends input 1 out of output 1 while input 2 is 0, out of output 2 otherwise. A toggle on a key picks the output, so E1 sends one CC or the other. The modes example does this for a sequencer. |
 | A channel you turn, kept at power-off | encoder → value (1..16) → midi cc ch, keep | A midi cc's ch has an input of its own (it shows while you draw a wire): E4 through a value block from 1 to 16 turns the channel E1's CC goes out on. keep writes what the blocks remember to the device when it changes, so after a power cut the patch starts on the same channel and value. Give keep a name of its own for each patch. |
 | A shift key: hold K4 for settings | key K4 → page (hold); E1 on page 1 → a CC, E1 on page 2 → its channel | A block's page setting puts it on one page: it acts and shows only while that page is shown, and always means every page. page in hold mode shows page 2 while K4 is held. E1 is two encoder blocks, one on each page, each with its own value, so the CC doesn't jump when you come back: on page 1 it turns the cutoff, on page 2 (K4 held) the channel, with its own label over E1. |
+| Thin bars for E5–E8 | encoders E5–E8 → values → bars (inputs 1–4) and midi cc | bars draws up to four thin bars side by side, one per input, in one column of the screen. Here E5 to E8 each turn a value that sends a CC and moves its bar; the bar just moved shows its number under them for a moment. A second bars block in column 4, fed by E9–E12, puts all eight on half the screen. |
 
 <!-- end if -->
 

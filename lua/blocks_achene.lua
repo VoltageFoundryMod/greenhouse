@@ -391,6 +391,58 @@ widget("graph", {
   end,
 })
 
+--@part bars needs screen widgets
+-- bars: up to four thin vertical bars, one per input, side by side in the
+-- block's place (two of one column each: eight bars on half the screen).
+-- With room (the full middle row) its name sits under them, and a bar just
+-- moved shows its number there for a moment. frame draws each bar's
+-- outline, solid only the fill over a baseline.
+widget("bars", {
+  inputs = 4, where = "middle",
+  init = function(node)
+    node.vals = node.old and node.old.vals or {}
+  end,
+  input = function(node, i, v)
+    -- a bar's first value (the start) isn't a move
+    if node.vals[i] ~= nil and node.vals[i] ~= v then node.changed, node.which = B.ticks, i end
+    node.vals[i] = v
+    screen_dirty = true
+  end,
+  tick = function(node)
+    if node.changed and B.ticks - node.changed == 40 then screen_dirty = true end
+  end,
+  draw = function(node, x, y, w, h)
+    local n = clamp(math.floor(node.p.bars or 4), 1, 4)
+    local bottom = y + h
+    if h >= 30 then
+      bottom = y + h - 9
+      local recent = node.changed and B.ticks - node.changed < 40
+      local label = node.p.label or ""
+      if recent then label = fmt(node.vals[node.which] or 0) end
+      text_in(x, bottom + 1, w - 2, label)
+    end
+    local cw = (w - 1) // n
+    local gap = cw >= 6 and 2 or 1
+    local bw, top = cw - gap, y + 1
+    local bh = bottom - 1 - top
+    if bw < 1 or bh < 3 then return end
+    local solid = node.p.style == "solid"
+    for i = 1, n do
+      local bx = x + (i - 1) * cw + gap // 2
+      local f = norm(node, node.vals[i] or node.p.lo or 0)
+      if solid then
+        local fill = math.floor(bh * f + 0.5)
+        screen_line(bx, top + bh - 1, bx + bw - 1, top + bh - 1, 1)
+        if fill > 0 then screen_rect(bx, top + bh - fill, bw, fill, 1, true) end
+      else
+        screen_rect(bx, top, bw, bh, 1, false)
+        local fill = math.floor((bh - 2) * f + 0.5)
+        if fill > 0 and bw > 2 then screen_rect(bx + 1, top + bh - 1 - fill, bw - 2, fill, 1, true) end
+      end
+    end
+  end,
+})
+
 --@part text needs widgets
 -- fixed words
 widget("text", {

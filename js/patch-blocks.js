@@ -679,6 +679,21 @@ export const BLOCKS = {
             hi: { type: 'number', label: 'hi', default: 127, wire: true }
         }
     },
+    bars: {
+        label: 'bars',
+        group: 'screen',
+        inputs: 4,
+        outputs: 0,
+        doc: 'up to four thin vertical bars, one per input, side by side: two of one column each put eight values (E5–E12) on half the screen. In the full middle row its name sits under them, and the bar just moved shows its number there for a moment',
+        params: {
+            label: { type: 'text', label: 'label', default: 'E5-E8' },
+            bars: { type: 'int', label: 'bars', default: 4, min: 1, max: 4 },
+            style: { type: 'select', label: 'style', default: 'frame', options: ['frame', 'solid'] },
+            ...place('middle', 1),
+            lo: { type: 'number', label: 'lo', default: 0, wire: true },
+            hi: { type: 'number', label: 'hi', default: 127, wire: true }
+        }
+    },
     knob: {
         label: 'knob',
         group: 'screen',
@@ -1744,6 +1759,42 @@ export const RECIPES = [
                 [9, 1, 6, 3],
                 [9, 1, 10, 1]
             ]
+        }
+    },
+    {
+        name: 'bars',
+        title: 'Thin bars for E5–E8',
+        chain: 'encoders E5–E8 → values → bars (inputs 1–4) and midi cc',
+        text: 'bars draws up to four thin bars side by side, one per input, in one column of the screen. Here E5 to E8 each turn a value that sends a CC and moves its bar; the bar just moved shows its number under them for a moment. A second bars block in column 4, fed by E9–E12, puts all eight on half the screen.',
+        patch: {
+            nodes: [
+                ...[5, 6, 7, 8].flatMap((e, i) => [
+                    { id: 1 + i * 3, type: 'encoder', params: { n: e }, x: 0, y: i * 130 },
+                    { id: 2 + i * 3, type: 'accum', params: { lo: 0, hi: 127, start: 0 }, x: 170, y: i * 130 },
+                    { id: 3 + i * 3, type: 'midi_cc', params: { cc: 20 + i, ch: 1 }, x: 400, y: i * 130 }
+                ]),
+                {
+                    id: 13,
+                    type: 'bars',
+                    params: {
+                        label: 'E5-E8',
+                        bars: 4,
+                        style: 'frame',
+                        where: 'middle',
+                        col: 3,
+                        span: 1,
+                        lo: 0,
+                        hi: 127
+                    },
+                    x: 620,
+                    y: 120
+                }
+            ],
+            wires: [0, 1, 2, 3].flatMap((i) => [
+                /** @type {[number, number, number, number]} */ ([1 + i * 3, 1, 2 + i * 3, 1]),
+                /** @type {[number, number, number, number]} */ ([2 + i * 3, 1, 3 + i * 3, 1]),
+                /** @type {[number, number, number, number]} */ ([2 + i * 3, 1, 13, i + 1])
+            ])
         }
     },
     {

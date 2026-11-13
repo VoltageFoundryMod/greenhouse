@@ -388,6 +388,7 @@
 .pn-enc_label .pn-title,
 .pn-key_label .pn-title,
 .pn-slider .pn-title,
+.pn-bars .pn-title,
 .pn-knob .pn-title,
 .pn-number .pn-title,
 .pn-graph .pn-title,
@@ -549,6 +550,22 @@
 
 .pn-route .output_2::after {
     content: '1';
+}
+
+.pn-bars .input_1::after {
+    content: '1';
+}
+
+.pn-bars .input_2::after {
+    content: '2';
+}
+
+.pn-bars .input_3::after {
+    content: '3';
+}
+
+.pn-bars .input_4::after {
+    content: '4';
 }
 
 .pn-steps .input_1::after {

@@ -233,7 +233,8 @@ them by dragging. A block's <b>page</b> setting puts it on one page of several (
 the encoders, keys, key LEDs and screen blocks of one page act and show only while it's the page shown, so one
 encoder can do another job on page 2, each with its own value. A <b>page</b> block picks the page: <i>hold</i>
 shows its page while a key is held, a shift (K4 → page, the settings of page 2 over E1–E4 while you hold it);
-<i>step</i> moves through them from an encoder or a key; <i>number</i> takes the page from a counter. Two
+<i>step</i> moves through them from an encoder or a key; <i>number</i> takes the page from a counter.
+<b>bars</b> fits four thin bars in one column: two of them show E5–E12 on half the screen. Two
 examples (examples… in the bar) put it together: <b>sequencer</b>, 16 steps drawn as
 bars across the middle and played from the keys under E5–E12 (press a step, then turn E1 for its note), and
 <b>controller</b>, four CCs on E1–E4 named over their encoders with knobs and sliders under them.</p>
