@@ -85,16 +85,22 @@ function nodeHtml(type) {
             const how =
                 p.type === 'select'
                     ? 'pick one'
-                    : p.type === 'text'
-                      ? 'type a name'
-                      : p.type === 'code'
-                        ? 'Lua; drag the corner to resize'
-                        : 'type a number or use the arrows';
+                    : p.type === 'check'
+                      ? 'tick or untick'
+                      : p.type === 'text'
+                        ? 'type a name'
+                        : p.type === 'code'
+                          ? 'Lua; drag the corner to resize'
+                          : 'type a number or use the arrows';
             const attrs = `df-${key} title="${escapeHtml(`${p.label}: ${p.help || how}`)}"`;
             let input;
             if (p.type === 'select') {
                 const options = (p.options || []).map((o) => `<option>${escapeHtml(o)}</option>`).join('');
                 input = `<select ${attrs}>${options}</select>`;
+            } else if (p.type === 'check') {
+                // Drawflow keeps a field's value: yes or no, set on each click
+                // (an input listener on the canvas), shown ticked by markPatchSettingPorts
+                input = `<input type="checkbox" class="pn-check" value="no" ${attrs}>`;
             } else if (p.type === 'text') {
                 input = `<input type="text" maxlength="${p.len ?? 20}" ${attrs}>`;
             } else if (p.type === 'code') {
@@ -304,6 +310,18 @@ export const patchMethods = {
         this.bindPatchClipboard(editor);
         this.bindPatchMenu(editor);
         this.bindPatchPortTips();
+        // a tick box's value is what Drawflow keeps: yes or no, set before
+        // Drawflow reads it (this listener runs first, on the way down)
+        this.elements.patchCanvas.addEventListener(
+            'input',
+            (event) => {
+                const box = event.target;
+                if (box instanceof HTMLInputElement && box.classList.contains('pn-check')) {
+                    box.value = box.checked ? 'yes' : 'no';
+                }
+            },
+            true
+        );
         editor.on('zoom', () => this.updatePatchZoomLabel());
         // Drawflow draws a wire from its blocks' positions on screen, which
         // are all zero while the drawer is hidden: redraw them whenever the
@@ -564,6 +582,9 @@ export const patchMethods = {
         const el = document.getElementById(`node-${id}`);
         const block = node && BLOCKS[node.name];
         if (!block || !el) return;
+        for (const box of el.querySelectorAll('input.pn-check')) {
+            /** @type {HTMLInputElement} */ (box).checked = /** @type {HTMLInputElement} */ (box).value === 'yes';
+        }
         wiredParams(node.name).forEach(([key, p], k) => {
             const n = block.inputs + k + 1;
             const port = /** @type {HTMLElement | null} */ (el.querySelector(`.inputs .input_${n}`));

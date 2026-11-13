@@ -451,9 +451,9 @@ Shape messages on their way.
 
 ### value
 
-Stores and accumulates a value, keeps it between lo and hi: turns encoder steps into a value.
+Stores and accumulates a value, keeps it between lo and hi: turns encoder steps into a value. Input 2 sets the value without sending it (from a get var, to start where a kept value is).
 
-*1 input (and 2 for settings •), 1 output*
+*2 inputs (and 2 for settings •), 1 output*
 
 | setting | default | takes |
 | --- | --- | --- |
@@ -589,34 +589,24 @@ Input 1 stores and sends; input 2 stores quietly; input 3 (not 0) sends what is 
 
 ### set var
 
-Stores a value under a name; every get var with that name sends it on (no wire needed).
+Stores a value under a name; every get var with that name sends it on (no wire needed). With keep ticked, the value is kept on the device and comes back when the patch starts again, even after a power cut: written only when it changed, at most once a minute.
 
 *1 input, no outputs*
 
 | setting | default | takes |
 | --- | --- | --- |
 | name | `x` | text |
+| keep | unticked | ticked or not: kept on the device, back at the next start |
 
 ### get var
 
-Sends the value each time a set var with the same name stores one.
+Sends the value each time a set var with the same name stores one, and when the patch starts (a kept value too).
 
 *no inputs, 1 output*
 
 | setting | default | takes |
 | --- | --- | --- |
 | name | `x` | text |
-
-### keep
-
-Keeps what the patch's blocks remember (values, toggles, counters, steps, the page) on the device, so a patch that starts at power-up starts where it was: written only when something changed, at most every 'every' seconds, and read when the patch starts. Save input (not 0) writes now; forget input (not 0) drops what was kept. Give each patch its own name.
-
-*2 inputs, no outputs*
-
-| setting | default | takes |
-| --- | --- | --- |
-| name | `patch` | text |
-| every s | `10` | 2 to 600 |
 
 ## output
 
@@ -700,7 +690,7 @@ beside what is there.
 | An LFO around a knob | lfo → scale → math a, encoder → value → math b, math → midi cc | math's input 1 computes and sends, its input 2 only sets b: put the source that should send (the LFO) on input 1 and the setting (the encoder) on input 2. Here the LFO sways ±20 around where E2 is. |
 | A tempo shared without a wire | encoder → value → set var "tempo" … get var "tempo" → metro (bpm), number | set var stores a value under a name and every get var with that name sends it on, anywhere in the patch. Here E3 sets a tempo (60 to 200 BPM) that a metro's input 2 follows, four beats to a quarter note; K16's LED blinks with it. |
 | One key, two jobs for an encoder | key → toggle → route (2), encoder → route (1) → two values | route sends input 1 out of output 1 while input 2 is 0, out of output 2 otherwise. A toggle on a key picks the output, so E1 sends one CC or the other. The modes example does this for a sequencer. |
-| A channel you turn, kept at power-off | encoder → value (1..16) → midi cc ch, keep | A midi cc's ch has an input of its own (it shows while you draw a wire): E4 through a value block from 1 to 16 turns the channel E1's CC goes out on. keep writes what the blocks remember to the device when it changes, so after a power cut the patch starts on the same channel and value. Give keep a name of its own for each patch. |
+| A channel you turn, kept at power-off | encoder → value (1..16) → set var ch (keep); get var ch → midi cc ch, value set | A midi cc's ch has an input of its own (it shows while you draw a wire). E4 turns a value from 1 to 16 into the set var ch, with keep ticked: the channel is kept on the device (only when it changed, at most once a minute) and comes back when the patch starts, even after a power cut. get var ch sends it to the CC's ch and to the value's set input, so turning E4 goes on from the kept channel. |
 | A shift key: hold K4 for settings | key K4 → page (hold); E1 on page 1 → a CC, E1 on page 2 → its channel | A block's page setting puts it on one page: it acts and shows only while that page is shown, and always means every page. page in hold mode shows page 2 while K4 is held. E1 is two encoder blocks, one on each page, each with its own value, so the CC doesn't jump when you come back: on page 1 it turns the cutoff, on page 2 (K4 held) the channel, with its own label over E1. |
 | Thin bars for E5–E8 | encoders E5–E8 → values → bars (inputs 1–4) and midi cc | bars draws up to four thin bars side by side, one per input, in one column of the screen. Here E5 to E8 each turn a value that sends a CC and moves its bar; the bar just moved shows its number under them for a moment. A second bars block in column 4, fed by E9–E12, puts all eight on half the screen. |
 

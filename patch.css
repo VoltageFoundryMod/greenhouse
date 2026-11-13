@@ -328,6 +328,16 @@
     width: 84px;
 }
 
+/* a tick box (set var's keep): its own size, at the right edge */
+.pn-field input[type='checkbox'] {
+    width: 14px;
+    height: 14px;
+    margin: 0 2px 0 0;
+    padding: 0;
+    accent-color: #9fe0e0;
+    cursor: pointer;
+}
+
 /* the lua block's code: under its label, as wide as the block */
 .pn-code {
     flex-direction: column;
@@ -380,8 +390,7 @@
 
 .pn-memory .pn-title,
 .pn-var_set .pn-title,
-.pn-var_get .pn-title,
-.pn-keep .pn-title {
+.pn-var_get .pn-title {
     color: #9fe0e0;
 }
 
@@ -521,12 +530,8 @@
     content: 'recall';
 }
 
-.pn-keep .input_1::after {
-    content: 'save';
-}
-
-.pn-keep .input_2::after {
-    content: 'forget';
+.pn-accum .input_2::after {
+    content: 'set';
 }
 
 .pn-metro .input_2::after {

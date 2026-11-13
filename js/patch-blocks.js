@@ -4,7 +4,7 @@
 // outputs and parameters.
 
 /** Version of the runtime (lua/blocks*.lua) this diii carries; a patch file says which it was made with. */
-export const RUNTIME_VERSION = 10;
+export const RUNTIME_VERSION = 11;
 
 /**
  * The runtime's source files, in the order their parts join: the core and
@@ -139,7 +139,7 @@ export function compactLua(text) {
 
 /**
  * @typedef {object} Param
- * @property {'int' | 'number' | 'text' | 'select' | 'code'} type
+ * @property {'int' | 'number' | 'text' | 'select' | 'code' | 'check'} type
  * @property {string} label shown in the node
  * @property {number | string} default
  * @property {number} [min]
@@ -238,15 +238,20 @@ export const BLOCKS = {
         doc: 'a slow wave, 0 to 1, updates 50 times a second',
         params: {
             rate: { type: 'number', label: 'Hz', default: 0.5, min: 0.01, max: 20, step: 0.05, wire: true },
-            shape: { type: 'select', label: 'shape', default: 'sine', options: ['sine', 'triangle', 'saw', 'square'] }
+            shape: {
+                type: 'select',
+                label: 'shape',
+                default: 'sine',
+                options: ['sine', 'triangle', 'saw', 'square']
+            }
         }
     },
     accum: {
         label: 'value',
         group: 'process',
-        inputs: 1,
+        inputs: 2,
         outputs: 1,
-        doc: 'stores and accumulates a value, keeps it between lo and hi: turns encoder steps into a value',
+        doc: 'stores and accumulates a value, keeps it between lo and hi: turns encoder steps into a value. Input 2 sets the value without sending it (from a get var, to start where a kept value is)',
         params: {
             lo: { type: 'number', label: 'lo', default: 0, wire: true },
             hi: { type: 'number', label: 'hi', default: 127, wire: true },
@@ -631,27 +636,19 @@ export const BLOCKS = {
         group: 'memory',
         inputs: 1,
         outputs: 0,
-        doc: 'stores a value under a name; every get var with that name sends it on (no wire needed)',
-        params: { name: { type: 'text', label: 'name', default: 'x' } }
+        doc: 'stores a value under a name; every get var with that name sends it on (no wire needed). With keep ticked, the value is kept on the device and comes back when the patch starts again, even after a power cut: written only when it changed, at most once a minute',
+        params: {
+            name: { type: 'text', label: 'name', default: 'x' },
+            keep: { type: 'check', label: 'keep', default: 'no', help: 'kept on the device, back at the next start' }
+        }
     },
     var_get: {
         label: 'get var',
         group: 'memory',
         inputs: 0,
         outputs: 1,
-        doc: 'sends the value each time a set var with the same name stores one',
+        doc: 'sends the value each time a set var with the same name stores one, and when the patch starts (a kept value too)',
         params: { name: { type: 'text', label: 'name', default: 'x' } }
-    },
-    keep: {
-        label: 'keep',
-        group: 'memory',
-        inputs: 2,
-        outputs: 0,
-        doc: "keeps what the patch's blocks remember (values, toggles, counters, steps, the page) on the device, so a patch that starts at power-up starts where it was: written only when something changed, at most every 'every' seconds, and read when the patch starts. Save input (not 0) writes now; forget input (not 0) drops what was kept. Give each patch its own name",
-        params: {
-            name: { type: 'text', label: 'name', default: 'patch' },
-            every: { type: 'number', label: 'every s', default: 10, min: 2, max: 600 }
-        }
     },
     enc_label: {
         label: 'enc label',
@@ -854,7 +851,9 @@ export function wiredLua(types) {
         const list = wiredParams(type).map(([key, p]) =>
             [`"${key}"`, p.min ?? 'false', p.max ?? 'false', p.type === 'int'].join(',')
         );
-        if (list.length) lines.push(`B.wired("${type}",{${list.join(',')}})\n`);
+        if (list.length)
+            lines.push(`B.wired("${type}",{${list.join(',')}})
+`);
     }
     return lines.join('');
 }
@@ -1719,30 +1718,33 @@ export const RECIPES = [
     {
         name: 'channel',
         title: 'A channel you turn, kept at power-off',
-        chain: 'encoder → value (1..16) → midi cc ch, keep',
-        text: "A midi cc's ch has an input of its own (it shows while you draw a wire): E4 through a value block from 1 to 16 turns the channel E1's CC goes out on. keep writes what the blocks remember to the device when it changes, so after a power cut the patch starts on the same channel and value. Give keep a name of its own for each patch.",
+        chain: 'encoder → value (1..16) → set var ch (keep); get var ch → midi cc ch, value set',
+        text: "A midi cc's ch has an input of its own (it shows while you draw a wire). E4 turns a value from 1 to 16 into the set var ch, with keep ticked: the channel is kept on the device (only when it changed, at most once a minute) and comes back when the patch starts, even after a power cut. get var ch sends it to the CC's ch and to the value's set input, so turning E4 goes on from the kept channel.",
         patch: {
             nodes: [
                 { id: 1, type: 'encoder', params: { n: 1 }, x: 0, y: 0 },
                 { id: 2, type: 'accum', params: { lo: 0, hi: 127, start: 64 }, x: 170, y: 0 },
-                { id: 3, type: 'midi_cc', params: { cc: 74, ch: 1 }, x: 400, y: 0 },
+                { id: 3, type: 'midi_cc', params: { cc: 74, ch: 1 }, x: 620, y: 0 },
                 { id: 4, type: 'encoder', params: { n: 4 }, x: 0, y: 190 },
                 { id: 5, type: 'accum', params: { lo: 1, hi: 16, start: 1 }, x: 170, y: 190 },
+                { id: 6, type: 'var_set', params: { name: 'ch', keep: 'yes' }, x: 400, y: 190 },
+                { id: 7, type: 'var_get', params: { name: 'ch' }, x: 0, y: 380 },
                 {
-                    id: 6,
+                    id: 8,
                     type: 'enc_label',
                     params: { label: 'ch', where: 'top', col: 4, span: 1, lo: 1, hi: 16 },
-                    x: 400,
+                    x: 620,
                     y: 190
-                },
-                { id: 7, type: 'keep', params: { name: 'channel', every: 10 }, x: 400, y: 400 }
+                }
             ],
             wires: [
                 [1, 1, 2, 1],
                 [2, 1, 3, 1],
                 [4, 1, 5, 1],
-                [5, 1, 3, 3],
-                [5, 1, 6, 1]
+                [5, 1, 6, 1],
+                [7, 1, 3, 3],
+                [7, 1, 5, 2],
+                [7, 1, 8, 1]
             ]
         }
     },

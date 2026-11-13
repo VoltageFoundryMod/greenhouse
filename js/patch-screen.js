@@ -185,9 +185,11 @@ ${RECIPES.map(
 <li>Blocks that remember things (a steps pattern and its notes, a value, a toggle, a counter, a memory) keep it:
 <b>stop</b>, <b>save…</b> and <b>export…</b> ask the device for it, so <b>run</b>, a saved script and an
 exported file start again where you left off.</li>
-<li>Without greenhouse, a <b>keep</b> block does that on the device: it writes what the blocks remember to a file
-when something changes (at most every <i>every</i> seconds) and reads it back when the patch starts, so a patch
-that starts at power-up comes back as you left it. Give it a name of its own in each patch.</li>
+<li>On the device, without greenhouse: tick <b>keep</b> on a <b>set var</b> and its value is kept on the device
+and comes back when the patch starts, even after a power cut. It's written only when it changed, at most once a
+minute, so the flash doesn't wear; the last minute's turns can be lost. Its <b>get var</b> sends it when the patch
+starts: wire it to a value block's <i>set</i> input, so turning goes on from there (recipe: a channel you turn).
+Kept values go by name, for every patch on the device.</li>
 <li>A saved or exported patch carries the part of the blocks runtime it uses, so it runs on its own; greenhouse
 tells you about blocks it doesn't know when you open or import one.</li>
 <li>The device holds only the blocks a patch uses. Adding a block of a new kind while it runs starts it

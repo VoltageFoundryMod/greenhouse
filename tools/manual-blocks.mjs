@@ -36,6 +36,7 @@ const code = (s) => '`' + String(s).replace(/`/g, "'") + '`';
 
 function range(p) {
     if (p.type === 'select') return (p.options ?? []).map((o) => code(o)).join(', ');
+    if (p.type === 'check') return `ticked or not: ${p.help}`;
     if (p.type === 'code') return 'Lua code';
     if (p.help) return p.help;
     if (p.type === 'text') return 'text';
@@ -49,6 +50,7 @@ function range(p) {
 
 function defaultOf(p) {
     if (p.type === 'code') return 'example code';
+    if (p.type === 'check') return p.default === 'yes' ? 'ticked' : 'unticked';
     if (p.default === '' || p.default === undefined) return '(empty)';
     return code(p.default);
 }

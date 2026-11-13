@@ -227,13 +227,15 @@ the bar picks which device's blocks to show.
 - Blocks that remember things (a sequence and its notes, a value, a toggle,
   a counter, a memory) keep them: **stop**, **save…** and **export…** ask
   the device for them, so the patch starts again where you left off.
-- A **keep** block does that on the device, without greenhouse: it writes
-  what the blocks remember to the device when something changes (at most
-  every *every* seconds, 10 by default) and reads it back when the patch
-  starts, so a patch that starts at power-up comes back as you left it,
-  channel and values included. Give it a name of its own in each patch;
-  its *forget* input drops what was kept. Changes made in the last few
-  seconds before a power cut can be lost.
+- On the device, without greenhouse, a **set var** with **keep** ticked
+  keeps its value: the value is written to the device when it changed, at
+  most once a minute so the flash doesn't wear, and comes back when the
+  patch starts, even after a power cut. Its **get var** sends it at the
+  start; wire that to a value block's *set* input too, so turning goes on
+  from the kept value (the recipe *a channel you turn* does this). Kept
+  values go by name and are shared by every patch on the device. Turns
+  made in the last minute before a power cut can be lost; **stop** writes
+  them at once.
 - A saved patch carries the part of graft's runtime it uses, so it runs on
   its own, and the device holds only the blocks it needs. greenhouse tells
   you about blocks it doesn't know when you open or import a patch.

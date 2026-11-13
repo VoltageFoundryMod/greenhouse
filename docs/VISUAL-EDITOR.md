@@ -409,13 +409,18 @@ running patch, keeps it with the block (copying a block copies it too) and
 sends it with the patch, so a patch starts again where it was, on the
 device or from a saved file.
 
-Without greenhouse, the **keep** block (v10) keeps it on the device:
-`B.saved()` lists every block's state by id and type, keep writes it as
-Lua to `keep_<name>_1.lua` or `_2.lua` in turn (each with a count, so a
-power cut while one is written leaves the other) when it changed, at most
-every _every_ seconds, and in its `def.boot`, which runs for every block
-before any `start`, reads the newest copy that loads and hands it back
-with `B.restore` (only to blocks with the same id and type).
+Without greenhouse, a **set var** with **keep** ticked (v11) keeps its
+value on the device, by name, shared by every patch: the kept values go
+as Lua to `graft_vars_1.lua` or `_2.lua` in turn (each with a count, so a
+power cut while one is written leaves the other), only when one changed,
+at most once a minute and once they've been still a second, and when the
+patch stops. Its `def.boot`, which runs for every block before any
+`start`, reads the newest copy that loads, so get var sends the kept value
+at the start; while the patch starts a kept value wins over what comes in,
+and what comes in isn't a change. A value block's input 2 sets it without
+sending, so a get var can put it back without a loop through the set var.
+(v10's keep block, which kept every block's state, is gone: one switch on
+the values that matter is clearer, and writes less.)
 
 ## Settings by wire and pages (v10)
 
