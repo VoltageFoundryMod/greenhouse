@@ -233,7 +233,33 @@ function B.start()
   starting = false
 end
 
+-- Pages: a block with a page field (achene's controls and screen) acts and
+-- draws only while its page is the one shown; "always" (or no field) on
+-- every page. A page block calls B.set_page; blocks with def.page(node,
+-- shown) hear the change, those going away first (a key LED that another
+-- page's block takes over is lit last).
+B.page = 1
+
+function B.shown(node)
+  local p = node.p.page
+  return p == nil or p == "always" or tonumber(p) == B.page
+end
+
+function B.set_page(n)
+  n = math.floor(n)
+  if n == B.page then return end
+  B.page = n
+  for pass = 1, 2 do
+    for _, node in pairs(nodes) do
+      local shown = B.shown(node)
+      if node.def.page and shown == (pass == 2) then node.def.page(node, shown) end
+    end
+  end
+  if B.screen_touch then B.screen_touch() end
+end
+
 function B.clear()
+  B.page = 1
   for id in pairs(nodes) do remove(id) end
   listeners, tickers, pending, vars = {}, {}, {}, {}
   running = false

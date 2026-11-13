@@ -32,6 +32,12 @@ function areaOf(type, data) {
     return { x: (col - 1) * 32, y, w: span * 32, h, where, col, span };
 }
 
+/** A screen block's page: 'always' or '1'..'4'. */
+const pageOf = (data) => (data.page === undefined || data.page === 'always' ? 'always' : String(data.page));
+
+/** Whether two pages can be on the screen at once (always is on every page). */
+const together = (a, b) => a === 'always' || b === 'always' || a === b;
+
 /** @param {string} text */
 const escapeHtml = (text) =>
     String(text).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c] || c);
@@ -78,6 +84,14 @@ export function screenDiagram() {
     }
     return `<svg class="screen-diagram" viewBox="0 0 ${ox + W + 200} ${oy + H + 46}" role="img" aria-label="the screen's rows and columns, with encoders E1 to E4 above and keys K1 to K4 below">${parts.join('')}</svg>`;
 }
+
+/** The screen layout's page picker. */
+const PAGE_BUTTONS = ['all', '1', '2', '3', '4']
+    .map(
+        (p) =>
+            `<button type="button" class="repl-action-btn" data-page="${p}">${p === 'all' ? 'all pages' : `page ${p}`}</button>`
+    )
+    .join('');
 
 const GUIDE = `
 <button type="button" class="patch-overlay-close" data-close aria-label="close the guide">×</button>
@@ -215,7 +229,12 @@ keys K1–K4, and rows for each job. Each block takes a <b>row</b>, a <b>column<
 columns.</p>
 ${screenDiagram()}
 <p><button type="button" class="repl-action-btn" data-open-screen>open the screen layout</button> to place
-them by dragging. Two examples (examples… in the bar) put it together: <b>sequencer</b>, 16 steps drawn as
+them by dragging. A block's <b>page</b> setting puts it on one page of several (always: on every page);
+the encoders, keys, key LEDs and screen blocks of one page act and show only while it's the page shown, so one
+encoder can do another job on page 2, each with its own value. A <b>page</b> block picks the page: <i>hold</i>
+shows its page while a key is held, a shift (K4 → page, the settings of page 2 over E1–E4 while you hold it);
+<i>step</i> moves through them from an encoder or a key; <i>number</i> takes the page from a counter. Two
+examples (examples… in the bar) put it together: <b>sequencer</b>, 16 steps drawn as
 bars across the middle and played from the keys under E5–E12 (press a step, then turn E1 for its note), and
 <b>controller</b>, four CCs on E1–E4 named over their encoders with knobs and sliders under them.</p>
 </div>
@@ -254,7 +273,9 @@ export const patchScreenMethods = {
 <button type="button" class="patch-overlay-close" data-close aria-label="close the screen layout">×</button>
 <h3>Screen layout</h3>
 <p class="ps-hint">Each box is a screen block in the patch. Drag it to move it, drag its right edge to
-widen it, double-click it to switch between the full middle row and a half. Click one to select its block.</p>
+widen it, double-click it to switch between the full middle row and a half. Click one to select its block.
+Blocks with a page show only on it: pick a page to see what it shows.</p>
+<div class="ps-pages" role="group" aria-label="the page to show">${PAGE_BUTTONS}</div>
 <div class="ps-panel">
   <div class="ps-encs">${[1, 2, 3, 4].map((n) => `<span class="ps-enc">E${n}</span>`).join('')}</div>
   <div class="ps-screen"></div>
@@ -262,7 +283,13 @@ widen it, double-click it to switch between the full middle row and a half. Clic
 </div>
 <p class="ps-empty" hidden>No screen blocks in the patch yet: drag one in from the palette's <b>screen</b> group.</p>`;
         screen.addEventListener('click', (event) => {
-            if (/** @type {Element} */ (event.target).closest('[data-close]')) this.togglePatchScreen(false);
+            const target = /** @type {Element} */ (event.target);
+            if (target.closest('[data-close]')) this.togglePatchScreen(false);
+            const page = /** @type {HTMLElement | null} */ (target.closest('[data-page]'));
+            if (page) {
+                this.patchScreenPage = page.dataset.page;
+                this.renderPatchScreen();
+            }
         });
         body.appendChild(screen);
         this.patchScreenEl = screen;
@@ -334,7 +361,13 @@ widen it, double-click it to switch between the full middle row and a half. Clic
         if (!editor || !panel || !this.patchScreenOpen) return;
         const screen = /** @type {HTMLElement} */ (panel.querySelector('.ps-screen'));
         const data = editor.drawflow.drawflow[editor.module].data;
-        const blocks = Object.values(data).filter((n) => isScreenBlock(n.name));
+        const shown = this.patchScreenPage || 'all';
+        for (const b of panel.querySelectorAll('[data-page]')) {
+            b.classList.toggle('active', /** @type {HTMLElement} */ (b).dataset.page === shown);
+        }
+        const blocks = Object.values(data).filter(
+            (n) => isScreenBlock(n.name) && (shown === 'all' || together(pageOf(n.data), shown))
+        );
         /** @type {HTMLElement} */ (panel.querySelector('.ps-empty')).hidden = blocks.length > 0;
         screen.replaceChildren();
         const areas = blocks.map((n) => ({ node: n, a: areaOf(n.name, n.data) }));
@@ -342,6 +375,7 @@ widen it, double-click it to switch between the full middle row and a half. Clic
             const clash = areas.some(
                 (o) =>
                     o.node !== node &&
+                    together(pageOf(o.node.data), pageOf(node.data)) &&
                     o.a.x < a.x + a.w &&
                     a.x < o.a.x + o.a.w &&
                     o.a.y < a.y + a.h &&
@@ -358,9 +392,11 @@ widen it, double-click it to switch between the full middle row and a half. Clic
                 height: `${(a.h / 64) * 100}%`
             });
             const name = node.data.label ?? node.data.text ?? '';
-            box.title = `${BLOCKS[node.name].label}${name ? `: ${name}` : ''} (${a.where}, column ${a.col}, width ${a.span})${clash ? ', overlaps another block' : ''}`;
+            const page = pageOf(node.data);
+            const on = page === 'always' ? '' : `, page ${page}`;
+            box.title = `${BLOCKS[node.name].label}${name ? `: ${name}` : ''} (${a.where}, column ${a.col}, width ${a.span}${on})${clash ? ', overlaps another block' : ''}`;
             box.innerHTML =
-                `<span class="ps-type">${escapeHtml(BLOCKS[node.name].label)}</span>` +
+                `<span class="ps-type">${escapeHtml(BLOCKS[node.name].label)}${page === 'always' ? '' : ` · p${page}`}</span>` +
                 (name ? `<span class="ps-name">${escapeHtml(name)}</span>` : '') +
                 '<span class="ps-grip" title="drag to widen or narrow"></span>';
             box.addEventListener('pointerdown', (event) => this.startPatchScreenDrag(event, box, node.id, screen));

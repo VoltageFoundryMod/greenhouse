@@ -16,14 +16,18 @@ function B.screen_clear()
   screen_dirty = true
 end
 
--- at most 25 times a second (the screen sends a frame in the background)
+-- another page: draw again (B.set_page)
+function B.screen_touch() screen_dirty = true end
+
+-- at most 25 times a second (the screen sends a frame in the background);
+-- blocks on another page than the one shown are left out
 function B.redraw()
   if not screen_dirty or not screen_clear or B.ticks % 2 == 1 then return end
   screen_dirty = false
   screen_clear()
   for i = 1, 8 do
     local s = slots[i]
-    if s then
+    if s and (not s.node or B.shown(s.node)) then
       local x = ((i - 1) // 4) * 64
       local y = ((i - 1) % 4) * 16
       screen_text(x, y, s.label, 1)
@@ -32,23 +36,27 @@ function B.redraw()
       if w > 0 then screen_rect(x + 1, y + 10, w, 3, 1, true) end
     end
   end
-  for _, node in ipairs(widgets) do node.def.paint(node) end
+  for _, node in ipairs(widgets) do
+    if B.shown(node) then node.def.paint(node) end
+  end
   screen_refresh()
 end
 
-local function slot_set(slot, label, value)
-  slots[slot] = {label = label, value = value}
+local function slot_set(slot, label, value, node)
+  slots[slot] = {label = label, value = value, node = node}
   screen_dirty = true
 end
 
 -- ------------------------------------------------------------- controls
 
 --@part encoder
+-- controls with a page field act only on their page (B.shown); a press
+-- lets go wherever the page is by then, so nothing stays held
 B.type("encoder", {
   outputs = 1,
   init = function(node) node.listen("enc") end,
   event = function(node, _, n, d)
-    if n == node.p.n then B.out(node, 1, d) end
+    if n == node.p.n and B.shown(node) then B.out(node, 1, d) end
   end,
 })
 
@@ -57,7 +65,14 @@ B.type("enc_push", {
   outputs = 1,
   init = function(node) node.listen("enc_key") end,
   event = function(node, _, n, z)
-    if n == node.p.n then B.out(node, 1, z) end
+    if n ~= node.p.n then return end
+    if z ~= 0 and B.shown(node) then
+      node.down = true
+      B.out(node, 1, z)
+    elseif z == 0 and node.down then
+      node.down = false
+      B.out(node, 1, 0)
+    end
   end,
 })
 
@@ -66,7 +81,14 @@ B.type("key", {
   outputs = 1,
   init = function(node) node.listen("key") end,
   event = function(node, _, n, z)
-    if n == node.p.n then B.out(node, 1, z) end
+    if n ~= node.p.n then return end
+    if z ~= 0 and B.shown(node) then
+      node.down = true
+      B.out(node, 1, z)
+    elseif z == 0 and node.down then
+      node.down = false
+      B.out(node, 1, 0)
+    end
   end,
 })
 
@@ -76,7 +98,10 @@ local COLOURS = {
   green = {0, 255, 60}, cyan = {0, 200, 255}, blue = {0, 40, 255}, pink = {255, 0, 120},
 }
 
+-- the value is kept; it lights the key only while the LED's page is shown
 local function send_key_led(node, v)
+  node.v = v
+  if not B.shown(node) then return end
   local c = COLOURS[node.p.colour or "white"] or COLOURS.white
   local b = clamp(v, 0, 1)
   key_led(node.p.n or 1, math.floor(c[1] * b), math.floor(c[2] * b), math.floor(c[3] * b))
@@ -88,27 +113,74 @@ B.type("key_led", {
   input = function(node, _, v)
     if key_led then B.limit(node, v, send_key_led) end
   end,
+  -- another page: off when it goes away, its value again when it comes back
+  page = function(node, shown)
+    if not key_led then return end
+    if shown then send_key_led(node, node.v or 0)
+    else key_led(node.p.n or 1, 0, 0, 0) key_led_refresh() end
+  end,
   stop = function(node)
     if key_led then key_led(node.p.n or 1, 0, 0, 0) key_led_refresh() end
   end,
 })
 
+--@part page
+-- page: picks the page shown (B.set_page). hold: page `page` while the
+-- input isn't 0 (a key held, a shift), the page before when it's 0 again.
+-- step: each step moves one page, positive next and negative previous,
+-- wrapping at `pages` (an encoder, or a key). number: the input is the page
+-- (a counter, a value). Every page block sends the page when it changes.
+B.type("page", {
+  inputs = 1, outputs = 1,
+  init = function(node) node.cur = node.old and node.old.cur or nil end,
+  start = function(node)
+    if node.cur and node.p.mode ~= "hold" then B.set_page(node.cur) end
+    B.out(node, 1, B.page)
+  end,
+  save = function(node) if node.p.mode ~= "hold" then return {page = B.page} end end,
+  load = function(node, st) if type(st.page) == "number" then node.cur = st.page end end,
+  input = function(node, _, v)
+    local mode, pages = node.p.mode or "hold", clamp(math.floor(node.p.pages or 2), 1, 4)
+    if mode == "hold" then
+      if v ~= 0 then
+        node.back = node.back or B.page
+        B.set_page(node.p.page or 2)
+      elseif node.back then
+        local back = node.back
+        node.back = nil
+        B.set_page(back)
+      end
+    elseif mode == "step" then
+      if v ~= 0 then B.set_page((B.page - 1 + (v > 0 and 1 or -1)) % pages + 1) end
+    else
+      B.set_page(clamp(math.floor(v + 0.5), 1, pages))
+    end
+    node.cur = B.page
+  end,
+  page = function(node) B.out(node, 1, B.page) end,
+})
+
 --@part display needs screen
 B.type("display", {
   inputs = 1,
-  init = function(node) slot_set(node.p.slot or 1, node.p.label or "", 0) end,
+  init = function(node) slot_set(node.p.slot or 1, node.p.label or "", 0, node) end,
   stop = function(node)
-    slots[node.p.slot or 1] = nil
+    local s = slots[node.p.slot or 1]
+    if s and s.node == node then slots[node.p.slot or 1] = nil end
     screen_dirty = true
   end,
   input = function(node, _, v)
     node.v = v
+    if not B.shown(node) then return end
     local lo, hi = node.p.lo or 0, node.p.hi or 127
-    slot_set(node.p.slot or 1, node.p.label or "", hi ~= lo and (v - lo) / (hi - lo) or 0)
+    slot_set(node.p.slot or 1, node.p.label or "", hi ~= lo and (v - lo) / (hi - lo) or 0, node)
   end,
-  -- lo or hi from a wire: the bar again, for the last value
+  -- lo or hi from a wire, or its page back: the bar again, for the last value
   param = function(node)
     if node.v then node.def.input(node, 1, node.v) end
+  end,
+  page = function(node, shown)
+    if shown then node.def.input(node, 1, node.v or node.p.lo or 0) end
   end,
 })
 
@@ -368,8 +440,9 @@ end
 
 local function step_note(node, s) return node.notes[s] or node.p.note or 60 end
 
+-- its keys and their LEDs belong to it only while its page is shown (it plays on any page)
 local function step_leds(node)
-  if not key_led then return end
+  if not key_led or not B.shown(node) then return end
   local keys = STEP_KEYS[node.p.keys] or {}
   for i, k in ipairs(keys) do
     local s = step_of_key(node, i)
@@ -409,6 +482,10 @@ widget("steps", {
     node.listen("key")
   end,
   start = function(node) step_leds(node) end,
+  page = function(node, shown)
+    node.held = {}
+    if shown then step_leds(node) end
+  end,
   -- the pattern (on as a string of 0 and 1), the notes, the length, the page
   save = function(node)
     local last = 0
@@ -519,6 +596,7 @@ widget("steps", {
     step_leds(node)
   end,
   event = function(node, _, k, z)
+    if not B.shown(node) then return end
     for i, key in ipairs(STEP_KEYS[node.p.keys] or {}) do
       if key == k then
         if z == 1 then

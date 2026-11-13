@@ -163,6 +163,10 @@ export function compactLua(text) {
 
 const COLOURS = ['white', 'red', 'amber', 'green', 'cyan', 'blue', 'pink'];
 
+/** The page a control or screen block belongs to: it acts and shows only while a page block shows that page. */
+/** @type {Param} */
+const PAGE = { type: 'select', label: 'page', default: 'always', options: ['always', '1', '2', '3', '4'] };
+
 /**
  * Where a screen block sits: a row of the screen, and columns that line up
  * with E1-E4 above it and K1-K4 below it (see lua/blocks.lua).
@@ -178,7 +182,8 @@ function place(where, span) {
             options: ['top', 'middle', 'middle top', 'middle bottom', 'bottom']
         },
         col: { type: 'int', label: 'column', default: 1, min: 1, max: 4 },
-        span: { type: 'int', label: 'width', default: span, min: 1, max: 4 }
+        span: { type: 'int', label: 'width', default: span, min: 1, max: 4 },
+        page: PAGE
     };
 }
 
@@ -204,7 +209,7 @@ export const BLOCKS = {
         inputs: 0,
         outputs: 1,
         doc: 'an achene encoder: a turn sends its detents, +1, +2... clockwise and -1, -2... counterclockwise (a fast turn sends more than 1 at once)',
-        params: { n: { type: 'int', label: 'E', default: 5, min: 1, max: 12 } }
+        params: { n: { type: 'int', label: 'E', default: 5, min: 1, max: 12 }, page: PAGE }
     },
     key: {
         label: 'key',
@@ -212,7 +217,7 @@ export const BLOCKS = {
         inputs: 0,
         outputs: 1,
         doc: 'an achene key button: 1 when pressed, 0 when released',
-        params: { n: { type: 'int', label: 'K', default: 5, min: 1, max: 16 } }
+        params: { n: { type: 'int', label: 'K', default: 5, min: 1, max: 16 }, page: PAGE }
     },
     lfo: {
         label: 'lfo',
@@ -289,7 +294,8 @@ export const BLOCKS = {
         doc: 'lights an achene key button: the value (0..1) is the brightness',
         params: {
             n: { type: 'int', label: 'K', default: 5, min: 1, max: 16 },
-            colour: { type: 'select', label: 'colour', default: 'amber', options: COLOURS }
+            colour: { type: 'select', label: 'colour', default: 'amber', options: COLOURS },
+            page: PAGE
         }
     },
     display: {
@@ -301,6 +307,7 @@ export const BLOCKS = {
         params: {
             label: { type: 'text', label: 'label', default: 'value' },
             slot: { type: 'int', label: 'place', default: 1, min: 1, max: 8 },
+            page: PAGE,
             lo: { type: 'number', label: 'lo', default: 0, wire: true },
             hi: { type: 'number', label: 'hi', default: 127, wire: true }
         }
@@ -311,7 +318,19 @@ export const BLOCKS = {
         inputs: 0,
         outputs: 1,
         doc: "an achene encoder's push button: 1 pressed, 0 released",
-        params: { n: { type: 'int', label: 'E', default: 1, min: 1, max: 12 } }
+        params: { n: { type: 'int', label: 'E', default: 1, min: 1, max: 12 }, page: PAGE }
+    },
+    page: {
+        label: 'page',
+        group: 'achene',
+        inputs: 1,
+        outputs: 1,
+        doc: 'picks the page shown: encoders, keys, LEDs and screen blocks with a page setting act and show only on their page (always: on every page). hold: shows page while the input is not 0 (a key held as a shift), the page before when it lets go; step: each step is the next page (positive) or the previous (negative), wrapping at pages (an encoder, a key); number: the input is the page. Sends the page whenever it changes',
+        params: {
+            mode: { type: 'select', label: 'mode', default: 'hold', options: ['hold', 'step', 'number'] },
+            page: { type: 'int', label: 'page', default: 2, min: 1, max: 4 },
+            pages: { type: 'int', label: 'pages', default: 2, min: 1, max: 4 }
+        }
     },
     grid_key: {
         label: 'grid key',
@@ -1676,6 +1695,54 @@ export const RECIPES = [
                 [4, 1, 5, 1],
                 [5, 1, 3, 3],
                 [5, 1, 6, 1]
+            ]
+        }
+    },
+    {
+        name: 'shift',
+        title: 'A shift key: hold K4 for settings',
+        chain: 'key K4 → page (hold); E1 on page 1 → a CC, E1 on page 2 → its channel',
+        text: "A block's page setting puts it on one page: it acts and shows only while that page is shown, and always means every page. page in hold mode shows page 2 while K4 is held. E1 is two encoder blocks, one on each page, each with its own value, so the CC doesn't jump when you come back: on page 1 it turns the cutoff, on page 2 (K4 held) the channel, with its own label over E1.",
+        patch: {
+            nodes: [
+                { id: 1, type: 'key', params: { n: 4, page: 'always' }, x: 0, y: 0 },
+                { id: 2, type: 'page', params: { mode: 'hold', page: 2, pages: 2 }, x: 170, y: 0 },
+                {
+                    id: 3,
+                    type: 'key_label',
+                    params: { label: 'shift', where: 'bottom', col: 4, span: 1, page: 'always' },
+                    x: 400,
+                    y: 0
+                },
+                { id: 4, type: 'encoder', params: { n: 1, page: '1' }, x: 0, y: 200 },
+                { id: 5, type: 'accum', params: { lo: 0, hi: 127, start: 64 }, x: 170, y: 200 },
+                { id: 6, type: 'midi_cc', params: { cc: 74, ch: 1 }, x: 400, y: 200 },
+                {
+                    id: 7,
+                    type: 'enc_label',
+                    params: { label: 'cutoff', where: 'top', col: 1, span: 1, lo: 0, hi: 127, page: '1' },
+                    x: 620,
+                    y: 200
+                },
+                { id: 8, type: 'encoder', params: { n: 1, page: '2' }, x: 0, y: 420 },
+                { id: 9, type: 'accum', params: { lo: 1, hi: 16, start: 1 }, x: 170, y: 420 },
+                {
+                    id: 10,
+                    type: 'enc_label',
+                    params: { label: 'ch', where: 'top', col: 1, span: 1, lo: 1, hi: 16, page: '2' },
+                    x: 620,
+                    y: 420
+                }
+            ],
+            wires: [
+                [1, 1, 2, 1],
+                [1, 1, 3, 1],
+                [4, 1, 5, 1],
+                [5, 1, 6, 1],
+                [5, 1, 7, 1],
+                [8, 1, 9, 1],
+                [9, 1, 6, 3],
+                [9, 1, 10, 1]
             ]
         }
     },

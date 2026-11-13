@@ -23,6 +23,7 @@ An achene encoder: a turn sends its detents, +1, +2... clockwise and -1, -2... c
 | setting | default | takes |
 | --- | --- | --- |
 | E | `5` | 1 to 12 |
+| page | `always` | `always`, `1`, `2`, `3`, `4` |
 
 ### key
 
@@ -33,6 +34,7 @@ An achene key button: 1 when pressed, 0 when released.
 | setting | default | takes |
 | --- | --- | --- |
 | K | `5` | 1 to 16 |
+| page | `always` | `always`, `1`, `2`, `3`, `4` |
 
 ### key led
 
@@ -44,6 +46,7 @@ Lights an achene key button: the value (0..1) is the brightness.
 | --- | --- | --- |
 | K | `5` | 1 to 16 |
 | colour | `amber` | `white`, `red`, `amber`, `green`, `cyan`, `blue`, `pink` |
+| page | `always` | `always`, `1`, `2`, `3`, `4` |
 
 ### display
 
@@ -55,6 +58,7 @@ A labelled bar on achene's screen, in one of 8 places (two columns of four); the
 | --- | --- | --- |
 | label | `value` | text |
 | place | `1` | 1 to 8 |
+| page | `always` | `always`, `1`, `2`, `3`, `4` |
 | lo • | `0` | a number |
 | hi • | `127` | a number |
 
@@ -67,6 +71,19 @@ An achene encoder's push button: 1 pressed, 0 released.
 | setting | default | takes |
 | --- | --- | --- |
 | E | `1` | 1 to 12 |
+| page | `always` | `always`, `1`, `2`, `3`, `4` |
+
+### page
+
+Picks the page shown: encoders, keys, LEDs and screen blocks with a page setting act and show only on their page (always: on every page). hold: shows page while the input is not 0 (a key held as a shift), the page before when it lets go; step: each step is the next page (positive) or the previous (negative), wrapping at pages (an encoder, a key); number: the input is the page. Sends the page whenever it changes.
+
+*1 input, 1 output*
+
+| setting | default | takes |
+| --- | --- | --- |
+| mode | `hold` | `hold`, `step`, `number` |
+| page | `2` | 1 to 4 |
+| pages | `2` | 1 to 4 |
 
 <!-- end if -->
 
@@ -88,6 +105,7 @@ A name over an encoder (top row) with its value as a line; turning shows the num
 | row | `top` | `top`, `middle`, `middle top`, `middle bottom`, `bottom` |
 | column | `1` | 1 to 4 |
 | width | `1` | 1 to 4 |
+| page | `always` | `always`, `1`, `2`, `3`, `4` |
 | lo • | `0` | a number |
 | hi • | `127` | a number |
 
@@ -103,6 +121,7 @@ A name over a key (bottom row), shown inverted while its input is not 0 (wire a 
 | row | `bottom` | `top`, `middle`, `middle top`, `middle bottom`, `bottom` |
 | column | `1` | 1 to 4 |
 | width | `1` | 1 to 4 |
+| page | `always` | `always`, `1`, `2`, `3`, `4` |
 
 ### slider
 
@@ -116,6 +135,7 @@ A vertical bar with its name and value.
 | row | `middle` | `top`, `middle`, `middle top`, `middle bottom`, `bottom` |
 | column | `1` | 1 to 4 |
 | width | `1` | 1 to 4 |
+| page | `always` | `always`, `1`, `2`, `3`, `4` |
 | lo • | `0` | a number |
 | hi • | `127` | a number |
 
@@ -131,6 +151,7 @@ An arc with the value inside and the name under it (largest in the full middle r
 | row | `middle` | `top`, `middle`, `middle top`, `middle bottom`, `bottom` |
 | column | `1` | 1 to 4 |
 | width | `1` | 1 to 4 |
+| page | `always` | `always`, `1`, `2`, `3`, `4` |
 | lo • | `0` | a number |
 | hi • | `127` | a number |
 
@@ -146,6 +167,7 @@ A name and its value as text.
 | row | `middle top` | `top`, `middle`, `middle top`, `middle bottom`, `bottom` |
 | column | `1` | 1 to 4 |
 | width | `1` | 1 to 4 |
+| page | `always` | `always`, `1`, `2`, `3`, `4` |
 
 ### graph
 
@@ -159,6 +181,7 @@ The last values as a line scrolling from the right (an LFO, a CC).
 | row | `middle` | `top`, `middle`, `middle top`, `middle bottom`, `bottom` |
 | column | `1` | 1 to 4 |
 | width | `2` | 1 to 4 |
+| page | `always` | `always`, `1`, `2`, `3`, `4` |
 | lo • | `0` | a number |
 | hi • | `1` | a number |
 
@@ -179,6 +202,7 @@ A step sequencer of up to 64 steps, each with a note, drawn as bars. *Step input
 | row | `middle top` | `top`, `middle`, `middle top`, `middle bottom`, `bottom` |
 | column | `1` | 1 to 4 |
 | width | `4` | 1 to 4 |
+| page | `always` | `always`, `1`, `2`, `3`, `4` |
 
 ### text
 
@@ -192,6 +216,7 @@ Fixed words, e.g. a title.
 | row | `middle top` | `top`, `middle`, `middle top`, `middle bottom`, `bottom` |
 | column | `1` | 1 to 4 |
 | width | `2` | 1 to 4 |
+| page | `always` | `always`, `1`, `2`, `3`, `4` |
 
 <!-- end if -->
 
@@ -638,6 +663,7 @@ beside what is there.
 | A tempo shared without a wire | encoder → value → set var "tempo" … get var "tempo" → metro (bpm), number | set var stores a value under a name and every get var with that name sends it on, anywhere in the patch. Here E3 sets a tempo (60 to 200 BPM) that a metro's input 2 follows, four beats to a quarter note; K16's LED blinks with it. |
 | One key, two jobs for an encoder | key → toggle → route (2), encoder → route (1) → two values | route sends input 1 out of output 1 while input 2 is 0, out of output 2 otherwise. A toggle on a key picks the output, so E1 sends one CC or the other. The modes example does this for a sequencer. |
 | A channel you turn, kept at power-off | encoder → value (1..16) → midi cc ch, keep | A midi cc's ch has an input of its own (it shows while you draw a wire): E4 through a value block from 1 to 16 turns the channel E1's CC goes out on. keep writes what the blocks remember to the device when it changes, so after a power cut the patch starts on the same channel and value. Give keep a name of its own for each patch. |
+| A shift key: hold K4 for settings | key K4 → page (hold); E1 on page 1 → a CC, E1 on page 2 → its channel | A block's page setting puts it on one page: it acts and shows only while that page is shown, and always means every page. page in hold mode shows page 2 while K4 is held. E1 is two encoder blocks, one on each page, each with its own value, so the CC doesn't jump when you come back: on page 1 it turns the cutoff, on page 2 (K4 held) the channel, with its own label over E1. |
 
 <!-- end if -->
 

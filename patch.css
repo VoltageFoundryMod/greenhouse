@@ -352,7 +352,8 @@
 
 .pn-grid_key .pn-title,
 .pn-grid_led .pn-title,
-.pn-enc_push .pn-title {
+.pn-enc_push .pn-title,
+.pn-page .pn-title {
     color: #ffbe64;
 }
 
@@ -758,6 +759,19 @@
 /* the layout builder: the screen with the encoders above, the keys below */
 .ps-hint {
     color: var(--neutral-medium);
+}
+
+/* which page the builder shows (blocks of that page and those always shown) */
+.ps-pages {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 0 0 10px;
+}
+
+.ps-pages .active {
+    border-color: var(--accent);
+    color: var(--accent);
 }
 
 .ps-panel {
