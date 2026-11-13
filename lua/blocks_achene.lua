@@ -467,6 +467,52 @@ widget("bars", {
   end,
 })
 
+--@part draw needs screen widgets
+-- draw: your own Lua that draws the block's place, each time the screen is
+-- drawn: w and h (its size), a and b (inputs 1 and 2, 0 until one comes),
+-- s (a table kept between draws), t (ticks, 50 a second), and text(x, y,
+-- s), line(x1, y1, x2, y2), rect(x, y, w, h, fill), pixel(x, y),
+-- width(s) in the block's own pixels (0, 0 its top left); a last argument
+-- of 0 draws black. It draws again when an input comes, or on every frame
+-- with redraw set to always (25 a second).
+local DRAW_HEAD = "local w, h, a, b, s, t, text, line, rect, pixel, width = ...\n"
+
+widget("draw", {
+  inputs = 2, where = "middle",
+  init = function(node)
+    node.s, node.a, node.b = node.old and node.old.s or {}, node.old and node.old.a or 0, node.old and node.old.b or 0
+    local fn, err = load(DRAW_HEAD .. (node.p.code or ""), "draw block " .. node.id)
+    if not fn then print("draw block " .. node.id .. ": " .. err) end
+    node.fn = fn
+  end,
+  input = function(node, i, v)
+    if i == 1 then node.a = v else node.b = v end
+    screen_dirty = true
+  end,
+  tick = function(node)
+    if node.p.redraw == "always" then screen_dirty = true end
+  end,
+  draw = function(node, x, y, w, h)
+    if not node.fn then return end
+    -- whole pixels (the screen takes integers), white unless 0
+    local function c(v) return v == 0 and 0 or 1 end
+    local function X(v) return x + round(v) end
+    local function Y(v) return y + round(v) end
+    local ok, err = pcall(node.fn, w, h, node.a, node.b, node.s, B.ticks,
+      function(px, py, str, k) screen_text(X(px), Y(py), tostring(str), c(k)) end,
+      function(x1, y1, x2, y2, k) screen_line(X(x1), Y(y1), X(x2), Y(y2), c(k)) end,
+      function(px, py, rw, rh, fill, k)
+        screen_rect(X(px), Y(py), round(rw), round(rh), c(k), fill and true or false)
+      end,
+      function(px, py, k) screen_pixel(X(px), Y(py), c(k)) end,
+      function(str) return screen_text_width(tostring(str)) end)
+    if not ok and not node.failed then
+      node.failed = true
+      print("draw block " .. node.id .. ": " .. tostring(err))
+    end
+  end,
+})
+
 --@part text needs widgets
 -- fixed words
 widget("text", {

@@ -768,6 +768,23 @@ export const BLOCKS = {
             ...place('middle top', 4)
         }
     },
+    draw: {
+        label: 'draw',
+        group: 'screen',
+        inputs: 2,
+        outputs: 0,
+        doc: "your own Lua drawing its place on the screen: w and h (its size), a and b (inputs 1 and 2), s (kept between draws), t (ticks, 50 a second), and text(x, y, s), line(x1, y1, x2, y2), rect(x, y, w, h, fill), pixel(x, y), width(s), in the block's own pixels from its top left (a last argument of 0 draws black). It draws again when an input comes, or every frame with redraw: always",
+        params: {
+            code: {
+                type: 'code',
+                label: 'code',
+                default:
+                    'local f = math.max(0, math.min(1, a / 127))\nrect(0, 0, w - 2, h)\nrect(1, h - 1 - f * (h - 2), w - 4, f * (h - 2), true)'
+            },
+            redraw: { type: 'select', label: 'redraw', default: 'on input', options: ['on input', 'always'] },
+            ...place('middle', 1)
+        }
+    },
     text: {
         label: 'text',
         group: 'screen',

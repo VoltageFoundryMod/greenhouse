@@ -227,6 +227,21 @@ A step sequencer of up to 64 steps, each with a note, drawn as bars. *Step input
 | width | `4` | 1 to 4 |
 | page | `always` | `always`, `1`, `2`, `3`, `4` |
 
+### draw
+
+Your own Lua drawing its place on the screen: w and h (its size), a and b (inputs 1 and 2), s (kept between draws), t (ticks, 50 a second), and text(x, y, s), line(x1, y1, x2, y2), rect(x, y, w, h, fill), pixel(x, y), width(s), in the block's own pixels from its top left (a last argument of 0 draws black). It draws again when an input comes, or every frame with redraw: always.
+
+*2 inputs, no outputs*
+
+| setting | default | takes |
+| --- | --- | --- |
+| code | example code | Lua code |
+| redraw | `on input` | `on input`, `always` |
+| row | `middle` | `top`, `middle`, `middle top`, `middle bottom`, `bottom` |
+| column | `1` | 1 to 4 |
+| width | `1` | 1 to 4 |
+| page | `always` | `always`, `1`, `2`, `3`, `4` |
+
 ### text
 
 Fixed words, e.g. a title.
