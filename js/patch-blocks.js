@@ -612,6 +612,17 @@ export const BLOCKS = {
         doc: 'sends the value each time a set var with the same name stores one',
         params: { name: { type: 'text', label: 'name', default: 'x' } }
     },
+    keep: {
+        label: 'keep',
+        group: 'memory',
+        inputs: 2,
+        outputs: 0,
+        doc: "keeps what the patch's blocks remember (values, toggles, counters, steps, the page) on the device, so a patch that starts at power-up starts where it was: written only when something changed, at most every 'every' seconds, and read when the patch starts. Save input (not 0) writes now; forget input (not 0) drops what was kept. Give each patch its own name",
+        params: {
+            name: { type: 'text', label: 'name', default: 'patch' },
+            every: { type: 'number', label: 'every s', default: 10, min: 2, max: 600 }
+        }
+    },
     enc_label: {
         label: 'enc label',
         group: 'screen',
@@ -1635,6 +1646,36 @@ export const RECIPES = [
                 [6, 1, 7, 1],
                 [5, 2, 8, 1],
                 [8, 1, 9, 1]
+            ]
+        }
+    },
+    {
+        name: 'channel',
+        title: 'A channel you turn, kept at power-off',
+        chain: 'encoder → value (1..16) → midi cc ch, keep',
+        text: "A midi cc's ch has an input of its own (it shows while you draw a wire): E4 through a value block from 1 to 16 turns the channel E1's CC goes out on. keep writes what the blocks remember to the device when it changes, so after a power cut the patch starts on the same channel and value. Give keep a name of its own for each patch.",
+        patch: {
+            nodes: [
+                { id: 1, type: 'encoder', params: { n: 1 }, x: 0, y: 0 },
+                { id: 2, type: 'accum', params: { lo: 0, hi: 127, start: 64 }, x: 170, y: 0 },
+                { id: 3, type: 'midi_cc', params: { cc: 74, ch: 1 }, x: 400, y: 0 },
+                { id: 4, type: 'encoder', params: { n: 4 }, x: 0, y: 190 },
+                { id: 5, type: 'accum', params: { lo: 1, hi: 16, start: 1 }, x: 170, y: 190 },
+                {
+                    id: 6,
+                    type: 'enc_label',
+                    params: { label: 'ch', where: 'top', col: 4, span: 1, lo: 1, hi: 16 },
+                    x: 400,
+                    y: 190
+                },
+                { id: 7, type: 'keep', params: { name: 'channel', every: 10 }, x: 400, y: 400 }
+            ],
+            wires: [
+                [1, 1, 2, 1],
+                [2, 1, 3, 1],
+                [4, 1, 5, 1],
+                [5, 1, 3, 3],
+                [5, 1, 6, 1]
             ]
         }
     },

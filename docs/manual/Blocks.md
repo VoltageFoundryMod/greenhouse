@@ -544,6 +544,17 @@ Sends the value each time a set var with the same name stores one.
 | --- | --- | --- |
 | name | `x` | text |
 
+### keep
+
+Keeps what the patch's blocks remember (values, toggles, counters, steps, the page) on the device, so a patch that starts at power-up starts where it was: written only when something changed, at most every 'every' seconds, and read when the patch starts. Save input (not 0) writes now; forget input (not 0) drops what was kept. Give each patch its own name.
+
+*2 inputs, no outputs*
+
+| setting | default | takes |
+| --- | --- | --- |
+| name | `patch` | text |
+| every s | `10` | 2 to 600 |
+
 ## output
 
 Send messages out: MIDI, the console.
@@ -626,6 +637,7 @@ beside what is there.
 | An LFO around a knob | lfo → scale → math a, encoder → value → math b, math → midi cc | math's input 1 computes and sends, its input 2 only sets b: put the source that should send (the LFO) on input 1 and the setting (the encoder) on input 2. Here the LFO sways ±20 around where E2 is. |
 | A tempo shared without a wire | encoder → value → set var "tempo" … get var "tempo" → metro (bpm), number | set var stores a value under a name and every get var with that name sends it on, anywhere in the patch. Here E3 sets a tempo (60 to 200 BPM) that a metro's input 2 follows, four beats to a quarter note; K16's LED blinks with it. |
 | One key, two jobs for an encoder | key → toggle → route (2), encoder → route (1) → two values | route sends input 1 out of output 1 while input 2 is 0, out of output 2 otherwise. A toggle on a key picks the output, so E1 sends one CC or the other. The modes example does this for a sequencer. |
+| A channel you turn, kept at power-off | encoder → value (1..16) → midi cc ch, keep | A midi cc's ch has an input of its own (it shows while you draw a wire): E4 through a value block from 1 to 16 turns the channel E1's CC goes out on. keep writes what the blocks remember to the device when it changes, so after a power cut the patch starts on the same channel and value. Give keep a name of its own for each patch. |
 
 <!-- end if -->
 

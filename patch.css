@@ -379,7 +379,8 @@
 
 .pn-memory .pn-title,
 .pn-var_set .pn-title,
-.pn-var_get .pn-title {
+.pn-var_get .pn-title,
+.pn-keep .pn-title {
     color: #9fe0e0;
 }
 
@@ -515,6 +516,14 @@
 
 .pn-memory .input_3::after {
     content: 'recall';
+}
+
+.pn-keep .input_1::after {
+    content: 'save';
+}
+
+.pn-keep .input_2::after {
+    content: 'forget';
 }
 
 .pn-metro .input_2::after {

@@ -87,9 +87,13 @@ end
 -- 50 a second). A value that comes sooner is held and the latest one goes
 -- out on a later tick, so a fast LFO can't flood MIDI and a knob still
 -- answers at once.
+-- While the patch starts, sends wait for the first tick: by then every block
+-- has started, so a channel a wire sets is in place before a value goes out.
+local starting = false
+
 function B.limit(node, v, send, every)
   every = every or 1
-  if node.sent_at and ticks - node.sent_at < every then
+  if starting or (node.sent_at and ticks - node.sent_at < every) then
     pending[node] = {v, send, every}
     return
   end
@@ -218,9 +222,15 @@ function B.start()
   end
   if tick_metro then tick_metro:start() end
   running = true
+  -- def.boot first (keep puts back what was kept), then every start
+  for _, node in pairs(nodes) do
+    if node.def.boot then node.def.boot(node) end
+  end
+  starting = true
   for _, node in pairs(nodes) do
     if node.def.start then node.def.start(node) end
   end
+  starting = false
 end
 
 function B.clear()
@@ -276,6 +286,25 @@ end
 function B.load(id, st)
   local node = nodes[id]
   if node and node.def.load and type(st) == "table" then node.def.load(node, st) end
+end
+
+-- the same as a list, {id, type, state} by id, for keep; and back, to the
+-- blocks still there with the same id and type
+function B.saved()
+  local list = {}
+  for id, node in pairs(nodes) do
+    local st = node.def.save and node.def.save(node)
+    if st then list[#list + 1] = {id, node.type, st} end
+  end
+  table.sort(list, function(a, b) return a[1] < b[1] end)
+  return list
+end
+
+function B.restore(list)
+  for _, e in ipairs(list) do
+    local node = nodes[e[1]]
+    if node and node.type == e[2] then B.load(e[1], e[3]) end
+  end
 end
 
 -- how big the running patch is: its blocks and Lua's memory in KB
@@ -728,6 +757,90 @@ B.type("var_get", {
   start = function(node)
     local v = vars[node.p.name or "x"]
     if v ~= nil then B.out(node, 1, v) end
+  end,
+})
+
+--@part keep
+-- keep: what the patch's blocks remember (B.saved), kept on the device so a
+-- patch that starts at power-up starts where it was. Two files take turns,
+-- keep_<name>_1.lua and _2.lua, each with a count: a power cut while one is
+-- written leaves the other, and the higher count wins. Written only when
+-- something changed, at most every `every` seconds (a flash write holds
+-- the device a moment, and flash wears); read once, when the patch starts.
+-- Input 1 (not 0) writes now; input 2 (not 0) forgets what was kept.
+
+-- a value as Lua, the same text for the same value (keys in order)
+local function keep_lit(v)
+  local t = type(v)
+  if t == "number" then
+    if v == math.floor(v) and math.abs(v) < 2^53 then return string.format("%d", v) end
+    return string.format("%.6g", v)
+  elseif t == "string" then return string.format("%q", v)
+  elseif t == "boolean" then return tostring(v)
+  elseif t ~= "table" then return "nil" end
+  local parts, n, keys = {}, #v, {}
+  for i = 1, n do parts[i] = keep_lit(v[i]) end
+  for k in pairs(v) do
+    if not (math.type(k) == "integer" and k >= 1 and k <= n) then keys[#keys + 1] = k end
+  end
+  table.sort(keys, function(a, b) return tostring(a) < tostring(b) end)
+  for _, k in ipairs(keys) do parts[#parts + 1] = "[" .. keep_lit(k) .. "]=" .. keep_lit(v[k]) end
+  return "{" .. table.concat(parts, ",") .. "}"
+end
+
+local function keep_file(node, i)
+  return "keep_" .. tostring(node.p.name or "patch"):gsub("[^%w_-]", "_") .. "_" .. i .. ".lua"
+end
+
+local function keep_write(node)
+  local text = keep_lit(B.saved())
+  if text == node.last then return end
+  node.seq = (node.seq or 0) + 1
+  node.slot = node.slot == 1 and 2 or 1
+  fs_write_file(keep_file(node, node.slot), "return {seq=" .. node.seq .. ",s=" .. text .. "}")
+  node.last = text
+end
+
+B.type("keep", {
+  inputs = 2,
+  init = function(node) node.t = 0 end,
+  -- before the blocks start: the newest copy that reads back whole
+  boot = function(node)
+    local best
+    for i = 1, 2 do
+      local text = fs_read_file(keep_file(node, i))
+      local f = text and load(text, "keep", "t", {})
+      local ok, t = false, nil
+      if f then ok, t = pcall(f) end
+      if ok and type(t) == "table" and type(t.seq) == "number" and type(t.s) == "table"
+        and (not best or t.seq > best.seq) then
+        best, node.slot = t, i
+      end
+    end
+    -- nothing kept: how it starts needs no copy, only changes from there
+    if best then
+      node.seq = best.seq
+      B.restore(best.s)
+    end
+    node.last = keep_lit(B.saved())
+  end,
+  tick = function(node, dt)
+    node.t = node.t + dt
+    if node.t < math.max(node.p.every or 10, 1) then return end
+    node.t = 0
+    keep_write(node)
+  end,
+  input = function(node, i, v)
+    if v == 0 then return end
+    if i == 1 then
+      keep_write(node)
+    else
+      -- forgotten: nothing kept until something changes from here
+      fs_remove_file(keep_file(node, 1))
+      fs_remove_file(keep_file(node, 2))
+      node.seq, node.slot = 0, nil
+      node.last = keep_lit(B.saved())
+    end
   end,
 })
 
