@@ -242,7 +242,8 @@ export const BLOCKS = {
                 type: 'select',
                 label: 'shape',
                 default: 'sine',
-                options: ['sine', 'triangle', 'saw', 'square']
+                options: ['sine', 'triangle', 'saw', 'square'],
+                wire: true
             }
         }
     },
@@ -539,7 +540,8 @@ export const BLOCKS = {
                 type: 'select',
                 label: 'scale',
                 default: 'major',
-                options: ['major', 'minor', 'dorian', 'pentatonic', 'minor pent.', 'chromatic']
+                options: ['major', 'minor', 'dorian', 'pentatonic', 'minor pent.', 'chromatic'],
+                wire: true
             },
             root: { type: 'int', label: 'root', default: 0, min: 0, max: 11, wire: true }
         }
@@ -842,18 +844,21 @@ export function inputCount(type) {
 /**
  * What the runtime needs to know of the settings wires set, for the block
  * types given: one B.wired line each, name, lo, hi and whether whole, for
- * each (false where there is no limit).
+ * each (false where there is no limit); a select's are 1, how many, and its
+ * options, which the number picks from.
  * @param {Iterable<string>} types
  */
 export function wiredLua(types) {
     const lines = [];
     for (const type of types) {
         const list = wiredParams(type).map(([key, p]) =>
-            [`"${key}"`, p.min ?? 'false', p.max ?? 'false', p.type === 'int'].join(',')
+            p.type === 'select'
+                ? // a pick by number: 1 for the first option
+                  [`"${key}"`, 1, p.options?.length ?? 1, `{${(p.options ?? []).map((o) => luaValue(o)).join(',')}}`]
+                : [`"${key}"`, p.min ?? 'false', p.max ?? 'false', p.type === 'int']
         );
-        if (list.length)
-            lines.push(`B.wired("${type}",{${list.join(',')}})
-`);
+        const lines2 = list.map((l) => l.join(','));
+        if (list.length) lines.push(`B.wired("${type}",{${list.join(',')}})\n`);
     }
     return lines.join('');
 }

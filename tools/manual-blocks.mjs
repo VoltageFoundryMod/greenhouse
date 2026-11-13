@@ -35,7 +35,10 @@ const esc = (s) => String(s).replace(/\|/g, '\\|');
 const code = (s) => '`' + String(s).replace(/`/g, "'") + '`';
 
 function range(p) {
-    if (p.type === 'select') return (p.options ?? []).map((o) => code(o)).join(', ');
+    if (p.type === 'select') {
+        const list = (p.options ?? []).map((o) => code(o)).join(', ');
+        return p.wire ? `${list} (by wire: 1 for the first)` : list;
+    }
     if (p.type === 'check') return `ticked or not: ${p.help}`;
     if (p.type === 'code') return 'Lua code';
     if (p.help) return p.help;

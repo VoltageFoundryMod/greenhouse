@@ -386,12 +386,12 @@ Start messages: an LFO, a metro, clock and MIDI coming in.
 
 A slow wave, 0 to 1, updates 50 times a second.
 
-*no inputs (and 1 for settings •), 1 output*
+*no inputs (and 2 for settings •), 1 output*
 
 | setting | default | takes |
 | --- | --- | --- |
 | Hz • | `0.5` | 0.01 to 20 |
-| shape | `sine` | `sine`, `triangle`, `saw`, `square` |
+| shape • | `sine` | `sine`, `triangle`, `saw`, `square` (by wire: 1 for the first) |
 
 ### metro
 
@@ -507,11 +507,11 @@ A whole number from lo to hi each time the input is not 0.
 
 Quantizes the input note to the nearest note in the selected scale.
 
-*1 input (and 1 for settings •), 1 output*
+*1 input (and 2 for settings •), 1 output*
 
 | setting | default | takes |
 | --- | --- | --- |
-| scale | `major` | `major`, `minor`, `dorian`, `pentatonic`, `minor pent.`, `chromatic` |
+| scale • | `major` | `major`, `minor`, `dorian`, `pentatonic`, `minor pent.`, `chromatic` (by wire: 1 for the first) |
 | root • | `0` | 0 to 11 |
 
 ### slew

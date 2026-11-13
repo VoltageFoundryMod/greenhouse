@@ -427,7 +427,8 @@ the values that matter is clearer, and writes less.)
 A param marked `wire: true` in js/patch-blocks.js gets an input after the
 block's own: `inputCount(type)` on the canvas, and `buildRuntime` appends
 one `B.wired("type", {"name", lo, hi, whole, ...})` line per type in the
-runtime, so the list lives in one place. A wire into input
+runtime, so the list lives in one place; a select's entry is 1, its
+length and its options, so a number picks one (v11). A wire into input
 `def.inputs + k` sets setting _k_ (clamped, rounded when whole), calls
 `def.param(node, name, v)`, and stays set when the field is edited live.
 On the canvas these inputs carry `pn-set` and show only while a wire is

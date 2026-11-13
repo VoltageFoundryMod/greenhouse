@@ -118,9 +118,10 @@ or a port to see what it does.</li>
 back to an output. One output can feed many inputs.</li>
 <li>Ports with a name show it beside them: a math block's <i>a</i> and <i>b</i>, a counter's
 <i>step</i> and <i>reset</i>.</li>
-<li><b>Settings by wire</b>: most number fields (a MIDI channel, a CC number, lo and hi, an LFO's rate) have an
-input of their own too. They appear, square and named after the field, while you draw a wire, and stay while one
-is plugged in; the field then shows only where it starts. An encoder → value (1 to 16) → a midi cc's <i>ch</i>
+<li><b>Settings by wire</b>: most number fields (a MIDI channel, a CC number, lo and hi, an LFO's rate, a slew's
+time) and a few lists (an LFO's shape, a quantize's scale: a number picks, 1 for the first) have an input of their
+own too. They appear, square and named after the field, while you draw a wire, and stay while one is plugged in;
+the field then shows only where it starts. An encoder → value (1 to 16) → a midi cc's <i>ch</i>
 turns its channel.</li>
 <li><b>Remove a wire</b>: click it and press Delete, or right-click it and click ×.
 <b>Remove blocks</b>: select them and press Delete.</li>

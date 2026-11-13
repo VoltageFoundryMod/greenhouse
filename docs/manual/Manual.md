@@ -188,10 +188,11 @@ the bar picks which device's blocks to show.
 - **Remove**: click a wire and press Delete (or right-click it and click
   ×); select blocks and press Delete.
 - **Settings by wire**: most number fields (a MIDI channel, a CC number, lo
-  and hi, an LFO's rate) also have an input of their own. These inputs are
-  square and named after their field; they show while you draw a wire and
-  stay while one is plugged in, and the field then only says where it
-  starts. Wire an encoder through a value block (1 to 16) into a midi cc's
+  and hi, an LFO's rate, a slew's time) also have an input of their own,
+  and so do a few lists (an LFO's shape, a quantize's scale: a number picks
+  from the list, 1 for the first). These inputs are square and named
+  after their field; they show while you draw a wire and stay while one is
+  plugged in, and the field then only says where it starts. Wire an encoder through a value block (1 to 16) into a midi cc's
   *ch* to turn its channel. The block reference marks these settings •.
 
 ### Moving around

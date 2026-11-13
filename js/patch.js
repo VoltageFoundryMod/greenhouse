@@ -84,7 +84,9 @@ function nodeHtml(type) {
         .map(([key, p]) => {
             const how =
                 p.type === 'select'
-                    ? 'pick one'
+                    ? p.wire
+                        ? 'pick one (a wire picks by number: 1 for the first)'
+                        : 'pick one'
                     : p.type === 'check'
                       ? 'tick or untick'
                       : p.type === 'text'

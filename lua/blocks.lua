@@ -50,7 +50,9 @@ end
 -- Settings a wire can set: the inputs after a block's own, one per setting
 -- in order. B.wired(type, {name, lo, hi, whole, ...}) says which (greenhouse
 -- adds those lines after the parts, from js/patch-blocks.js); lo and hi are
--- false where there's no limit. def.param(node, name, v) hears a change.
+-- false where there's no limit. A pick from a list has lo 1, hi its length
+-- and the list instead of whole: the number picks. def.param(node, name, v)
+-- hears a change.
 function B.wired(name, list)
   local def = B.types[name]
   if def then def.wired = list end
@@ -60,9 +62,11 @@ local function set_param(node, k, v)
   local w, j = node.def.wired, (k - 1) * 4
   local key = w and w[j + 1]
   if not key or type(v) ~= "number" then return end
-  if w[j + 4] then v = math.floor(v + 0.5) end
+  local whole = w[j + 4]
+  if whole then v = math.floor(v + 0.5) end
   if w[j + 2] then v = math.max(w[j + 2], v) end
   if w[j + 3] then v = math.min(w[j + 3], v) end
+  if type(whole) == "table" then v = whole[v] end
   node.wset = node.wset or {}
   node.wset[key] = true
   if node.p[key] == v then return end
