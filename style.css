@@ -740,7 +740,8 @@ body.is-resizing-explorer * {
 
 .patch-drawer:not(.open) > .pane-divider,
 .ach-drawer:not(.open) > .pane-divider,
-.grid-drawer:not(.open) > .pane-divider {
+.grid-drawer:not(.open) > .pane-divider,
+.midi-drawer:not(.open) > .pane-divider {
     display: none;
 }
 
@@ -970,6 +971,11 @@ body.is-resizing-editor-rows * {
 .midi-drawer {
     border-top: 1px solid var(--neutral-trim);
     background-color: var(--bg-default);
+}
+
+/* open, its divider draws the line */
+.midi-drawer.open {
+    border-top: none;
 }
 
 .midi-drawer-bar {

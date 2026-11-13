@@ -1,16 +1,21 @@
-// Drawer heights: a divider under each drawer's body (patch, achene, grid,
-// MIDI list) that drags its height, like the one between the editor and the
-// console. The height is kept for the next visit. Mixed into diiiApp
-// (diii.js); `this` is the app.
+// Drawer heights: a divider under each drawer's body (patch, achene, grid)
+// that drags its height, like the one between the editor and the console.
+// The MIDI drawer sits at the bottom of the console, so its divider is on its
+// top edge, under the output, and drags up to grow. The height is kept for
+// the next visit. Mixed into diiiApp (diii.js); `this` is the app.
 
 const KEY = 'webdiii.paneHeights';
 
-/** [body element id, its minimum height] */
+/**
+ * [body element id, its minimum height, the drawer whose top edge holds the
+ * divider (else it goes under the body)]
+ * @type {[string, number, string?][]}
+ */
 const PANES = [
     ['patchBody', 160],
     ['acheneBody', 140],
     ['gridBody', 120],
-    ['midiList', 50]
+    ['midiList', 50, 'midiDrawer']
 ];
 
 function loadHeights() {
@@ -33,9 +38,13 @@ function saveHeights(heights) {
 export const dividerMethods = {
     bindPaneDividers() {
         const heights = loadHeights();
-        for (const [id, min] of PANES) {
+        for (const [id, min, topOf] of PANES) {
             const body = document.getElementById(id);
             if (!body?.parentElement) continue;
+            const drawer = topOf ? document.getElementById(topOf) : null;
+            if (topOf && !drawer) continue;
+            // on a top edge, dragging up makes the body taller
+            const sign = drawer ? -1 : 1;
             if (heights[id]) body.style.height = `${heights[id]}px`;
             const divider = document.createElement('div');
             divider.className = 'pane-divider';
@@ -44,7 +53,8 @@ export const dividerMethods = {
             divider.setAttribute('aria-label', 'resize');
             divider.tabIndex = 0;
             divider.title = 'drag to resize (double-click: back to the default size)';
-            body.after(divider);
+            if (drawer) drawer.prepend(divider);
+            else body.after(divider);
 
             const max = () => Math.round(window.innerHeight * 0.85);
             /** @param {number} h @param {boolean} keep */
@@ -65,7 +75,7 @@ export const dividerMethods = {
                 divider.setPointerCapture(event.pointerId);
                 divider.classList.add('dragging');
                 document.body.classList.add('is-resizing-editor-rows');
-                const move = (/** @type {PointerEvent} */ e) => setHeight(startH + (e.clientY - startY), false);
+                const move = (/** @type {PointerEvent} */ e) => setHeight(startH + sign * (e.clientY - startY), false);
                 const end = () => {
                     divider.classList.remove('dragging');
                     document.body.classList.remove('is-resizing-editor-rows');
@@ -88,7 +98,7 @@ export const dividerMethods = {
                 event.preventDefault();
                 const step = event.shiftKey ? 40 : 10;
                 const h = body.getBoundingClientRect().height;
-                setHeight(h + (event.key === 'ArrowDown' ? step : -step), true);
+                setHeight(h + sign * (event.key === 'ArrowDown' ? step : -step), true);
             });
         }
     }
