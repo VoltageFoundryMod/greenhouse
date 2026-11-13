@@ -464,6 +464,30 @@
     right: 16px;
 }
 
+/* the inputs that set a block's settings (js/patch.js, markPatchSettingPorts):
+   hidden until a wire is drawn or one is plugged in, smaller, named by their field */
+.patch-canvas .drawflow .drawflow-node .input.pn-set {
+    display: none;
+    border-radius: 3px;
+    border-style: dashed;
+}
+
+.patch-canvas .drawflow .drawflow-node .input.pn-set.pn-plugged,
+.patch-canvas.pn-wiring .drawflow .drawflow-node .input.pn-set {
+    display: block;
+}
+
+.drawflow-node .input.pn-set::after {
+    content: attr(data-name);
+    font-style: italic;
+}
+
+/* a field a wire sets: its value on the canvas is only where it starts */
+.pn-field.pn-wired input {
+    opacity: 0.5;
+    font-style: italic;
+}
+
 .drawflow-node .output::after {
     left: 16px;
 }

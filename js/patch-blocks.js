@@ -4,7 +4,7 @@
 // outputs and parameters.
 
 /** Version of the runtime (lua/blocks*.lua) this diii carries; a patch file says which it was made with. */
-export const RUNTIME_VERSION = 9;
+export const RUNTIME_VERSION = 10;
 
 /**
  * The runtime's source files, in the order their parts join: the core and
@@ -100,7 +100,7 @@ export function buildRuntime(parts, types, device) {
         if (p && fits(p)) add(p.name);
     }
     const chosen = parts.filter((p) => take.has(p.name));
-    const code = chosen.map((p) => p.code).join('');
+    const code = chosen.map((p) => p.code).join('') + wiredLua(chosen.flatMap((p) => p.types));
     const build = fingerprint(code);
     return {
         text: `${code}B.build = "${build}"\n`,
@@ -146,6 +146,9 @@ export function compactLua(text) {
  * @property {number} [max]
  * @property {number} [step]
  * @property {string[]} [options] for select
+ * @property {boolean} [wire] a number can set it by wire too: the block gets an input for it, after its own
+ *   (wiredParams), shown while a wire is drawn and while one is plugged in
+ * @property {number} [len] longest text it takes (20 when not given)
  *
  * @typedef {object} Block
  * @property {string} label
@@ -218,7 +221,7 @@ export const BLOCKS = {
         outputs: 1,
         doc: 'a slow wave, 0 to 1, updates 50 times a second',
         params: {
-            rate: { type: 'number', label: 'Hz', default: 0.5, min: 0.01, max: 20, step: 0.05 },
+            rate: { type: 'number', label: 'Hz', default: 0.5, min: 0.01, max: 20, step: 0.05, wire: true },
             shape: { type: 'select', label: 'shape', default: 'sine', options: ['sine', 'triangle', 'saw', 'square'] }
         }
     },
@@ -229,8 +232,8 @@ export const BLOCKS = {
         outputs: 1,
         doc: 'stores and accumulates a value, keeps it between lo and hi: turns encoder steps into a value',
         params: {
-            lo: { type: 'number', label: 'lo', default: 0 },
-            hi: { type: 'number', label: 'hi', default: 127 },
+            lo: { type: 'number', label: 'lo', default: 0, wire: true },
+            hi: { type: 'number', label: 'hi', default: 127, wire: true },
             start: { type: 'number', label: 'start', default: 64 }
         }
     },
@@ -241,10 +244,10 @@ export const BLOCKS = {
         outputs: 1,
         doc: 'maps one range onto another, e.g. 0..1 to 0..127',
         params: {
-            in_lo: { type: 'number', label: 'in lo', default: 0 },
-            in_hi: { type: 'number', label: 'in hi', default: 1 },
-            out_lo: { type: 'number', label: 'out lo', default: 0 },
-            out_hi: { type: 'number', label: 'out hi', default: 127 }
+            in_lo: { type: 'number', label: 'in lo', default: 0, wire: true },
+            in_hi: { type: 'number', label: 'in hi', default: 1, wire: true },
+            out_lo: { type: 'number', label: 'out lo', default: 0, wire: true },
+            out_hi: { type: 'number', label: 'out hi', default: 127, wire: true }
         }
     },
     toggle: {
@@ -262,8 +265,8 @@ export const BLOCKS = {
         outputs: 0,
         doc: 'sends the value as a MIDI CC (0..127)',
         params: {
-            cc: { type: 'int', label: 'cc', default: 20, min: 0, max: 127 },
-            ch: { type: 'int', label: 'ch', default: 1, min: 1, max: 16 }
+            cc: { type: 'int', label: 'cc', default: 20, min: 0, max: 127, wire: true },
+            ch: { type: 'int', label: 'ch', default: 1, min: 1, max: 16, wire: true }
         }
     },
     midi_note: {
@@ -274,8 +277,8 @@ export const BLOCKS = {
         doc: 'input 1: note on when not 0, off when 0; input 2 (optional) sets the note number',
         params: {
             note: { type: 'int', label: 'note', default: 60, min: 0, max: 127 },
-            vel: { type: 'int', label: 'vel', default: 100, min: 1, max: 127 },
-            ch: { type: 'int', label: 'ch', default: 1, min: 1, max: 16 }
+            vel: { type: 'int', label: 'vel', default: 100, min: 1, max: 127, wire: true },
+            ch: { type: 'int', label: 'ch', default: 1, min: 1, max: 16, wire: true }
         }
     },
     key_led: {
@@ -298,8 +301,8 @@ export const BLOCKS = {
         params: {
             label: { type: 'text', label: 'label', default: 'value' },
             slot: { type: 'int', label: 'place', default: 1, min: 1, max: 8 },
-            lo: { type: 'number', label: 'lo', default: 0 },
-            hi: { type: 'number', label: 'hi', default: 127 }
+            lo: { type: 'number', label: 'lo', default: 0, wire: true },
+            hi: { type: 'number', label: 'hi', default: 127, wire: true }
         }
     },
     enc_push: {
@@ -350,8 +353,8 @@ export const BLOCKS = {
         outputs: 1,
         doc: 'a fader of grid keys from lo to hi: vertical when taller than wide (lo at the bottom), horizontal otherwise (lo on the left); a wider one moves as one. A press sends its value; its input moves it without sending. Each key is one step, so 8 keys of 0..127 jump by 18. It remembers where it was',
         params: {
-            lo: { type: 'number', label: 'lo', default: 0 },
-            hi: { type: 'number', label: 'hi', default: 127 },
+            lo: { type: 'number', label: 'lo', default: 0, wire: true },
+            hi: { type: 'number', label: 'hi', default: 127, wire: true },
             start: { type: 'number', label: 'start', default: 0 },
             style: { type: 'select', label: 'style', default: 'fill', options: ['fill', 'dot'] },
             orient: {
@@ -398,8 +401,8 @@ export const BLOCKS = {
                 options: ['major', 'minor', 'dorian', 'pentatonic', 'minor pent.', 'chromatic']
             },
             send: { type: 'select', label: 'send', default: 'midi', options: ['midi', 'outputs only'] },
-            ch: { type: 'int', label: 'ch', default: 1, min: 1, max: 16 },
-            vel: { type: 'int', label: 'vel', default: 100, min: 1, max: 127 },
+            ch: { type: 'int', label: 'ch', default: 1, min: 1, max: 16, wire: true },
+            vel: { type: 'int', label: 'vel', default: 100, min: 1, max: 127, wire: true },
             ...gplace(8, 4)
         }
     },
@@ -418,12 +421,12 @@ export const BLOCKS = {
                 options: ['major', 'minor', 'dorian', 'pentatonic', 'minor pent.', 'chromatic']
             },
             step: { type: 'int', label: 'step', default: 2, min: -7, max: 7 },
-            echoes: { type: 'int', label: 'echoes', default: 4, min: 0, max: 12 },
+            echoes: { type: 'int', label: 'echoes', default: 4, min: 0, max: 12, wire: true },
             speed: { type: 'number', label: 'speed', default: 6 },
-            len: { type: 'int', label: 'len ms', default: 150, min: 20, max: 4000 },
+            len: { type: 'int', label: 'len ms', default: 150, min: 20, max: 4000, wire: true },
             send: { type: 'select', label: 'send', default: 'midi', options: ['midi', 'outputs only'] },
-            ch: { type: 'int', label: 'ch', default: 1, min: 1, max: 16 },
-            vel: { type: 'int', label: 'vel', default: 100, min: 1, max: 127 },
+            ch: { type: 'int', label: 'ch', default: 1, min: 1, max: 16, wire: true },
+            vel: { type: 'int', label: 'vel', default: 100, min: 1, max: 127, wire: true },
             ...gplace(8, 8)
         }
     },
@@ -434,7 +437,7 @@ export const BLOCKS = {
         outputs: 1,
         doc: 'a steady beat: 1 on each beat, 0 halfway. Input 1: 0 stops it, anything else starts it. Input 2 sets the tempo in BPM (then ms is unused), with per beat beats to a quarter note (2 eighths, 4 sixteenths); it steps on the 50 Hz tick, so timing is rounded to 20 ms',
         params: {
-            ms: { type: 'int', label: 'ms', default: 500, min: 20, max: 10000 },
+            ms: { type: 'int', label: 'ms', default: 500, min: 20, max: 10000, wire: true },
             per: { type: 'select', label: 'per beat', default: '1', options: ['1', '2', '3', '4'] }
         }
     },
@@ -455,8 +458,8 @@ export const BLOCKS = {
         outputs: 1,
         doc: 'an incoming CC: its value, 0..127',
         params: {
-            cc: { type: 'int', label: 'cc', default: 74, min: 0, max: 127 },
-            ch: { type: 'int', label: 'ch', default: 1, min: 1, max: 16 }
+            cc: { type: 'int', label: 'cc', default: 74, min: 0, max: 127, wire: true },
+            ch: { type: 'int', label: 'ch', default: 1, min: 1, max: 16, wire: true }
         }
     },
     midi_in_note: {
@@ -465,7 +468,7 @@ export const BLOCKS = {
         inputs: 0,
         outputs: 2,
         doc: 'incoming notes: output 1 the note number, output 2 1 on and 0 off',
-        params: { ch: { type: 'int', label: 'ch', default: 1, min: 1, max: 16 } }
+        params: { ch: { type: 'int', label: 'ch', default: 1, min: 1, max: 16, wire: true } }
     },
     counter: {
         label: 'counter',
@@ -474,9 +477,9 @@ export const BLOCKS = {
         outputs: 1,
         doc: 'step input: the next step when not 0, wrapping; reset input: resets to lo when not 0',
         params: {
-            lo: { type: 'int', label: 'lo', default: 1 },
-            hi: { type: 'int', label: 'hi', default: 8 },
-            step: { type: 'int', label: 'step', default: 1 }
+            lo: { type: 'int', label: 'lo', default: 1, wire: true },
+            hi: { type: 'int', label: 'hi', default: 8, wire: true },
+            step: { type: 'int', label: 'step', default: 1, wire: true }
         }
     },
     random: {
@@ -486,8 +489,8 @@ export const BLOCKS = {
         outputs: 1,
         doc: 'a whole number from lo to hi each time the input is not 0',
         params: {
-            lo: { type: 'int', label: 'lo', default: 48 },
-            hi: { type: 'int', label: 'hi', default: 72 }
+            lo: { type: 'int', label: 'lo', default: 48, wire: true },
+            hi: { type: 'int', label: 'hi', default: 72, wire: true }
         }
     },
     quantize: {
@@ -503,7 +506,7 @@ export const BLOCKS = {
                 default: 'major',
                 options: ['major', 'minor', 'dorian', 'pentatonic', 'minor pent.', 'chromatic']
             },
-            root: { type: 'int', label: 'root', default: 0, min: 0, max: 11 }
+            root: { type: 'int', label: 'root', default: 0, min: 0, max: 11, wire: true }
         }
     },
     slew: {
@@ -512,7 +515,7 @@ export const BLOCKS = {
         inputs: 1,
         outputs: 1,
         doc: 'glides to each new value over a time (seconds)',
-        params: { time: { type: 'number', label: 's', default: 0.5, min: 0, max: 30, step: 0.1 } }
+        params: { time: { type: 'number', label: 's', default: 0.5, min: 0, max: 30, step: 0.1, wire: true } }
     },
     gate: {
         label: 'gate',
@@ -528,7 +531,7 @@ export const BLOCKS = {
         inputs: 1,
         outputs: 1,
         doc: 'a fixed number: sent when the patch starts, and again whenever anything comes in (a key, a beat)',
-        params: { value: { type: 'number', label: 'value', default: 1 } }
+        params: { value: { type: 'number', label: 'value', default: 1, wire: true } }
     },
     sample: {
         label: 'sample & hold',
@@ -618,8 +621,8 @@ export const BLOCKS = {
         params: {
             label: { type: 'text', label: 'label', default: 'cutoff' },
             ...place('top', 1),
-            lo: { type: 'number', label: 'lo', default: 0 },
-            hi: { type: 'number', label: 'hi', default: 127 }
+            lo: { type: 'number', label: 'lo', default: 0, wire: true },
+            hi: { type: 'number', label: 'hi', default: 127, wire: true }
         }
     },
     key_label: {
@@ -642,8 +645,8 @@ export const BLOCKS = {
         params: {
             label: { type: 'text', label: 'label', default: 'level' },
             ...place('middle', 1),
-            lo: { type: 'number', label: 'lo', default: 0 },
-            hi: { type: 'number', label: 'hi', default: 127 }
+            lo: { type: 'number', label: 'lo', default: 0, wire: true },
+            hi: { type: 'number', label: 'hi', default: 127, wire: true }
         }
     },
     knob: {
@@ -655,8 +658,8 @@ export const BLOCKS = {
         params: {
             label: { type: 'text', label: 'label', default: 'res' },
             ...place('middle', 1),
-            lo: { type: 'number', label: 'lo', default: 0 },
-            hi: { type: 'number', label: 'hi', default: 127 }
+            lo: { type: 'number', label: 'lo', default: 0, wire: true },
+            hi: { type: 'number', label: 'hi', default: 127, wire: true }
         }
     },
     number: {
@@ -679,8 +682,8 @@ export const BLOCKS = {
         params: {
             label: { type: 'text', label: 'label', default: 'lfo' },
             ...place('middle', 2),
-            lo: { type: 'number', label: 'lo', default: 0 },
-            hi: { type: 'number', label: 'hi', default: 1 }
+            lo: { type: 'number', label: 'lo', default: 0, wire: true },
+            hi: { type: 'number', label: 'hi', default: 1, wire: true }
         }
     },
     steps: {
@@ -693,8 +696,8 @@ export const BLOCKS = {
             steps: { type: 'int', label: 'steps', default: 8, min: 1, max: 64 },
             advance: { type: 'select', label: 'input is', default: 'step number', options: ['step number', 'beat'] },
             note: { type: 'int', label: 'note', default: 60, min: 0, max: 127 },
-            lo: { type: 'int', label: 'lo', default: 48, min: 0, max: 127 },
-            hi: { type: 'int', label: 'hi', default: 72, min: 0, max: 127 },
+            lo: { type: 'int', label: 'lo', default: 48, min: 0, max: 127, wire: true },
+            hi: { type: 'int', label: 'hi', default: 72, min: 0, max: 127, wire: true },
             keys: {
                 type: 'select',
                 label: 'keys',
@@ -742,6 +745,42 @@ export const BLOCKS = {
     }
 };
 
+/**
+ * The settings a wire can set, in the order of their inputs: input
+ * block.inputs + 1 is the first.
+ * @param {string} type
+ * @returns {[string, Param][]}
+ */
+export function wiredParams(type) {
+    return Object.entries(BLOCKS[type]?.params || {}).filter(([, p]) => p.wire);
+}
+
+/**
+ * How many inputs a block has on the canvas: its own and one per setting a wire can set.
+ * @param {string} type
+ */
+export function inputCount(type) {
+    const block = BLOCKS[type];
+    return block ? block.inputs + wiredParams(type).length : 0;
+}
+
+/**
+ * What the runtime needs to know of the settings wires set, for the block
+ * types given: one B.wired line each, name, lo, hi and whether whole, for
+ * each (false where there is no limit).
+ * @param {Iterable<string>} types
+ */
+export function wiredLua(types) {
+    const lines = [];
+    for (const type of types) {
+        const list = wiredParams(type).map(([key, p]) =>
+            [`"${key}"`, p.min ?? 'false', p.max ?? 'false', p.type === 'int'].join(',')
+        );
+        if (list.length) lines.push(`B.wired("${type}",{${list.join(',')}})\n`);
+    }
+    return lines.join('');
+}
+
 /** @param {string} type */
 export function defaultParams(type) {
     const block = BLOCKS[type];
@@ -770,7 +809,7 @@ export function luaParam(param, value) {
     if (param.type === 'select' && !param.options?.includes(text)) text = String(param.default);
     if (param.type === 'select' && /^\d+$/.test(text)) return text;
     // printable ASCII without quotes or backslashes, so it's always valid Lua
-    text = text.replace(/[^ -~]|["\\]/g, '').slice(0, 20);
+    text = text.replace(/[^ -~]|["\\]/g, '').slice(0, param.len ?? 20);
     return `"${text}"`;
 }
 

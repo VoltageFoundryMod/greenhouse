@@ -18,7 +18,7 @@
 -- metro is kept: iii has 12.
 if B and B.clear then B.clear() end
 B = {tick_metro = B and B.tick_metro}
-B.version = 9
+B.version = 10
 B.types = {}
 
 local nodes = {}      -- id -> node
@@ -47,12 +47,39 @@ function B.type(name, def)
   B.types[name] = def
 end
 
+-- Settings a wire can set: the inputs after a block's own, one per setting
+-- in order. B.wired(type, {name, lo, hi, whole, ...}) says which (greenhouse
+-- adds those lines after the parts, from js/patch-blocks.js); lo and hi are
+-- false where there's no limit. def.param(node, name, v) hears a change.
+function B.wired(name, list)
+  local def = B.types[name]
+  if def then def.wired = list end
+end
+
+local function set_param(node, k, v)
+  local w, j = node.def.wired, (k - 1) * 4
+  local key = w and w[j + 1]
+  if not key or type(v) ~= "number" then return end
+  if w[j + 4] then v = math.floor(v + 0.5) end
+  if w[j + 2] then v = math.max(w[j + 2], v) end
+  if w[j + 3] then v = math.min(w[j + 3], v) end
+  node.wset = node.wset or {}
+  node.wset[key] = true
+  if node.p[key] == v then return end
+  node.p[key] = v
+  if node.def.param then node.def.param(node, key, v) end
+end
+
 function B.out(node, i, v)
   local wires = node.outs[i]
   if not wires then return end
   for _, w in ipairs(wires) do
     local to = nodes[w[1]]
-    if to and to.def.input then to.def.input(to, w[2], v) end
+    if to then
+      local k = w[2] - to.def.inputs
+      if k > 0 then set_param(to, k, v)
+      elseif to.def.input then to.def.input(to, w[2], v) end
+    end
   end
 end
 
@@ -117,8 +144,15 @@ function B.node(id, typename, params)
   local node = {id = id, type = typename, def = def, p = params or {}, outs = old and old.outs or {}}
   nodes[id] = node
   node.listen = function(event) listen(node, event) end
-  -- replaced (a field edited): init may keep what the old one held
-  if old and old.type == typename then node.old = old end
+  -- replaced (a field edited): init may keep what the old one held, and
+  -- settings a wire set stay as the wire left them
+  if old and old.type == typename then
+    node.old = old
+    if old.wset then
+      for key in pairs(old.wset) do node.p[key] = old.p[key] end
+      node.wset = old.wset
+    end
+  end
   if def.init then def.init(node) end
   node.old = nil
   if def.tick then table.insert(tickers, node) end
@@ -710,6 +744,8 @@ end
 B.type("midi_cc", {
   inputs = 1,
   input = function(node, _, v) B.limit(node, v, send_cc) end,
+  -- another cc or channel: the next value goes out even if it's the same
+  param = function(node) node.last = nil end,
 })
 
 --@part midi_note
@@ -721,17 +757,17 @@ B.type("midi_note", {
       node.next_note = clamp(round(v), 0, 127)
       return
     end
-    local ch = node.p.ch or 1
+    -- the off goes on the note's own channel, even if a wire changed ch since
     if v ~= 0 and not node.on then
-      node.on = node.next_note or node.p.note or 60
-      midi_note_on(node.on, node.p.vel or 100, ch)
+      node.on, node.on_ch = node.next_note or node.p.note or 60, node.p.ch or 1
+      midi_note_on(node.on, node.p.vel or 100, node.on_ch)
     elseif v == 0 and node.on then
-      midi_note_off(node.on, 0, ch)
+      midi_note_off(node.on, 0, node.on_ch)
       node.on = nil
     end
   end,
   stop = function(node)
-    if node.on then midi_note_off(node.on, 0, node.p.ch or 1) end
+    if node.on then midi_note_off(node.on, 0, node.on_ch) end
   end,
 })
 

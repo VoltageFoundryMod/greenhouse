@@ -15,6 +15,7 @@ import {
     buildRuntime,
     defaultParams,
     examplePatch,
+    inputCount,
     liveLines,
     luaParams,
     parseRuntime,
@@ -22,7 +23,8 @@ import {
     patchFile,
     patchProblems,
     patchTypes,
-    readPatchFile
+    readPatchFile,
+    wiredParams
 } from './patch-blocks.js';
 
 const DRAWER_KEY = 'webdiii.patchDrawer';
@@ -66,7 +68,12 @@ function blockSize(type) {
     const code = params.some((p) => p.type === 'code');
     return {
         w: code ? 240 : 180,
-        h: 44 + params.length * 25 + (code ? 70 : 0) + (block.view ? 50 : 0) + Math.max(block.inputs, block.outputs) * 4
+        h:
+            44 +
+            params.length * 25 +
+            (code ? 70 : 0) +
+            (block.view ? 50 : 0) +
+            Math.max(inputCount(type), block.outputs) * 4
     };
 }
 
@@ -326,6 +333,16 @@ export const patchMethods = {
             )
         );
         editor.on('nodeMoved', () => this.savePatchLocally());
+        // the inputs that set a block's settings: shown while a wire is drawn
+        // and while one is plugged in
+        editor.on('nodeCreated', (id) => this.markPatchSettingPorts(Number(id)));
+        editor.on('connectionCreated', (c) => this.markPatchSettingPorts(Number(c.input_id)));
+        editor.on('connectionRemoved', (c) => this.markPatchSettingPorts(Number(c.input_id)));
+        editor.on('connectionStart', () => this.showPatchSettingPorts(true));
+        editor.on('connectionCancel', () => this.showPatchSettingPorts(false));
+        editor.on('connectionCreated', () => this.showPatchSettingPorts(false));
+        // dropped anywhere else: after Drawflow has had the mouseup
+        document.addEventListener('mouseup', () => setTimeout(() => this.showPatchSettingPorts(false)));
 
         let saved = null;
         try {
@@ -459,7 +476,7 @@ export const patchMethods = {
             const size = blockSize(type);
             [x, y] = this.findFreePatchSpot(x, y, size.w, size.h);
         }
-        editor.addNode(type, block.inputs, block.outputs, x, y, `pn-${type}`, defaultParams(type), nodeHtml(type));
+        editor.addNode(type, inputCount(type), block.outputs, x, y, `pn-${type}`, defaultParams(type), nodeHtml(type));
     },
 
     /** The canvas as a patch: nodes with their parameters, and the wires. */
@@ -506,7 +523,7 @@ export const patchMethods = {
             const inputs = {};
             /** @type {Record<string, { connections: any[] }>} */
             const outputs = {};
-            for (let i = 1; i <= block.inputs; i++) inputs[`input_${i}`] = { connections: [] };
+            for (let i = 1; i <= inputCount(n.type); i++) inputs[`input_${i}`] = { connections: [] };
             for (let i = 1; i <= block.outputs; i++) outputs[`output_${i}`] = { connections: [] };
             data[n.id] = {
                 id: n.id,
@@ -530,9 +547,48 @@ export const patchMethods = {
         }
         editor.import({ drawflow: { Home: { data } } });
         const ids = Object.keys(data).map(Number);
+        for (const id of ids) this.markPatchSettingPorts(id);
         editor.nodeId = (ids.length ? Math.max(...ids) : 0) + 1;
         requestAnimationFrame(() => this.redrawPatchWires());
         this.savePatchLocally();
+    },
+
+    /**
+     * A block's setting inputs (wiredParams): named, hidden unless a wire
+     * is plugged in, and the field a wire sets marked as set by it.
+     * @param {number} id
+     */
+    markPatchSettingPorts(id) {
+        const editor = this.patchEditor;
+        const node = editor?.drawflow.drawflow[editor.module].data[id];
+        const el = document.getElementById(`node-${id}`);
+        const block = node && BLOCKS[node.name];
+        if (!block || !el) return;
+        wiredParams(node.name).forEach(([key, p], k) => {
+            const n = block.inputs + k + 1;
+            const port = /** @type {HTMLElement | null} */ (el.querySelector(`.inputs .input_${n}`));
+            if (!port) return;
+            const plugged = Boolean(node.inputs[`input_${n}`]?.connections?.length);
+            port.classList.add('pn-set');
+            port.classList.toggle('pn-plugged', plugged);
+            port.dataset.name = p.label;
+            const field = el.querySelector(`[df-${key}]`)?.closest('.pn-field');
+            field?.classList.toggle('pn-wired', plugged);
+            if (plugged) field?.setAttribute('title', `${p.label}: set by the wire into its input`);
+            else field?.removeAttribute('title');
+        });
+        editor.updateConnectionNodes(`node-${id}`);
+    },
+
+    /**
+     * While a wire is drawn every block shows its setting inputs, to drop it on.
+     * @param {boolean} on
+     */
+    showPatchSettingPorts(on) {
+        const canvas = this.elements.patchCanvas;
+        if (!canvas || canvas.classList.contains('pn-wiring') === on) return;
+        canvas.classList.toggle('pn-wiring', on);
+        requestAnimationFrame(() => this.redrawPatchWires());
     },
 
     // ------------------------------------------------------------ zoom
@@ -777,7 +833,7 @@ export const patchMethods = {
             const block = BLOCKS[n.type];
             const id = editor.addNode(
                 n.type,
-                block.inputs,
+                inputCount(n.type),
                 block.outputs,
                 (Number(n.x) || 0) + dx,
                 (Number(n.y) || 0) + dy,
@@ -1054,8 +1110,18 @@ export const patchMethods = {
             if (!port || port.hasAttribute('title')) return;
             const isInput = port.classList.contains('input');
             const n = [...port.classList].map((c) => /^(?:input|output)_(\d+)$/.exec(c)?.[1]).find(Boolean) || '1';
-            const name = getComputedStyle(port, '::after').content.replace(/^["']|["']$/g, '');
+            const name =
+                /** @type {HTMLElement} */ (port).dataset.name ||
+                getComputedStyle(port, '::after').content.replace(/^["']|["']$/g, '');
+            const set = port.classList.contains('pn-set');
             const label = `${isInput ? 'input' : 'output'} ${n}${name && name !== 'none' ? ` (${name})` : ''}`;
+            if (set) {
+                port.setAttribute(
+                    'title',
+                    `${label}: a number wired here sets the ${name} field (shown while a wire is drawn or plugged in)`
+                );
+                return;
+            }
             port.setAttribute(
                 'title',
                 isInput

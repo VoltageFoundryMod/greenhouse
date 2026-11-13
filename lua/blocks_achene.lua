@@ -102,8 +102,13 @@ B.type("display", {
     screen_dirty = true
   end,
   input = function(node, _, v)
+    node.v = v
     local lo, hi = node.p.lo or 0, node.p.hi or 127
-    slot_set(node.p.slot or 1, node.p.label or "", (v - lo) / (hi - lo))
+    slot_set(node.p.slot or 1, node.p.label or "", hi ~= lo and (v - lo) / (hi - lo) or 0)
+  end,
+  -- lo or hi from a wire: the bar again, for the last value
+  param = function(node)
+    if node.v then node.def.input(node, 1, node.v) end
   end,
 })
 
@@ -162,6 +167,8 @@ local function widget(name, def)
     if stop then stop(node) end
     screen_dirty = true
   end
+  -- a setting a wire changed (lo, hi): draw it again
+  def.param = def.param or function() screen_dirty = true end
   B.type(name, def)
 end
 

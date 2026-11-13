@@ -166,6 +166,7 @@ B.type("gfader", {
     node.v = v
     grid_dirty = true
   end,
+  param = function() grid_dirty = true end,
   gpress = function(node, i, j, z, w, h)
     if z ~= 1 then return end
     local vert, n = gfader_shape(node, w, h)
@@ -206,15 +207,19 @@ local function degree_note(base, scale, d)
   return base + 12 * (d // n) + st[d % n + 1]
 end
 
--- notes a grid widget plays itself, on its own channel, several at once
+-- notes a grid widget plays itself, on its own channel, several at once;
+-- each note ends on the channel it started on (a wire may change ch)
 local function gnote_on(node, note, vel)
   if node.p.send == "outputs only" then return end
-  midi_note_on(note, clamp(round(vel), 1, 127), node.p.ch or 1)
+  node.note_ch = node.note_ch or {}
+  node.note_ch[note] = node.p.ch or 1
+  midi_note_on(note, clamp(round(vel), 1, 127), node.note_ch[note])
 end
 
 local function gnote_off(node, note)
   if node.p.send == "outputs only" then return end
-  midi_note_off(note, 0, node.p.ch or 1)
+  local ch = node.note_ch and node.note_ch[note] or node.p.ch or 1
+  midi_note_off(note, 0, ch)
 end
 
 --@part gsteps needs gnotes grid

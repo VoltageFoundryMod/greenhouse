@@ -4,7 +4,9 @@
 
 Every block in graft's palette, by group, in the order the palette shows them. Hover a
 block's title, a field or a port in graft for the same help. Numbers travel along the wires:
-a block with inputs acts when one arrives, and sends its result on from its outputs.
+a block with inputs acts when one arrives, and sends its result on from its outputs. A setting
+marked • can also be set by a wire: the block has an input for it after its own, shown while a
+wire is drawn (or one is plugged in).
 
 <!-- if: achene -->
 
@@ -47,14 +49,14 @@ Lights an achene key button: the value (0..1) is the brightness.
 
 A labelled bar on achene's screen, in one of 8 places (two columns of four); the screen blocks place things more freely.
 
-*1 input, no outputs*
+*1 input (and 2 for settings •), no outputs*
 
 | setting | default | takes |
 | --- | --- | --- |
 | label | `value` | text |
 | place | `1` | 1 to 8 |
-| lo | `0` | a number |
-| hi | `127` | a number |
+| lo • | `0` | a number |
+| hi • | `127` | a number |
 
 ### enc push
 
@@ -78,7 +80,7 @@ Things drawn on achene's OLED, placed on a grid that lines up with E1–E4 and K
 
 A name over an encoder (top row) with its value as a line; turning shows the number for a moment.
 
-*1 input, no outputs*
+*1 input (and 2 for settings •), no outputs*
 
 | setting | default | takes |
 | --- | --- | --- |
@@ -86,8 +88,8 @@ A name over an encoder (top row) with its value as a line; turning shows the num
 | row | `top` | `top`, `middle`, `middle top`, `middle bottom`, `bottom` |
 | column | `1` | 1 to 4 |
 | width | `1` | 1 to 4 |
-| lo | `0` | a number |
-| hi | `127` | a number |
+| lo • | `0` | a number |
+| hi • | `127` | a number |
 
 ### key label
 
@@ -106,7 +108,7 @@ A name over a key (bottom row), shown inverted while its input is not 0 (wire a 
 
 A vertical bar with its name and value.
 
-*1 input, no outputs*
+*1 input (and 2 for settings •), no outputs*
 
 | setting | default | takes |
 | --- | --- | --- |
@@ -114,14 +116,14 @@ A vertical bar with its name and value.
 | row | `middle` | `top`, `middle`, `middle top`, `middle bottom`, `bottom` |
 | column | `1` | 1 to 4 |
 | width | `1` | 1 to 4 |
-| lo | `0` | a number |
-| hi | `127` | a number |
+| lo • | `0` | a number |
+| hi • | `127` | a number |
 
 ### knob
 
 An arc with the value inside and the name under it (largest in the full middle row).
 
-*1 input, no outputs*
+*1 input (and 2 for settings •), no outputs*
 
 | setting | default | takes |
 | --- | --- | --- |
@@ -129,8 +131,8 @@ An arc with the value inside and the name under it (largest in the full middle r
 | row | `middle` | `top`, `middle`, `middle top`, `middle bottom`, `bottom` |
 | column | `1` | 1 to 4 |
 | width | `1` | 1 to 4 |
-| lo | `0` | a number |
-| hi | `127` | a number |
+| lo • | `0` | a number |
+| hi • | `127` | a number |
 
 ### number
 
@@ -149,7 +151,7 @@ A name and its value as text.
 
 The last values as a line scrolling from the right (an LFO, a CC).
 
-*1 input, no outputs*
+*1 input (and 2 for settings •), no outputs*
 
 | setting | default | takes |
 | --- | --- | --- |
@@ -157,22 +159,22 @@ The last values as a line scrolling from the right (an LFO, a CC).
 | row | `middle` | `top`, `middle`, `middle top`, `middle bottom`, `bottom` |
 | column | `1` | 1 to 4 |
 | width | `2` | 1 to 4 |
-| lo | `0` | a number |
-| hi | `1` | a number |
+| lo • | `0` | a number |
+| hi • | `1` | a number |
 
 ### steps
 
 A step sequencer of up to 64 steps, each with a note, drawn as bars. *Step input* is the playing step (a counter), or with 'input 1 is' set to beat, a beat (a metro, clock in) that moves to the next step. Each step sends its note and, if it is on, a gate; step output is the step number. Its keys show a page of steps: a press turns a step on or off; an encoder wired to *edit input* then sets that step's note (for 2 seconds after the press, or while the key is held); otherwise it transposes them all. *Flip input* takes a step number and turns that step on or off. *Page input* picks the page the keys show, counting steps through auto, page 1, page 2...: positive is the next page, negative the previous (wire an encoder, a key for next on each push or a key thru 'math x -1' op for previous). *Length input* sets the length, 1 to 64 (from a value block); see guide for more recipes.
 
-*5 inputs, 3 outputs*
+*5 inputs (and 2 for settings •), 3 outputs*
 
 | setting | default | takes |
 | --- | --- | --- |
 | steps | `8` | 1 to 64 |
 | input is | `step number` | `step number`, `beat` |
 | note | `60` | 0 to 127 |
-| lo | `48` | 0 to 127 |
-| hi | `72` | 0 to 127 |
+| lo • | `48` | 0 to 127 |
+| hi • | `72` | 0 to 127 |
 | keys | `K5-K8 K10-K13` | `none`, `K1-K4`, `K5-K8`, `K10-K13`, `K5-K8 K10-K13` |
 | row | `middle top` | `top`, `middle`, `middle top`, `middle bottom`, `bottom` |
 | column | `1` | 1 to 4 |
@@ -239,12 +241,12 @@ A button of one key or more on the grid. momentary: 1 pressed, 0 let go; toggle:
 
 A fader of grid keys from lo to hi: vertical when taller than wide (lo at the bottom), horizontal otherwise (lo on the left); a wider one moves as one. A press sends its value; its input moves it without sending. Each key is one step, so 8 keys of 0..127 jump by 18. It remembers where it was.
 
-*1 input, 1 output*
+*1 input (and 2 for settings •), 1 output*
 
 | setting | default | takes |
 | --- | --- | --- |
-| lo | `0` | a number |
-| hi | `127` | a number |
+| lo • | `0` | a number |
+| hi • | `127` | a number |
 | start | `0` | a number |
 | style | `fill` | `fill`, `dot` |
 | direction | `auto` | `auto`, `vertical`, `horizontal` |
@@ -274,7 +276,7 @@ A step grid: each column a step, each row a note of the scale from note (the bot
 
 An isomorphic keyboard: a semitone to the right, row semitones going up (5, a fourth, as on Push and Launchpad), from note at the bottom left. Root keys are lit brighter, the scale dimmer, and a held note lights every key that plays it. It plays MIDI itself, several notes at once (send: midi), and sends the last note and a gate (1 while any key is held) for wiring. Input 1 transposes, in semitones (octaves from a fader).
 
-*1 input, 2 outputs*
+*1 input (and 2 for settings •), 2 outputs*
 
 | setting | default | takes |
 | --- | --- | --- |
@@ -282,8 +284,8 @@ An isomorphic keyboard: a semitone to the right, row semitones going up (5, a fo
 | row | `5` | 1 to 12 |
 | scale | `major` | `major`, `minor`, `dorian`, `pentatonic`, `minor pent.`, `chromatic` |
 | send | `midi` | `midi`, `outputs only` |
-| ch | `1` | 1 to 16 |
-| vel | `100` | 1 to 127 |
+| ch • | `1` | 1 to 16 |
+| vel • | `100` | 1 to 127 |
 | x | `1` | 1 to 16 |
 | y | `1` | 1 to 16 |
 | width | `8` | 1 to 16 |
@@ -293,19 +295,19 @@ An isomorphic keyboard: a semitone to the right, row semitones going up (5, a fo
 
 A press drops a stone: it plays the key's note (the scale from note, a step to the right, a step going up) and a ring spreads from the key, fading. Each key it grows plays again, step scale steps higher and quieter, echoes times. Input 1 drops one on a random key (anything but 0: a metro makes rain), input 2 sets the speed (keys a second). Notes fold into the four octaves from note. It plays MIDI itself, each note len ms long, and sends each note and a gate for wiring.
 
-*2 inputs, 2 outputs*
+*2 inputs (and 4 for settings •), 2 outputs*
 
 | setting | default | takes |
 | --- | --- | --- |
 | note | `48` | 0 to 127 |
 | scale | `pentatonic` | `major`, `minor`, `dorian`, `pentatonic`, `minor pent.`, `chromatic` |
 | step | `2` | -7 to 7 |
-| echoes | `4` | 0 to 12 |
+| echoes • | `4` | 0 to 12 |
 | speed | `6` | a number |
-| len ms | `150` | 20 to 4000 |
+| len ms • | `150` | 20 to 4000 |
 | send | `midi` | `midi`, `outputs only` |
-| ch | `1` | 1 to 16 |
-| vel | `100` | 1 to 127 |
+| ch • | `1` | 1 to 16 |
+| vel • | `100` | 1 to 127 |
 | x | `1` | 1 to 16 |
 | y | `1` | 1 to 16 |
 | width | `8` | 1 to 16 |
@@ -321,22 +323,22 @@ Start messages: an LFO, a metro, clock and MIDI coming in.
 
 A slow wave, 0 to 1, updates 50 times a second.
 
-*no inputs, 1 output*
+*no inputs (and 1 for settings •), 1 output*
 
 | setting | default | takes |
 | --- | --- | --- |
-| Hz | `0.5` | 0.01 to 20 |
+| Hz • | `0.5` | 0.01 to 20 |
 | shape | `sine` | `sine`, `triangle`, `saw`, `square` |
 
 ### metro
 
 A steady beat: 1 on each beat, 0 halfway. Input 1: 0 stops it, anything else starts it. Input 2 sets the tempo in BPM (then ms is unused), with per beat beats to a quarter note (2 eighths, 4 sixteenths); it steps on the 50 Hz tick, so timing is rounded to 20 ms.
 
-*2 inputs, 1 output*
+*2 inputs (and 1 for settings •), 1 output*
 
 | setting | default | takes |
 | --- | --- | --- |
-| ms | `500` | 20 to 10000 |
+| ms • | `500` | 20 to 10000 |
 | per beat | `1` | `1`, `2`, `3`, `4` |
 
 ### clock in
@@ -353,32 +355,32 @@ MIDI clock in: output 1 beats every div clocks (24 = a quarter(PPQN)); output 2 
 
 An incoming CC: its value, 0..127.
 
-*no inputs, 1 output*
+*no inputs (and 2 for settings •), 1 output*
 
 | setting | default | takes |
 | --- | --- | --- |
-| cc | `74` | 0 to 127 |
-| ch | `1` | 1 to 16 |
+| cc • | `74` | 0 to 127 |
+| ch • | `1` | 1 to 16 |
 
 ### midi in note
 
 Incoming notes: output 1 the note number, output 2 1 on and 0 off.
 
-*no inputs, 2 outputs*
+*no inputs (and 1 for settings •), 2 outputs*
 
 | setting | default | takes |
 | --- | --- | --- |
-| ch | `1` | 1 to 16 |
+| ch • | `1` | 1 to 16 |
 
 ### constant
 
 A fixed number: sent when the patch starts, and again whenever anything comes in (a key, a beat).
 
-*1 input, 1 output*
+*1 input (and 1 for settings •), 1 output*
 
 | setting | default | takes |
 | --- | --- | --- |
-| value | `1` | a number |
+| value • | `1` | a number |
 
 ## process
 
@@ -388,26 +390,26 @@ Shape messages on their way.
 
 Stores and accumulates a value, keeps it between lo and hi: turns encoder steps into a value.
 
-*1 input, 1 output*
+*1 input (and 2 for settings •), 1 output*
 
 | setting | default | takes |
 | --- | --- | --- |
-| lo | `0` | a number |
-| hi | `127` | a number |
+| lo • | `0` | a number |
+| hi • | `127` | a number |
 | start | `64` | a number |
 
 ### scale
 
 Maps one range onto another, e.g. 0..1 to 0..127.
 
-*1 input, 1 output*
+*1 input (and 4 for settings •), 1 output*
 
 | setting | default | takes |
 | --- | --- | --- |
-| in lo | `0` | a number |
-| in hi | `1` | a number |
-| out lo | `0` | a number |
-| out hi | `127` | a number |
+| in lo • | `0` | a number |
+| in hi • | `1` | a number |
+| out lo • | `0` | a number |
+| out hi • | `127` | a number |
 
 ### toggle
 
@@ -419,45 +421,45 @@ Flips between 0 and 1 on each press (a flip-flop).
 
 Step input: the next step when not 0, wrapping; reset input: resets to lo when not 0.
 
-*2 inputs, 1 output*
+*2 inputs (and 3 for settings •), 1 output*
 
 | setting | default | takes |
 | --- | --- | --- |
-| lo | `1` | a whole number |
-| hi | `8` | a whole number |
-| step | `1` | a whole number |
+| lo • | `1` | a whole number |
+| hi • | `8` | a whole number |
+| step • | `1` | a whole number |
 
 ### random
 
 A whole number from lo to hi each time the input is not 0.
 
-*1 input, 1 output*
+*1 input (and 2 for settings •), 1 output*
 
 | setting | default | takes |
 | --- | --- | --- |
-| lo | `48` | a whole number |
-| hi | `72` | a whole number |
+| lo • | `48` | a whole number |
+| hi • | `72` | a whole number |
 
 ### quantize
 
 Quantizes the input note to the nearest note in the selected scale.
 
-*1 input, 1 output*
+*1 input (and 1 for settings •), 1 output*
 
 | setting | default | takes |
 | --- | --- | --- |
 | scale | `major` | `major`, `minor`, `dorian`, `pentatonic`, `minor pent.`, `chromatic` |
-| root | `0` | 0 to 11 |
+| root • | `0` | 0 to 11 |
 
 ### slew
 
 Glides to each new value over a time (seconds).
 
-*1 input, 1 output*
+*1 input (and 1 for settings •), 1 output*
 
 | setting | default | takes |
 | --- | --- | --- |
-| s | `0.5` | 0 to 30 |
+| s • | `0.5` | 0 to 30 |
 
 ### gate
 
@@ -550,24 +552,24 @@ Send messages out: MIDI, the console.
 
 Sends the value as a MIDI CC (0..127).
 
-*1 input, no outputs*
+*1 input (and 2 for settings •), no outputs*
 
 | setting | default | takes |
 | --- | --- | --- |
-| cc | `20` | 0 to 127 |
-| ch | `1` | 1 to 16 |
+| cc • | `20` | 0 to 127 |
+| ch • | `1` | 1 to 16 |
 
 ### midi note
 
 Input 1: note on when not 0, off when 0; input 2 (optional) sets the note number.
 
-*2 inputs, no outputs*
+*2 inputs (and 2 for settings •), no outputs*
 
 | setting | default | takes |
 | --- | --- | --- |
 | note | `60` | 0 to 127 |
-| vel | `100` | 1 to 127 |
-| ch | `1` | 1 to 16 |
+| vel • | `100` | 1 to 127 |
+| ch • | `1` | 1 to 16 |
 
 ### watch
 

@@ -64,7 +64,9 @@ say(
     '',
     "Every block in graft's palette, by group, in the order the palette shows them. Hover a",
     "block's title, a field or a port in graft for the same help. Numbers travel along the wires:",
-    'a block with inputs acts when one arrives, and sends its result on from its outputs.',
+    'a block with inputs acts when one arrives, and sends its result on from its outputs. A setting',
+    'marked • can also be set by a wire: the block has an input for it after its own, shown while a',
+    'wire is drawn (or one is plugged in).',
     ''
 );
 
@@ -77,11 +79,14 @@ for (const [group, title, about] of GROUPS) {
     for (const name of names) {
         const b = BLOCKS[name];
         say(`### ${b.label}`, '', `${b.doc[0].toUpperCase()}${b.doc.slice(1)}.`.replace(/\.\.$/, '.'), '');
-        say(`*${ports(b.inputs, 'input')}, ${ports(b.outputs, 'output')}*`, '');
+        const wired = Object.values(b.params ?? {}).filter((p) => p.wire).length;
+        const more = wired ? ` (and ${wired} for settings •)` : '';
+        say(`*${ports(b.inputs, 'input')}${more}, ${ports(b.outputs, 'output')}*`, '');
         const params = Object.values(b.params ?? {});
         if (params.length) {
             say('| setting | default | takes |', '| --- | --- | --- |');
-            for (const p of params) say(`| ${esc(p.label)} | ${esc(defaultOf(p))} | ${esc(range(p))} |`);
+            for (const p of params)
+                say(`| ${esc(p.label)}${p.wire ? ' •' : ''} | ${esc(defaultOf(p))} | ${esc(range(p))} |`);
             say('');
         }
     }
