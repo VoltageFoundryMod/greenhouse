@@ -187,6 +187,12 @@ the bar picks which device's blocks to show.
   their name, such as a math block's *a* and *b*.
 - **Remove**: click a wire and press Delete (or right-click it and click
   ×); select blocks and press Delete.
+- **Settings by wire**: most number fields (a MIDI channel, a CC number, lo
+  and hi, an LFO's rate) also have an input of their own. These inputs are
+  square and named after their field; they show while you draw a wire and
+  stay while one is plugged in, and the field then only says where it
+  starts. Wire an encoder through a value block (1 to 16) into a midi cc's
+  *ch* to turn its channel. The block reference marks these settings •.
 
 ### Moving around
 
@@ -221,6 +227,13 @@ the bar picks which device's blocks to show.
 - Blocks that remember things (a sequence and its notes, a value, a toggle,
   a counter, a memory) keep them: **stop**, **save…** and **export…** ask
   the device for them, so the patch starts again where you left off.
+- A **keep** block does that on the device, without greenhouse: it writes
+  what the blocks remember to the device when something changes (at most
+  every *every* seconds, 10 by default) and reads it back when the patch
+  starts, so a patch that starts at power-up comes back as you left it,
+  channel and values included. Give it a name of its own in each patch;
+  its *forget* input drops what was kept. Changes made in the last few
+  seconds before a power cut can be lost.
 - A saved patch carries the part of graft's runtime it uses, so it runs on
   its own, and the device holds only the blocks it needs. greenhouse tells
   you about blocks it doesn't know when you open or import a patch.
@@ -235,6 +248,23 @@ middle, bottom). Each block takes a **row**, a **column** and a **width**
 in columns, so a label sits right over the encoder it names. **screen** in
 graft's bar shows the layout: drag a box to move its block, drag its right
 edge to widen it.
+
+**Pages** give the panel a shift. Encoders, pushes, keys, key LEDs and
+screen blocks have a **page** setting: *always* (every page, as before) or
+a page from 1 to 4, where the block acts and shows only while its page is
+shown. A **page** block picks the page: *hold* shows its page while a key
+is held (hold K4 to see and turn settings over E1–E4), *step* moves through
+the pages from an encoder or a key, *number* takes the page from a counter
+or a value. Give an encoder one encoder block per page, each with its own
+value, so nothing jumps when you come back. The screen layout shows one
+page at a time.
+
+More screen blocks: **bars** fits four thin bars in one column, so two of
+them show E5–E12 on half the screen; **shows as** on enc label, slider,
+knob, number and bars turns the number into names (`off,on`), a format
+(`ch #`), a note name (`note`) or a number with a unit (`ms`); **draw** is a
+screen block of your own Lua, drawing its place with text, line, rect and
+pixel from its inputs.
 
 The examples put it together: **sequencer**, 16 steps drawn across the
 middle and played from the keys under E5–E12 (press a step, then turn E1

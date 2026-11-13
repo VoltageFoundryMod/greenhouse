@@ -409,6 +409,34 @@ running patch, keeps it with the block (copying a block copies it too) and
 sends it with the patch, so a patch starts again where it was, on the
 device or from a saved file.
 
+Without greenhouse, the **keep** block (v10) keeps it on the device:
+`B.saved()` lists every block's state by id and type, keep writes it as
+Lua to `keep_<name>_1.lua` or `_2.lua` in turn (each with a count, so a
+power cut while one is written leaves the other) when it changed, at most
+every _every_ seconds, and in its `def.boot`, which runs for every block
+before any `start`, reads the newest copy that loads and hands it back
+with `B.restore` (only to blocks with the same id and type).
+
+## Settings by wire and pages (v10)
+
+A param marked `wire: true` in js/patch-blocks.js gets an input after the
+block's own: `inputCount(type)` on the canvas, and `buildRuntime` appends
+one `B.wired("type", {"name", lo, hi, whole, ...})` line per type in the
+runtime, so the list lives in one place. A wire into input
+`def.inputs + k` sets setting _k_ (clamped, rounded when whole), calls
+`def.param(node, name, v)`, and stays set when the field is edited live.
+On the canvas these inputs carry `pn-set` and show only while a wire is
+drawn (`pn-wiring` on the canvas) or one is plugged in (`pn-plugged`).
+Sends through `B.limit` wait for the first tick after `B.start`, so a
+channel set by a wire is in place before a value goes out.
+
+Pages: blocks with a `page` param (achene's controls and every screen
+block) act and draw only while `B.shown(node)`: their page is `B.page`, or
+they're on _always_. `B.set_page(n)` (the page block) calls `def.page(node,
+shown)` on the blocks leaving first, then on those arriving, so a key LED
+taken over by another page's block ends up lit. Keys and pushes let go
+wherever the page is by then.
+
 A patch file carries the runtime version it was made with (`rt`) and,
 from v9, the runtime itself, so on the device it can't meet an older one.
 Files saved before v9 `require` blocks.lua (and v8's modules), which
