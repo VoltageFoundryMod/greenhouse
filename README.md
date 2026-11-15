@@ -7,7 +7,7 @@ monome's [web-diii](https://github.com/monome/web-diii), whose own description f
 
 ---
 
-![](docs/images/diii.png)
+![greenhouse GUI](docs/images/greenhouse.png)
 
 ## diii (fka web-diii), upstream
 
