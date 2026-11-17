@@ -7,6 +7,23 @@ greenhouse to someone who has no grid. Everything works as with a parterre: the 
 the editor, the grid drawer, graft (with the grid's blocks), the MIDI monitor and backups.
 **disconnect** goes back to USB devices.
 
+## Your files
+
+The virtual grid's files are kept in this browser (localStorage), so they're still there
+the next time you connect it, in the same browser on the same computer. Clearing the site's
+data erases them, and another browser or computer has its own.
+
+To move scripts to a real grid, use the note at the top of the file list:
+
+- **export** downloads every file as `virtual-grid-backup-<date>.zip`. Connect the real
+  grid and choose **device ▾ → restore** with that zip (iii's `lib.lua` is skipped).
+- **import** goes the other way: it loads a backup made on a real grid, or an earlier
+  export, into the virtual grid.
+
+These are the same zips as **device ▾ → backup** and **restore**. For a single script,
+**download** in a file's menu saves the `.lua` file, and **upload** (or dropping a file on
+the page) sends it to whichever grid is connected.
+
 ## How it works
 
 `js/virtual-device.js` holds two pieces:

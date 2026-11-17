@@ -33,7 +33,8 @@ attached:
   build (4 encoders, 4 keys) greys out the rest.
 
 - a **virtual grid** (**device ▾ → virtual grid**): a 16×8 grid that runs in the page, for
-  trying scripts and graft patches with no device, in any browser. It runs iii's own `lib.lua`
+  trying scripts and graft patches with no device, in any browser. Its files stay in the
+  browser and export as a backup zip to restore on a real grid. It runs iii's own `lib.lua`
   in [Fengari](https://fengari.io), after Jon Waterschoot's
   [diii-neotrellis-emulator](https://github.com/jonwaterschoot/diii-neotrellis-emulator); see
   [docs/VIRTUAL-GRID.md](docs/VIRTUAL-GRID.md) for how it differs from a device.

@@ -40,7 +40,10 @@ No device at hand? **device ▾ → virtual grid** (or **or try a virtual grid**
 on the welcome page) connects to a 16×8 grid that runs in the page, in any
 browser. Everything works as with a grid: the console, files, the grid
 drawer, graft and the MIDI monitor (MIDI goes only there). Its files stay in
-this browser. **disconnect** goes back to USB devices.
+this browser. To take scripts to a real grid, click **export** in the note at
+the top of the file list, then **device ▾ → restore** that zip on the grid;
+**import** loads a grid's backup into the virtual one. **disconnect** goes
+back to USB devices.
 
 ## The console
 

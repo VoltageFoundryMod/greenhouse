@@ -148,6 +148,7 @@ export const deviceMethods = {
         await this.updateConnectedDeviceLabel();
         this.outputLine('Virtual grid ready: a 16×8 grid running in this page, its files kept in this browser.');
         this.outputLine('Open the grid drawer to play it; disconnect to go back to USB devices.');
+        this.outputLine('To move scripts to a real grid, export them from the file list (or device ▾ → backup).');
         this.outputLine('');
         await this.detectDevice();
     },
