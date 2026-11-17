@@ -32,6 +32,13 @@ attached:
   keyboard plays them). **full screen** shows the panel alone, for playing. A XIAO breadboard
   build (4 encoders, 4 keys) greys out the rest.
 
+- a **virtual grid** (**device ▾ → virtual grid**): a 16×8 grid that runs in the page, for
+  trying scripts and graft patches with no device, in any browser. Its files stay in the
+  browser and export as a backup zip to restore on a real grid. It runs iii's own `lib.lua`
+  in [Fengari](https://fengari.io), after Jon Waterschoot's
+  [diii-neotrellis-emulator](https://github.com/jonwaterschoot/diii-neotrellis-emulator); see
+  [docs/VIRTUAL-GRID.md](docs/VIRTUAL-GRID.md) for how it differs from a device.
+
 - **graft**, the patch editor (the **graft** drawer; any iii device, with achene's and the
   grid's own blocks when one is connected): wire blocks (encoder, key, LFO,
   value, scale, toggle, MIDI CC and note, key LED, display) into a script and play it live; every

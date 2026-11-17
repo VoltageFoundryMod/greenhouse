@@ -47,6 +47,8 @@
                     <button type="button" id="deviceMenuBtn" class="repl-connection-btn" aria-haspopup="menu"
                         aria-expanded="false">device ▾</button>
                     <div id="deviceMenu" class="file-menu device-menu" role="menu">
+                        <button type="button" id="virtualGridBtn" class="file-menu-item" role="menuitem"
+                            title="a 16×8 grid running in this page: try scripts and graft patches without a device">virtual grid</button>
                         <button type="button" id="reinitBtn" class="file-menu-item" role="menuitem"
                             title="restart Lua and run the first script again, without rebooting (^^i)">re-init</button>
                         <button type="button" id="stopScriptBtn" class="file-menu-item" role="menuitem"
@@ -239,6 +241,8 @@
                                                 a
                                                 device</button>
                                             <span class="welcome-note">over USB, in Chrome, Edge or Opera</span>
+                                            <button type="button" id="welcomeVirtualBtn" class="welcome-virtual">or try
+                                                a virtual grid</button>
                                         </div>
                                     </div>
                                     <div class="welcome-what">

@@ -52,6 +52,9 @@ split out with its history.
   `node tools/dist.mjs` copies the site into `dist/` and stamps the service worker's cache name
   with the commit, which is what `.github/workflows/pages.yml` publishes on every push to `main`.
 - `npm run check` type-checks the standalone modules listed in `tsconfig.json`.
+- On Windows, `make serve`'s `--watch` can reload the page when files are only read (NTFS
+  last-access updates show up as changes), for example when graft fetches `lua/blocks*.lua`.
+  To test something that loads files after start-up, use `node tools/serve.mjs` without `--watch`.
 
 ## Patch editor
 
@@ -71,6 +74,20 @@ runtime changes. `tools/patch-preview.html` runs the drawer without a device. De
 - Views talk to the firmware only through the serial protocol: Lua calls in, `^^name(...)`
   lines out. Nothing is shared at build time with the firmware repos, so document every
   message on both sides.
+
+## The virtual grid
+
+`js/virtual-device.js`: a 16×8 grid in the page (**device ▾ → virtual grid**), for trying
+scripts and patches without a device. `VirtualIii` runs iii's `lib.lua` (`vendor/iii-lib.lua`,
+unchanged) in Fengari (`vendor/fengari.js`, from `npm run vendor`) and supplies the C layer:
+iii's REPL (`repl.c`), `vm.c` and `metro.c`, and parterre's `grid_*` and `gh_*` (`main.c`).
+`createVirtualConnection` gives it `iiiConnection`'s interface, and `connectVirtual`
+(`js/device.js`) swaps it in for `this.iiiDevice`; `this.serialDevice` keeps the USB one.
+When the REPL protocol or a `gh_*` function changes in the firmware, change it here too, and
+list what can't match in `docs/VIRTUAL-GRID.md`. `npm run check:virtual` (in `make test`)
+drives it as greenhouse does, every graft example included, on both the npm `fengari` and
+the bundle. Credits for the approach (Jon Waterschoot's diii-neotrellis-emulator, GPL-3.0)
+are in that doc and the file's header: keep them.
 
 ## The manual
 

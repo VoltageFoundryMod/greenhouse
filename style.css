@@ -228,6 +228,7 @@ body {
 
 .file-explorer-pane.collapsed .file-list,
 .file-explorer-pane.collapsed .file-list-empty,
+.file-explorer-pane.collapsed .file-list-virtual,
 .file-explorer-pane.collapsed .file-list-separator,
 .file-explorer-pane.collapsed .file-row,
 .file-explorer-pane.collapsed .file-space-footer {
@@ -269,6 +270,30 @@ body.is-resizing-explorer * {
     padding: 8px;
     color: var(--neutral-medium);
     font-size: 0.85rem;
+}
+
+.file-list-virtual {
+    margin: 6px 8px 8px;
+    padding: 6px 8px;
+    border: 1px dashed var(--neutral-medium);
+    border-radius: 4px;
+    color: var(--neutral-medium);
+    font-size: 0.8rem;
+    line-height: 1.35;
+}
+
+.file-list-virtual p {
+    margin: 0;
+}
+
+.file-list-virtual-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.file-list-virtual-actions .file-data-toggle {
+    margin: 4px 0 0;
+    text-decoration: underline;
 }
 
 .file-data-toggle {

@@ -79,6 +79,21 @@
     background: var(--accent-hover);
 }
 
+.welcome-virtual {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--accent);
+    font: inherit;
+    font-size: 0.85rem;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.welcome-virtual:hover {
+    color: var(--accent-hover);
+}
+
 .welcome-note {
     font-size: 0.85rem;
     color: var(--neutral-medium);
