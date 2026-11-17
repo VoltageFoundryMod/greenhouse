@@ -36,6 +36,12 @@ the device restarts, until the tab is closed or reloaded.
 The welcome page that shows before connecting has the same **connect** and
 an **open graft** button: graft works with no device connected.
 
+No device at hand? **device ▾ → virtual grid** (or **or try a virtual grid**
+on the welcome page) connects to a 16×8 grid that runs in the page, in any
+browser. Everything works as with a grid: the console, files, the grid
+drawer, graft and the MIDI monitor (MIDI goes only there). Its files stay in
+this browser. **disconnect** goes back to USB devices.
+
 ## The console
 
 The middle of the page is the **console**, a REPL: type a line of Lua and
@@ -81,16 +87,17 @@ script. **+** at the top of the list makes a new, empty one.
 
 **device ▾** in the header:
 
-| item        | does                                                                          |
-| ----------- | ----------------------------------------------------------------------------- |
-| re-init     | restarts Lua and runs the start-up script again, without rebooting            |
-| stop script | stops the running script and clears the LEDs, as after a start with no script |
-| reboot      | restarts the device; greenhouse reconnects                                    |
-| bootloader  | restarts the device as a USB drive, for a firmware update                     |
-| backup      | downloads every file on the device as one zip                                 |
-| restore     | uploads the files of a backup zip                                             |
-| reformat    | erases every file on the device                                               |
-| firmware    | the device's firmware version, and updates where its maker publishes them     |
+| item         | does                                                                          |
+| ------------ | ----------------------------------------------------------------------------- |
+| virtual grid | connects to a grid that runs in the page, instead of a device                 |
+| re-init      | restarts Lua and runs the start-up script again, without rebooting            |
+| stop script  | stops the running script and clears the LEDs, as after a start with no script |
+| reboot       | restarts the device; greenhouse reconnects                                    |
+| bootloader   | restarts the device as a USB drive, for a firmware update                     |
+| backup       | downloads every file on the device as one zip                                 |
+| restore      | uploads the files of a backup zip                                             |
+| reformat     | erases every file on the device                                               |
+| firmware     | the device's firmware version, and updates where its maker publishes them     |
 
 > **Warning:** **reformat** erases every script on the device. Make a
 > **backup** first.
