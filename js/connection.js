@@ -68,25 +68,7 @@ export class iiiConnection {
             while (this.isConnected) {
                 const { value, done } = await this.reader.read();
                 if (done) break;
-                if (!value) continue;
-
-                this.lineBuffer += value;
-
-                let newlineIndex = -1;
-                while ((newlineIndex = this.lineBuffer.indexOf('\n')) !== -1) {
-                    const line = this.lineBuffer.substring(0, newlineIndex);
-                    this.lineBuffer = this.lineBuffer.substring(newlineIndex + 1);
-                    if (line && this.onDataReceived) {
-                        this.onDataReceived(line);
-                    }
-                }
-
-                // Event lines (^^...) are only useful whole; never flush them early.
-                if (this.lineBuffer && !this.lineBuffer.startsWith('^^')) {
-                    this.schedulePartialLineFlush();
-                } else {
-                    this.clearPartialLineFlush();
-                }
+                if (value) this.receiveText(value);
             }
 
             this.flushPartialLineBuffer();
@@ -114,6 +96,29 @@ export class iiiConnection {
             if (this.onConnectionChange) {
                 this.onConnectionChange(false, 'disconnected');
             }
+        }
+    }
+
+    // What the device sent: whole lines go to onDataReceived, the rest waits
+    // for its newline (or the partial-line flush). The virtual grid
+    // (js/virtual-device.js) feeds its output through here too.
+    receiveText(text) {
+        this.lineBuffer += text;
+
+        let newlineIndex = -1;
+        while ((newlineIndex = this.lineBuffer.indexOf('\n')) !== -1) {
+            const line = this.lineBuffer.substring(0, newlineIndex);
+            this.lineBuffer = this.lineBuffer.substring(newlineIndex + 1);
+            if (line && this.onDataReceived) {
+                this.onDataReceived(line);
+            }
+        }
+
+        // Event lines (^^...) are only useful whole; never flush them early.
+        if (this.lineBuffer && !this.lineBuffer.startsWith('^^')) {
+            this.schedulePartialLineFlush();
+        } else {
+            this.clearPartialLineFlush();
         }
     }
 

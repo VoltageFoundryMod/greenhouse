@@ -1,7 +1,7 @@
 // Connecting, reconnecting, and the device buttons (reboot, bootloader, ...).
 // Mixed into diiiApp (diii.js); `this` is the app.
 
-import { iiiPortFilter } from './connection.js';
+import { iiiConnection, iiiPortFilter } from './connection.js';
 
 export const deviceMethods = {
     async toggleConnection() {
@@ -90,13 +90,7 @@ export const deviceMethods = {
                     this.outputLine('');
                 }
 
-                await this.detectVirtualGrid();
-                await this.detectAchene();
-                await this.detectPatchCaps();
-                await this.detectFirmware();
-                await this.detectModeSwitch();
-                await this.resumeMidiMonitor();
-                await this.requestFileListRefresh();
+                await this.detectDevice();
                 return true;
             }
 
@@ -108,6 +102,54 @@ export const deviceMethods = {
         } finally {
             this.pendingConnectAttemptType = null;
         }
+    },
+
+    // What the device can do: which views and blocks it gets.
+    async detectDevice() {
+        await this.detectVirtualGrid();
+        await this.detectAchene();
+        await this.detectPatchCaps();
+        await this.detectFirmware();
+        await this.detectModeSwitch();
+        await this.resumeMidiMonitor();
+        await this.requestFileListRefresh();
+    },
+
+    // The virtual grid (js/virtual-device.js): a 16×8 grid running in the
+    // page, in place of the USB device, for trying scripts and patches
+    // without one. Its files stay in this browser.
+    async connectVirtual() {
+        this.setDeviceMenuOpen?.(false);
+        if (this.iiiDevice.isVirtual && this.iiiDevice.isConnected) return;
+        if (this.iiiDevice.isConnected) await this.disconnect();
+        // a USB device plugged in meanwhile doesn't take over
+        this.autoReconnectEnabled = false;
+        this.clearAutoReconnectTimer();
+
+        try {
+            if (!this.virtualDevice) {
+                const { createVirtualConnection } = await import('./virtual-device.js');
+                this.virtualDevice = await createVirtualConnection(iiiConnection);
+                this.virtualDevice.onDataReceived = (data) => this.handleiiiOutput(data);
+                this.virtualDevice.onConnectionChange = (connected, error, detail) =>
+                    this.handleConnectionChange(connected, error, detail);
+            }
+        } catch (error) {
+            this.outputLine(`virtual grid: could not start (${error.message})`);
+            return;
+        }
+
+        this.iiiDevice = this.virtualDevice;
+        this.connectedDeviceLabel = null;
+        this.userDisconnected = false;
+        this.hasConnectedThisSession = true;
+        await this.iiiDevice.connect();
+        this.setExplorerCollapsed(false);
+        await this.updateConnectedDeviceLabel();
+        this.outputLine('Virtual grid ready: a 16×8 grid running in this page, its files kept in this browser.');
+        this.outputLine('Open the grid drawer to play it; disconnect to go back to USB devices.');
+        this.outputLine('');
+        await this.detectDevice();
     },
 
     async updateConnectedDeviceLabel() {
@@ -161,6 +203,7 @@ export const deviceMethods = {
         }
 
         await this.iiiDevice.disconnect();
+        if (this.iiiDevice.isVirtual) this.iiiDevice = this.serialDevice;
         this.requestFileListRefresh();
         this.outputLine('');
         this.outputLine('disconnected');
@@ -343,6 +386,11 @@ export const deviceMethods = {
         }
         this.outputLine('> ^^r');
         this.iiiDevice.writeLine('^^r');
+        if (this.iiiDevice.isVirtual) {
+            // it stays connected: look at it again, as after a reconnect
+            this.delay(100).then(() => this.detectDevice());
+            return;
+        }
 
         if (this.reconnectAfterRestartTimer) {
             clearTimeout(this.reconnectAfterRestartTimer);
