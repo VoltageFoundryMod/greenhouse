@@ -80,7 +80,7 @@ export const fileMethods = {
         note.className = 'file-list-virtual';
         const text = document.createElement('p');
         text.textContent =
-            'virtual grid: these files are kept in this browser. Export them as a zip, then restore it on a real grid (device ▾ → restore), or import a backup from one.';
+            'virtual grid: these files are kept locally in this browser. Download each file or export them as a zip, then import or restore it on a real grid (device ▾ → restore).';
         note.appendChild(text);
         const actions = document.createElement('div');
         actions.className = 'file-list-virtual-actions';
