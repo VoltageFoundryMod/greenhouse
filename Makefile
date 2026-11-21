@@ -61,6 +61,7 @@ format-check: node_modules
 
 test: format-check check
 	$(NODE) tools/check-runtime.mjs
+	$(NODE) tools/check-virtual.mjs
 
 vendor: node_modules
 	$(NPM) run vendor

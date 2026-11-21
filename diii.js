@@ -28,6 +28,9 @@ import { appUpdateMethods } from './js/app-update.js';
 class diiiApp {
     constructor() {
         this.iiiDevice = new iiiConnection();
+        // the USB one; iiiDevice is the virtual grid's while that runs (js/device.js)
+        this.serialDevice = this.iiiDevice;
+        this.virtualDevice = null;
         this.selectedPort = null;
         this.selectedPortInfo = null;
         this.deviceLabelsByPort = new WeakMap();
@@ -116,6 +119,7 @@ class diiiApp {
             explorerChevron: document.getElementById('explorerChevron'),
 
             connectionBtn: document.getElementById('replConnectionBtn'),
+            virtualGridBtn: document.getElementById('virtualGridBtn'),
             replStatusPill: document.getElementById('replStatusPill'),
             replStatusIndicator: document.getElementById('replStatusIndicator'),
             replStatusText: document.getElementById('replStatusText'),
@@ -201,6 +205,7 @@ class diiiApp {
             patchZoomLabel: document.getElementById('patchZoomLabel'),
             welcome: document.getElementById('welcome'),
             welcomeConnectBtn: document.getElementById('welcomeConnectBtn'),
+            welcomeVirtualBtn: document.getElementById('welcomeVirtualBtn'),
             welcomeCloseBtn: document.getElementById('welcomeCloseBtn'),
             welcomeReferenceBtn: document.getElementById('welcomeReferenceBtn'),
             acheneToggleBtn: document.getElementById('acheneToggleBtn'),
@@ -228,6 +233,7 @@ class diiiApp {
         };
 
         on(this.elements.connectionBtn, 'click', () => this.toggleConnection());
+        on(this.elements.virtualGridBtn, 'click', () => this.connectVirtual());
         on(this.elements.replInput, 'keydown', (e) => this.handleReplInput(e));
         on(document, 'keydown', (e) => this.handleGlobalShortcuts(e));
         on(this.elements.toggleExplorerBtn, 'click', () => this.toggleExplorer());
@@ -327,6 +333,7 @@ class diiiApp {
         });
         on(this.elements.patchClearBtn, 'click', () => this.clearPatchCanvas());
         on(this.elements.welcomeConnectBtn, 'click', () => this.toggleConnection());
+        on(this.elements.welcomeVirtualBtn, 'click', () => this.connectVirtual());
         on(this.elements.welcomeCloseBtn, 'click', () => this.hideWelcome());
         on(this.elements.welcomeReferenceBtn, 'click', () => this.openReference());
         on(this.elements.acheneReleaseBtn, 'click', () => this.releaseAllAcheneKeys());
@@ -371,6 +378,7 @@ class diiiApp {
         if (this.elements.connectionBtn) this.elements.connectionBtn.disabled = true;
         this.outputLine('ERROR: Web Serial API not supported in this browser.');
         this.outputLine('Please use Chrome, Edge, or Opera.');
+        this.outputLine('The virtual grid (device ▾ → virtual grid) works here without one.');
     }
 
     delay(ms) {

@@ -22,7 +22,8 @@ export const backupUiMethods = {
             this.outputLine('backup: reading files...');
             const { zip, count } = await backupDevice(this.backupApi());
             const stamp = new Date().toISOString().slice(0, 16).replace('T', '-').replace(':', '');
-            const label = String(this.connectedDeviceLabel || 'iii').replace(/[^a-z0-9_-]+/gi, '-');
+            const device = this.iiiDevice.isVirtual ? 'virtual-grid' : this.connectedDeviceLabel || 'iii';
+            const label = String(device).replace(/[^a-z0-9_-]+/gi, '-');
             const fileName = `${label}-backup-${stamp}.zip`;
 
             const url = URL.createObjectURL(new Blob([zip], { type: 'application/zip' }));

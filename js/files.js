@@ -73,6 +73,33 @@ export const fileMethods = {
         this.renderFileList();
     },
 
+    // On the virtual grid the files live in this browser: say so, and offer the
+    // way to move them to and from a real grid (a backup zip, as for a device).
+    virtualFilesNote() {
+        const note = document.createElement('div');
+        note.className = 'file-list-virtual';
+        const text = document.createElement('p');
+        text.textContent =
+            'virtual grid: these files are kept locally in this browser. Download each file or export them as a zip, then import or restore it on a real grid (device ▾ → restore).';
+        note.appendChild(text);
+        const actions = document.createElement('div');
+        actions.className = 'file-list-virtual-actions';
+        for (const [label, title, fn] of [
+            ['export', 'download every file as a zip, to restore on a real grid', () => this.backupToZip()],
+            ['import', 'upload the files of a backup zip, from a real grid or an export', () => this.restoreFromZip()]
+        ]) {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'file-data-toggle';
+            button.textContent = label;
+            button.title = title;
+            button.addEventListener('click', fn);
+            actions.appendChild(button);
+        }
+        note.appendChild(actions);
+        return note;
+    },
+
     renderFileList() {
         if (!this.elements.fileList) return;
 
@@ -85,6 +112,8 @@ export const fileMethods = {
             this.elements.fileList.appendChild(empty);
             return;
         }
+
+        if (this.iiiDevice.isVirtual) this.elements.fileList.appendChild(this.virtualFilesNote());
 
         if (this.fileEntries.length === 0) {
             const empty = document.createElement('div');
