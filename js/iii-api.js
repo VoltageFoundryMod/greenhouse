@@ -449,7 +449,7 @@ export const III_API = [
         device: 'greenhouse',
         name: 'gh_mem',
         sig: 'gh_mem(quiet)',
-        doc: 'Prints the C heap in KB and returns free, largest, used, peak, total, high_water (bytes); gh_mem(true) only returns them.'
+        doc: 'Prints the C heap in KB and returns free, largest, used, peak, total, high_water (bytes); gh_mem(true) only returns them. On achene it also prints Lua\'s own memory and its exact peak since the script started, returns them after the others (lua, lua_peak), and gh_mem("reset") starts that peak again, to measure one action. The high water counts from power-up and survives a VM restart.'
     },
     {
         group: 'greenhouse tools',
