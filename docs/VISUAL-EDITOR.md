@@ -305,7 +305,7 @@ beat (a metro, clock in) that moves to the next step and wraps at the
 length, so no counter is needed: it sends the step's note (output 2) and,
 when the step is on, a gate (output 1: 1, then 0 at the next step); the note
 goes first so a midi note block plays it. Output 3 is the step number. Its
-**keys** (K1–K4, K5–K8, K10–K13, or all eight under the encoders) show the
+**keys** (K1–K4, K5–K8, K9–K12, or all eight under the encoders, K5–K12) show the
 page of steps that's playing, with their LEDs (amber on, white playing, blue
 held). A press turns a step on or off; an encoder wired to input 3 then sets
 that step's note, for 2 seconds after the press or while the key is held, so

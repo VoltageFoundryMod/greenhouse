@@ -43,16 +43,17 @@ export const KEYBOARD_KEYS = /** @type {Record<string, number>} */ ({
     x: 2,
     c: 3,
     v: 4,
-    // right block: K5-K9 above K10-K14, K15/K16 beside the encoders
+    // right block: K5-K8 and K13 above K9-K12 and K14 (each slot key with
+    // its encoder's number, tap K13 over play K14), K15/K16 beside the encoders
     y: 5,
     u: 6,
     i: 7,
     o: 8,
-    p: 9,
-    h: 10,
-    j: 11,
-    k: 12,
-    l: 13,
+    p: 13,
+    h: 9,
+    j: 10,
+    k: 11,
+    l: 12,
     ';': 14,
     '[': 15,
     "'": 16

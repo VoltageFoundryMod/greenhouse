@@ -152,8 +152,8 @@ as on the panel:
 | computer keys         | achene keys                                 |
 | --------------------- | ------------------------------------------- |
 | Z X C V               | K1–K4, under the screen                     |
-| Y U I O P             | K5–K9                                       |
-| H J K L ;             | K10–K14                                     |
+| Y U I O P             | K5–K8, then K13 (tap)                       |
+| H J K L ;             | K9–K12, then K14 (play)                     |
 | \[ and '              | K15 and K16, beside the encoders            |
 
 **? controls** shows this on the panel. The colour menu matches the screen

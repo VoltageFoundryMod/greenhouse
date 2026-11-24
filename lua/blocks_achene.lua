@@ -541,8 +541,12 @@ widget("text", {
 -- wrapping at the length, so no counter is needed and the length can change
 -- while it plays.
 local STEP_KEYS = {
-  ["K1-K4"] = {1, 2, 3, 4}, ["K5-K8"] = {5, 6, 7, 8}, ["K10-K13"] = {10, 11, 12, 13},
-  ["K5-K8 K10-K13"] = {5, 6, 7, 8, 10, 11, 12, 13},
+  ["K1-K4"] = {1, 2, 3, 4}, ["K5-K8"] = {5, 6, 7, 8}, ["K9-K12"] = {9, 10, 11, 12},
+  ["K5-K12"] = {5, 6, 7, 8, 9, 10, 11, 12},
+  -- achene numbered the bottom row of slot keys K10-K13 until November 2026
+  -- (now K9-K12, each under its encoder's number): the old names, from
+  -- patches saved before, still mean the same keys
+  ["K10-K13"] = {9, 10, 11, 12}, ["K5-K8 K10-K13"] = {5, 6, 7, 8, 9, 10, 11, 12},
 }
 
 local function step_count(node) return clamp(math.floor(node.len or node.p.steps or 8), 1, 64) end

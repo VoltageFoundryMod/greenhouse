@@ -761,8 +761,8 @@ export const BLOCKS = {
             keys: {
                 type: 'select',
                 label: 'keys',
-                default: 'K5-K8 K10-K13',
-                options: ['none', 'K1-K4', 'K5-K8', 'K10-K13', 'K5-K8 K10-K13']
+                default: 'K5-K12',
+                options: ['none', 'K1-K4', 'K5-K8', 'K9-K12', 'K5-K12']
             },
             ...place('middle top', 4)
         }
@@ -1177,7 +1177,7 @@ export function sequencerPatch() {
                     note: 60,
                     lo: 48,
                     hi: 72,
-                    keys: 'K5-K8 K10-K13',
+                    keys: 'K5-K12',
                     where: 'middle top',
                     col: 1,
                     span: 4
@@ -1341,7 +1341,7 @@ export function modesPatch() {
                     note: 60,
                     lo: 48,
                     hi: 72,
-                    keys: 'K5-K8 K10-K13',
+                    keys: 'K5-K12',
                     where: 'middle top',
                     col: 1,
                     span: 4
@@ -1553,7 +1553,7 @@ export const RECIPES = [
                         note: 60,
                         lo: 48,
                         hi: 72,
-                        keys: 'K5-K8 K10-K13',
+                        keys: 'K5-K12',
                         where: 'middle top',
                         col: 1,
                         span: 4
@@ -1575,7 +1575,7 @@ export const RECIPES = [
     {
         name: 'pages',
         title: 'Pages from two keys (or an encoder)',
-        chain: 'key K9 → steps page, key K14 → math (× −1) → steps page',
+        chain: 'key K13 → steps page, key K14 → math (× −1) → steps page',
         text: "The page input counts steps: a positive number is the next page, a negative one the previous, 0 nothing. A key sends 1 on press (next) and 0 on release (ignored); math × −1 makes the other key's press a −1 (previous). An encoder wired straight in works too. Not through a value block: it sends its total, always positive, on every press and release, so each click would turn two pages forward.",
         patch: {
             nodes: [
@@ -1583,7 +1583,7 @@ export const RECIPES = [
                 {
                     id: 2,
                     type: 'steps',
-                    params: { steps: 32, advance: 'beat', keys: 'K5-K8 K10-K13', where: 'middle top', col: 1, span: 4 },
+                    params: { steps: 32, advance: 'beat', keys: 'K5-K12', where: 'middle top', col: 1, span: 4 },
                     x: 420,
                     y: 0
                 },
@@ -1613,7 +1613,7 @@ export const RECIPES = [
                 {
                     id: 2,
                     type: 'steps',
-                    params: { steps: 16, advance: 'beat', keys: 'K5-K8 K10-K13', where: 'middle top', col: 1, span: 4 },
+                    params: { steps: 16, advance: 'beat', keys: 'K5-K12', where: 'middle top', col: 1, span: 4 },
                     x: 420,
                     y: 0
                 },

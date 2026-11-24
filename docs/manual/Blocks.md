@@ -221,7 +221,7 @@ A step sequencer of up to 64 steps, each with a note, drawn as bars. *Step input
 | note | `60` | 0 to 127 |
 | lo • | `48` | 0 to 127 |
 | hi • | `72` | 0 to 127 |
-| keys | `K5-K8 K10-K13` | `none`, `K1-K4`, `K5-K8`, `K10-K13`, `K5-K8 K10-K13` |
+| keys | `K5-K12` | `none`, `K1-K4`, `K5-K8`, `K9-K12`, `K5-K12` |
 | row | `middle top` | `top`, `middle`, `middle top`, `middle bottom`, `bottom` |
 | column | `1` | 1 to 4 |
 | width | `4` | 1 to 4 |
@@ -685,7 +685,7 @@ beside what is there.
 | A key plays a note and lights up | key → midi note, key → key led | A key sends 1 when pressed and 0 when let go: midi note plays while it gets 1, key led lights at the value (0 to 1) as its brightness. One output can feed any number of inputs. |
 | A key as an on/off switch | key → toggle → key led, toggle → math (× 127) → midi cc | toggle flips between 0 and 1 on each press (a release's 0 does nothing), so the key latches. math scales the 1 to a CC's 127, here sustain (CC 64). |
 | Follow a MIDI clock | clock in → counter → steps → midi note | clock in turns the MIDI clock a DAW or drum machine sends into beats: div 6 is sixteenths (24 clocks to a quarter note). The counter counts them into steps, so the sequencer plays in time and starts where the clock starts. |
-| Pages from two keys (or an encoder) | key K9 → steps page, key K14 → math (× −1) → steps page | The page input counts steps: a positive number is the next page, a negative one the previous, 0 nothing. A key sends 1 on press (next) and 0 on release (ignored); math × −1 makes the other key's press a −1 (previous). An encoder wired straight in works too. Not through a value block: it sends its total, always positive, on every press and release, so each click would turn two pages forward. |
+| Pages from two keys (or an encoder) | key K13 → steps page, key K14 → math (× −1) → steps page | The page input counts steps: a positive number is the next page, a negative one the previous, 0 nothing. A key sends 1 on press (next) and 0 on release (ignored); math × −1 makes the other key's press a −1 (previous). An encoder wired straight in works too. Not through a value block: it sends its total, always positive, on every press and release, so each click would turn two pages forward. |
 | A sequence whose length you turn | metro → steps (input 1 is: beat), encoder → value (1..64) → steps length | With 'input 1 is' set to beat, each beat moves to the next step and wraps at the length, so no counter is needed. The length input takes a number of steps, so it goes through a value block (here 1 to 64, starting at 16); number shows it on the screen. |
 | An LFO around a knob | lfo → scale → math a, encoder → value → math b, math → midi cc | math's input 1 computes and sends, its input 2 only sets b: put the source that should send (the LFO) on input 1 and the setting (the encoder) on input 2. Here the LFO sways ±20 around where E2 is. |
 | A tempo shared without a wire | encoder → value → set var "tempo" … get var "tempo" → metro (bpm), number | set var stores a value under a name and every get var with that name sends it on, anywhere in the patch. Here E3 sets a tempo (60 to 200 BPM) that a metro's input 2 follows, four beats to a quarter note; K16's LED blinks with it. |

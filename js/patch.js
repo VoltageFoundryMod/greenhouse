@@ -131,6 +131,15 @@ function nodeHtml(type) {
     return `<div class="pn-title" title="${escapeHtml(tip)}">${escapeHtml(block.label)}</div>${fields}${view}`;
 }
 
+// achene's slot keys under E9-E12 were K10-K13 until November 2026 (now
+// K9-K12): a saved patch's key sets in the old names, as the new ones
+/** @param {Record<string, any> | undefined} params */
+function renamedParams(params) {
+    if (!params || typeof params.keys !== 'string') return params;
+    const renamed = { 'K10-K13': 'K9-K12', 'K5-K8 K10-K13': 'K5-K12' }[params.keys];
+    return renamed ? { ...params, keys: renamed } : params;
+}
+
 export const patchMethods = {
     initPatch() {
         this.patchEditor = null;
@@ -548,7 +557,7 @@ export const patchMethods = {
             data[n.id] = {
                 id: n.id,
                 name: n.type,
-                data: { ...defaultParams(n.type), ...n.params, ...(n.state ? { _state: n.state } : {}) },
+                data: { ...defaultParams(n.type), ...renamedParams(n.params), ...(n.state ? { _state: n.state } : {}) },
                 class: `pn-${n.type}`,
                 html: nodeHtml(n.type),
                 typenode: false,
