@@ -177,6 +177,40 @@ const KIT_DEF = /** @type {Record<string, number[]>} */ ({
 export const RANDOM_WHAT = { melodic: ['steps', 'notes', 'vel', 'gate', 'chance'], drums: ['steps', 'vel', 'chance'] };
 
 /**
+ * Trig conditions, in the chance lanes past 100 (trellis 1.12.0, Q.CONDS):
+ * 100 + i is CONDS[i - 1], [a, b] playing on the a-th pass of every b
+ * (1:2 ... 8:8), then [1, 0] the first pass only (1st), [0, 0] all but it (!1st).
+ */
+export const CONDS = /** @type {[number, number][]} */ ([]);
+for (let b = 2; b <= 8; b++) for (let a = 1; a <= b; a++) CONDS.push([a, b]);
+CONDS.push([1, 0], [0, 0]);
+/** a chance lane's highest value (Q.TOP) */
+export const CHANCE_TOP = 100 + CONDS.length;
+
+/** a chance lane's value as trellis shows it: "50%", "1:2", "1st", "!1st" */
+export function chanceName(/** @type {number} */ v) {
+    if (v <= 100) return `${v}%`;
+    const [a, b] = CONDS[v - 101];
+    if (b > 0) return `${a}:${b}`;
+    return a === 1 ? '1st' : '!1st';
+}
+
+/** what was typed in a chance field ("50", "50%", "1:2", "1st", "!1st") as its value, or null */
+export function parseChance(/** @type {string} */ text) {
+    const s = text.trim().toLowerCase();
+    const pct = /^(\d+)\s*%?$/.exec(s);
+    if (pct) return Math.min(100, Number(pct[1]));
+    const ab = /^(\d)\s*:\s*(\d)$/.exec(s);
+    if (ab) {
+        const i = CONDS.findIndex(([a, b]) => a === Number(ab[1]) && b === Number(ab[2]));
+        return i < 0 ? null : 101 + i;
+    }
+    if (s === '1st') return 101 + CONDS.findIndex(([a, b]) => a === 1 && b === 0);
+    if (s === '!1st' || s === 'not 1st') return 101 + CONDS.findIndex(([a, b]) => a === 0 && b === 0);
+    return null;
+}
+
+/**
  * A track's settings, its lanes as byte arrays, its other patterns and kit.
  * @typedef {object} Pattern
  * @property {number} len

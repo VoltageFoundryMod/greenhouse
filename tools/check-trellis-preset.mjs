@@ -7,11 +7,14 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
+    CHANCE_TOP,
+    chanceName,
     defaultSlot,
     emptyPreset,
     laneAt,
     newTrack,
     parseLuaValue,
+    parseChance,
     parsePreset,
     patternOf,
     serializePreset,
@@ -94,6 +97,16 @@ check(
     'an older slot: missing fields take their defaults',
     parsePreset('return {slots = {{"cc", 1, 99}}}').slots[0].kvel === defaultSlot(1, 1).kvel
 );
+
+// trig conditions past 100 in the chance lanes, as trellis numbers them (Q.CONDS)
+check('conditions: 1:2 is 101, 8:8 is 135', chanceName(101) === '1:2' && chanceName(135) === '8:8');
+check('then 1st and !1st, the top', chanceName(136) === '1st' && chanceName(137) === '!1st' && CHANCE_TOP === 137);
+check('chances keep their %', chanceName(50) === '50%' && parseChance('50') === 50 && parseChance('75%') === 75);
+check(
+    'every name reads back as its number',
+    Array.from({ length: CHANCE_TOP + 1 }, (_, v) => v).every((v) => parseChance(chanceName(v)) === v)
+);
+check('nonsense is refused', parseChance('9:9') === null && parseChance('lots') === null);
 
 if (failed) {
     console.error(`${failed} failed`);

@@ -6,6 +6,7 @@
 
 import { hasExactFiles } from './backup.js';
 import {
+    CHANCE_TOP,
     KINDS,
     LETTERS,
     MAX_STEPS,
@@ -18,10 +19,12 @@ import {
     SLOT_FIELDS,
     SONG_MAX,
     STEP_DIVS,
+    chanceName,
     keyModes,
     laneAt,
     newTrack,
     noteName,
+    parseChance,
     parsePreset,
     patternOf,
     serializePreset,
@@ -146,12 +149,17 @@ function button(/** @type {string} */ label, /** @type {string} */ title, /** @t
  * @param {HTMLInputElement} input
  * @param {{ big?: number, px?: number, onMove?: (v: number) => void }} [opts]
  */
-function draggable(input, { big = 10, px = 4, onMove } = {}) {
-    const lo = Number(input.min), hi = Number(input.max); // prettier-ignore
+// `show` and `read`: a field that shows its number as a name (a chance's
+// "1:2"), with its range in `lo` and `hi`
+function draggable(
+    input,
+    { big = 10, px = 4, onMove, show = String, read = Number, lo = Number(input.min), hi = Number(input.max) } = {}
+) {
+    // prettier-ignore
     const clamp = (/** @type {number} */ v) => Math.min(hi, Math.max(lo, v));
     const set = (/** @type {number} */ v) => {
-        if (String(v) === input.value) return;
-        input.value = String(v);
+        if (show(v) === input.value) return;
+        input.value = show(v);
         onMove?.(v);
     };
     const commit = () => input.dispatchEvent(new Event('change'));
@@ -161,7 +169,7 @@ function draggable(input, { big = 10, px = 4, onMove } = {}) {
     input.addEventListener('pointerdown', (e) => {
         if (e.button !== 0) return;
         startY = e.clientY;
-        start = Number(input.value);
+        start = read(input.value) ?? lo;
         moved = false;
         id = e.pointerId;
         input.setPointerCapture(id);
@@ -191,7 +199,7 @@ function draggable(input, { big = 10, px = 4, onMove } = {}) {
         'wheel',
         (e) => {
             e.preventDefault();
-            set(clamp(Number(input.value) + (e.deltaY < 0 ? 1 : -1) * (e.shiftKey ? big : 1)));
+            set(clamp((read(input.value) ?? lo) + (e.deltaY < 0 ? 1 : -1) * (e.shiftKey ? big : 1)));
             clearTimeout(rest);
             rest = setTimeout(commit, 400);
         },
@@ -669,7 +677,7 @@ export const trellisUiMethods = {
             ['note', 'note', 0, 127],
             ['vel', 'velocity', 1, 127],
             ['gate', 'gate (1/8s)', 1, MAX_STEPS],
-            ['prob', 'chance %', 0, 100]
+            ['prob', 'chance', 0, CHANCE_TOP]
         ])) {
             const tr = row(label);
             if (lane === 'note') {
@@ -678,6 +686,10 @@ export const trellisUiMethods = {
                     names.push(el('td', 'tp-note-name', noteName(laneAt(pat, 'note', k))));
             }
             for (let k = first; k <= last; k++) {
+                if (lane === 'prob') {
+                    tr.append(el('td', '', [this.trellisChance(pat, lane, k, redraw)]));
+                    continue;
+                }
                 const input = el('input', 'tp-step-input');
                 input.type = 'number';
                 input.min = String(lo);
@@ -727,10 +739,14 @@ export const trellisUiMethods = {
         }
         for (const [lane, label, lo, hi] of /** @type {const} */ ([
             [`d${picked}`, `lane ${picked} vel`, 1, 127],
-            [`q${picked}`, `lane ${picked} chance %`, 0, 100]
+            [`q${picked}`, `lane ${picked} chance`, 0, CHANCE_TOP]
         ])) {
             const tr = el('tr', 'tp-lane-values', [el('th', '', label)]);
             for (let k = first; k <= last; k++) {
+                if (lane.startsWith('q')) {
+                    tr.append(el('td', '', [this.trellisChance(pat, lane, k, redraw)]));
+                    continue;
+                }
                 const raw = laneAt(pat, lane, k);
                 const input = el('input', 'tp-step-input');
                 input.type = 'number';
@@ -748,6 +764,29 @@ export const trellisUiMethods = {
             }
             grid.append(tr);
         }
+    },
+
+    /**
+     * step k's chance or trig condition (a chance lane past 100): typed as
+     * "50", "1:2", "1st" or "!1st", or dragged, 0% up through the conditions
+     */
+    trellisChance(pat, lane, k, redraw) {
+        const input = el('input', 'tp-step-input tp-chance');
+        input.type = 'text';
+        input.value = chanceName(laneAt(pat, lane, k));
+        input.addEventListener('change', () => {
+            const v = parseChance(input.value);
+            if (v !== null) {
+                setLane(pat, lane, k, v);
+                this.trellisChanged();
+            }
+            redraw();
+        });
+        draggable(input, { show: chanceName, read: parseChance, lo: 0, hi: CHANCE_TOP });
+        input.title =
+            'chance 0-100%, or past 100% a condition: 1:2 plays on the first pass of every two, ' +
+            '1st on the first pass only, !1st on all but it. Drag, scroll, or type';
+        return input;
     },
 
     /** a drums track's kit: each lane's note and channel */

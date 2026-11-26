@@ -197,6 +197,9 @@ and pick **edit preset**.
   its name follows as you go (shift: by octaves); the mouse wheel does
   the same. Velocity, gate, chance and the kit's notes drag too. A click
   without dragging lets you type the number.
+- A chance can also be a **trig condition**, as on achene past 100%: type
+  `1:2` (the first pass of every two) up to `8:8`, `1st` (the first pass
+  only) or `!1st` (all but it), or drag past 100%.
 - Names follow the device's rules: lowercase, and up to 8 characters for a
   slot, 10 for a bank.
 
