@@ -115,6 +115,78 @@ function field(spec, value, onChange, list = null) {
 const range = (/** @type {number} */ lo, /** @type {number} */ hi) =>
     Array.from({ length: hi - lo + 1 }, (_, k) => lo + k);
 
+/** a small button: label, tooltip, what it does; disabled says why it can't */
+function button(/** @type {string} */ label, /** @type {string} */ title, /** @type {() => void} */ fn, disabled = '') {
+    const b = el('button', 'repl-action-btn tp-small', label);
+    b.type = 'button';
+    b.title = disabled || title;
+    b.disabled = Boolean(disabled);
+    b.addEventListener('click', fn);
+    return b;
+}
+
+/**
+ * A number input you can drag: up raises it, down lowers it, a step every
+ * few pixels (shift: by `big`, an octave for a note), and the mouse wheel
+ * does the same. onMove(v) follows it as it goes; once let go (or the
+ * wheel rests) the input's own change handler takes the value. A click
+ * without moving still puts the cursor in it, for typing.
+ * @param {HTMLInputElement} input
+ * @param {{ big?: number, px?: number, onMove?: (v: number) => void }} [opts]
+ */
+function draggable(input, { big = 10, px = 4, onMove } = {}) {
+    const lo = Number(input.min), hi = Number(input.max); // prettier-ignore
+    const clamp = (/** @type {number} */ v) => Math.min(hi, Math.max(lo, v));
+    const set = (/** @type {number} */ v) => {
+        if (String(v) === input.value) return;
+        input.value = String(v);
+        onMove?.(v);
+    };
+    const commit = () => input.dispatchEvent(new Event('change'));
+    let startY = 0, start = 0, moved = false, /** @type {number | null} */ id = null; // prettier-ignore
+    input.classList.add('tp-drag');
+    input.title ||= 'drag up or down, or scroll (shift: faster); click to type';
+    input.addEventListener('pointerdown', (e) => {
+        if (e.button !== 0) return;
+        startY = e.clientY;
+        start = Number(input.value);
+        moved = false;
+        id = e.pointerId;
+        input.setPointerCapture(id);
+    });
+    input.addEventListener('pointermove', (e) => {
+        if (e.pointerId !== id) return;
+        const dy = startY - e.clientY;
+        if (!moved && Math.abs(dy) < 3) return;
+        if (!moved) {
+            moved = true;
+            input.blur();
+        }
+        e.preventDefault();
+        set(clamp(start + Math.trunc(dy / px) * (e.shiftKey ? big : 1)));
+    });
+    const end = (/** @type {PointerEvent} */ e) => {
+        if (e.pointerId !== id) return;
+        input.releasePointerCapture(e.pointerId);
+        id = null;
+        if (moved) commit();
+    };
+    input.addEventListener('pointerup', end);
+    input.addEventListener('pointercancel', end);
+    /** @type {ReturnType<typeof setTimeout> | undefined} */
+    let rest;
+    input.addEventListener(
+        'wheel',
+        (e) => {
+            e.preventDefault();
+            set(clamp(Number(input.value) + (e.deltaY < 0 ? 1 : -1) * (e.shiftKey ? big : 1)));
+            clearTimeout(rest);
+            rest = setTimeout(commit, 400);
+        },
+        { passive: false }
+    );
+}
+
 /** a name as the device can show it: lowercase, its characters, its length */
 const deviceName = (/** @type {string} */ s, /** @type {number} */ max) =>
     [...s.toLowerCase()]
@@ -194,6 +266,16 @@ export const trellisUiMethods = {
         const t = this.trellis;
         if (!t) return;
         const content = this.trellisModal().querySelector('.tp-content');
+        // an edit redraws the editor: keep where it was scrolled to, unless
+        // another bank or page is shown
+        const keep =
+            t.shown === t.view
+                ? {
+                      top: content.querySelector('.tp-main')?.scrollTop ?? 0,
+                      left: content.querySelector('.tp-steps-wrap')?.scrollLeft ?? 0
+                  }
+                : null;
+        t.shown = t.view;
         content.replaceChildren();
         const n = Number(TRELLIS_PRESET.exec(t.fileName)?.[1] ?? 1);
 
@@ -217,12 +299,16 @@ export const trellisUiMethods = {
         close.addEventListener('click', () => this.closeTrellisPreset());
         const dirty = el('span', 'tp-dirty', '● unsaved');
         dirty.hidden = !t.dirty;
+        const clip = this.trellisClip;
+        const copied = el('span', 'tp-clip', clip ? `copied: ${clip.what}` : '');
+        copied.title = 'what paste puts in';
         content.append(
             el('div', 'reference-header tp-header', [
                 el('h2', 'firmware-title', `trellis · ${t.fileName}`),
                 el('span', 'tp-version', `written by trellis ${t.preset.version}`),
                 dirty,
                 el('div', 'repl-actions-spacer'),
+                copied,
                 slot,
                 save,
                 close
@@ -266,6 +352,11 @@ export const trellisUiMethods = {
         if (t.view === 'perform') this.renderTrellisPerform(main);
         else this.renderTrellisBank(main, t.view);
         content.append(el('div', 'tp-body', [nav, main]));
+        if (keep) {
+            main.scrollTop = keep.top;
+            const steps = main.querySelector('.tp-steps-wrap');
+            if (steps) steps.scrollLeft = keep.left;
+        }
     },
 
     // ---------------------------------------------------------------- a bank
@@ -291,10 +382,37 @@ export const trellisUiMethods = {
             this.trellisChanged();
             this.renderTrellis();
         });
+        const clip = this.trellisClip;
+        const copyBank = button('copy bank', 'its name, its eight slots and its track', () => {
+            this.trellisClip = {
+                kind: 'bank',
+                what: `bank ${LETTERS[b - 1]}`,
+                name: p.names[b - 1],
+                slots: p.slots.slice((b - 1) * NS, b * NS).map((x) => structuredClone(x)),
+                track: p.tracks[b] ? structuredClone(p.tracks[b]) : null
+            };
+            this.renderTrellis();
+        });
+        const pasteBank = button(
+            'paste bank',
+            `bank ${clip?.kind === 'bank' ? clip.what.slice(5) : ''}'s name, slots and track, over this one's`,
+            () => {
+                p.names[b - 1] = clip.name;
+                clip.slots.forEach((x, i) => (p.slots[(b - 1) * NS + i] = structuredClone(x)));
+                if (clip.track) p.tracks[b] = structuredClone(clip.track);
+                else delete p.tracks[b];
+                this.trellisChanged();
+                this.renderTrellis();
+            },
+            clip?.kind === 'bank' ? '' : 'copy a bank first'
+        );
         main.append(
             el('div', 'tp-bank-head', [
                 el('label', 'tp-field tp-name-field', [el('span', '', `bank ${LETTERS[b - 1]}`), name]),
-                type
+                type,
+                el('div', 'repl-actions-spacer'),
+                copyBank,
+                pasteBank
             ])
         );
         if (kind === 'slots') {
@@ -332,7 +450,24 @@ export const trellisUiMethods = {
                 s.name = v;
                 this.trellisChanged();
             });
-            card.append(el('div', 'tp-slot-head', [el('span', 'tp-slot-id', `E${i + 4} · K${i + 4}`), name]));
+            const clip = this.trellisClip;
+            const copy = button('copy', 'this slot: its encoder, key, LFO or motion and name', () => {
+                this.trellisClip = { kind: 'slot', what: `slot ${LETTERS[b - 1]}${i}`, slot: structuredClone(s) };
+                this.renderTrellis();
+            });
+            const paste = button(
+                'paste',
+                `${clip?.kind === 'slot' ? clip.what : 'the slot copied'} over this one`,
+                () => {
+                    Object.assign(s, structuredClone(clip.slot));
+                    this.trellisChanged();
+                    this.renderTrellis();
+                },
+                clip?.kind === 'slot' ? '' : 'copy a slot first'
+            );
+            card.append(
+                el('div', 'tp-slot-head', [el('span', 'tp-slot-id', `E${i + 4} · K${i + 4}`), name, copy, paste])
+            );
             const change = (/** @type {string} */ id) => (/** @type {any} */ v) => {
                 s[id] = v;
                 if (id === 'ktype') {
@@ -420,6 +555,35 @@ export const trellisUiMethods = {
             });
             bar.append(play);
         }
+        const clip = this.trellisClip;
+        bar.append(
+            button(`copy P${viewed}`, 'its steps and length, to paste into another pattern', () => {
+                this.trellisClip = {
+                    kind: 'pattern',
+                    what: `P${viewed} of ${LETTERS[b - 1]}`,
+                    trackKind: track.kind,
+                    len: pat.len,
+                    lanes: structuredClone(pat.lanes)
+                };
+                this.renderTrellis();
+            }),
+            button(
+                `paste into P${viewed}`,
+                `${clip?.kind === 'pattern' ? clip.what : 'the pattern copied'} over P${viewed}: its steps and length`,
+                () => {
+                    const target = patternOf(track, viewed);
+                    target.len = clip.len;
+                    target.lanes = structuredClone(clip.lanes);
+                    this.trellisChanged();
+                    this.renderTrellis();
+                },
+                clip?.kind !== 'pattern'
+                    ? 'copy a pattern first'
+                    : clip.trackKind !== track.kind
+                      ? `a ${clip.trackKind} pattern doesn't fit a ${track.kind} track`
+                      : ''
+            )
+        );
         const len = field({ label: 'length (steps)', lo: 1, hi: MAX_STEPS }, pat.len, (v) => {
             pat.len = v;
             this.trellisChanged();
@@ -479,6 +643,8 @@ export const trellisUiMethods = {
             cell.append(btn);
             on.append(cell);
         }
+        /** @type {HTMLElement[]} */
+        const names = [];
         for (const [lane, label, lo, hi] of /** @type {const} */ ([
             ['note', 'note', 0, 127],
             ['vel', 'velocity', 1, 127],
@@ -486,26 +652,30 @@ export const trellisUiMethods = {
             ['prob', 'chance %', 0, 100]
         ])) {
             const tr = row(label);
+            if (lane === 'note') {
+                // the names row goes under the notes; made first, so a drag can follow
+                for (let k = first; k <= last; k++)
+                    names.push(el('td', 'tp-note-name', noteName(laneAt(pat, 'note', k))));
+            }
             for (let k = first; k <= last; k++) {
                 const input = el('input', 'tp-step-input');
                 input.type = 'number';
                 input.min = String(lo);
                 input.max = String(hi);
                 input.value = String(laneAt(pat, lane, k));
-                if (lane === 'note') input.title = noteName(laneAt(pat, lane, k));
                 input.addEventListener('change', () => {
                     const v = Math.min(hi, Math.max(lo, Math.round(Number(input.value)) || lo));
                     setLane(pat, lane, k, v);
                     this.trellisChanged();
                     redraw();
                 });
+                draggable(input, {
+                    big: lane === 'note' ? 12 : 10,
+                    onMove: lane === 'note' ? (v) => (names[k - first].textContent = noteName(v)) : undefined
+                });
                 tr.append(el('td', '', [input]));
             }
-            if (lane === 'note') {
-                const names = row('');
-                for (let k = first; k <= last; k++)
-                    names.append(el('td', 'tp-note-name', noteName(laneAt(pat, 'note', k))));
-            }
+            if (lane === 'note') row('').append(...names);
         }
     },
 
@@ -553,6 +723,7 @@ export const trellisUiMethods = {
                     this.trellisChanged();
                     redraw();
                 });
+                draggable(input);
                 tr.append(el('td', '', [input]));
             }
             grid.append(tr);
@@ -582,6 +753,13 @@ export const trellisUiMethods = {
                     this.trellisChanged();
                 }
             );
+            const label = note.querySelector('span');
+            draggable(/** @type {HTMLInputElement} */ (note.querySelector('input')), {
+                big: 12,
+                onMove: (v) => {
+                    if (label) label.textContent = `lane ${l} · ${noteName(v)}`;
+                }
+            });
             box.append(el('div', 'tp-kit-lane', [note, ch]));
         }
         return box;

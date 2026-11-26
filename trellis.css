@@ -379,3 +379,36 @@
         width: 120px;
     }
 }
+
+/* copy and paste, beside what they copy */
+.tp-small {
+    padding: 2px 7px;
+    font-size: 0.75rem;
+}
+
+.tp-small:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
+.tp-slot-head .tp-small {
+    padding: 1px 5px;
+}
+
+.tp-clip {
+    color: var(--neutral-medium);
+    font-size: 0.8rem;
+}
+
+.tp-bank-head .repl-actions-spacer {
+    flex: 1;
+}
+
+/* a field you can drag up and down */
+.tp-drag {
+    cursor: ns-resize;
+}
+
+.tp-drag:focus {
+    cursor: text;
+}

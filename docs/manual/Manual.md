@@ -184,6 +184,16 @@ and pick **edit preset**.
   name to set its hits' velocities and chances.
 - **scenes, song** at the bottom of the list has the scenes (each track's
   pattern and mute), the song and the performance page's assign.
+- **Copy and paste:** each slot has **copy** and **paste**, and so does each
+  bank (its name, slots and track): copy one, go to another, paste. On a
+  track, **copy P1** then pick P2 and **paste into P2** to start a pattern
+  from one you have and change a few steps. The top of the editor says
+  what's copied; a drums pattern only pastes into a drums track, and a
+  melodic one into a melodic track.
+- **Dragging numbers:** drag a step's note up or down to change it, and
+  its name follows as you go (shift: by octaves); the mouse wheel does
+  the same. Velocity, gate, chance and the kit's notes drag too. A click
+  without dragging lets you type the number.
 - Names follow the device's rules: lowercase, and up to 8 characters for a
   slot, 10 for a bank.
 
