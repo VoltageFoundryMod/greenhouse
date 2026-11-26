@@ -12,8 +12,11 @@ const SHOW_DATA_KEY = 'webdiii.showDataFiles';
 
 /** a script's settings file (trellis.cfg): listed with the data files, not run */
 const isSettingsFile = (/** @type {string} */ name) => name.toLowerCase().endsWith('.cfg');
+/** what the firmware makes or keeps (a cache, a copy, a temp file), whatever its name starts with */
+const isKept = (/** @type {string} */ name) => /\.(luac|bak|new|tmp)$/i.test(name) || name.startsWith('.');
 /** @param {string} name */
-const isDataFile = (name) => DATA_PREFIXES.some((prefix) => name.startsWith(prefix)) || isSettingsFile(name);
+const isDataFile = (name) =>
+    !isKept(name) && (DATA_PREFIXES.some((prefix) => name.startsWith(prefix)) || isSettingsFile(name));
 const SHOW_OTHER_KEY = 'webdiii.showOtherFiles';
 /** a script (or iii's init) */
 const isScript = (/** @type {string} */ name) => name.toLowerCase().endsWith('.lua') || name === 'init';
