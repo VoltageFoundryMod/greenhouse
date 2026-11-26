@@ -145,7 +145,8 @@ export const fileMethods = {
             const isLibFile = entry.name === 'lib.lua';
             const isInitLuaFile = entry.name === 'init.lua';
 
-            if (!isLibFile && !isInitLuaFile && !isSettingsFile(entry.name)) {
+            // data files (presets, settings) hold values: nothing to run
+            if (!isLibFile && !isInitLuaFile && !isDataFile(entry.name)) {
                 const playBtn = document.createElement('button');
                 playBtn.className = 'file-play-btn';
                 playBtn.type = 'button';
@@ -226,7 +227,9 @@ export const fileMethods = {
                           ...(TRELLIS_PRESET.test(entry.name)
                               ? [{ label: 'edit preset', fn: () => this.openTrellisPreset(entry.name) }]
                               : []),
-                          { label: 'run', fn: () => this.enqueueRunFile(entry.name) },
+                          ...(isDataFile(entry.name)
+                              ? []
+                              : [{ label: 'run', fn: () => this.enqueueRunFile(entry.name) }]),
                           { label: 'edit', fn: () => this.editFile(entry.name) },
                           // a patch saved from the patch drawer opens back there
                           ...(this.patchCaps && (isPatch || (!this.patchFileNames && entry.name.endsWith('.lua')))
@@ -234,9 +237,13 @@ export const fileMethods = {
                               : []),
                           { label: 'rename', fn: () => this.renameFile(entry.name) },
                           { label: 'download', fn: () => this.downloadFile(entry.name) },
-                          this.firstBadgeFileNames.has(entry.name)
-                              ? { label: 'not first', fn: () => this.clearFirst(entry.name) }
-                              : { label: 'first', fn: () => this.configureFirst(entry.name) },
+                          ...(isDataFile(entry.name)
+                              ? []
+                              : [
+                                    this.firstBadgeFileNames.has(entry.name)
+                                        ? { label: 'not first', fn: () => this.clearFirst(entry.name) }
+                                        : { label: 'first', fn: () => this.configureFirst(entry.name) }
+                                ]),
                           { label: 'read', fn: () => this.showFile(entry.name) },
                           { label: 'delete', fn: () => this.deleteFile(entry.name) }
                       ];
