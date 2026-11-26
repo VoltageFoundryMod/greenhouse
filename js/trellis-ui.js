@@ -397,11 +397,35 @@ export const trellisUiMethods = {
         content.append(main);
     },
 
+    /**
+     * A data file (not Lua: trellis.cfg is a bare table) written as a script
+     * writes one, with fs_write_file: an upload is compiled first, and fails.
+     * Sent in pieces, as the console takes lines of 512 bytes at most, then
+     * read back. Whether it's on the device as given.
+     */
+    async writeDataFile(/** @type {string} */ name, /** @type {string} */ text) {
+        const lines = ["__gh_w = ''"];
+        for (let i = 0; i < text.length; i += 200)
+            lines.push(`__gh_w = __gh_w .. ${this.luaQuote(text.slice(i, i + 200))}`);
+        lines.push(
+            `fs_write_file(${this.luaQuote(name)}, __gh_w) ` +
+                `print(fs_read_file(${this.luaQuote(name)}) == __gh_w and 'written' or 'not written') __gh_w = nil`
+        );
+        try {
+            const out = await this.executeLuaCapture(lines);
+            if (out.map((l) => String(l).trim()).includes('written')) return true;
+            this.outputLine(`${name}: the device didn't keep it (${out.join(' ')})`);
+        } catch (error) {
+            this.outputLine(`${name}: ${error.message}`);
+        }
+        return false;
+    },
+
     async saveTrellisCfg() {
         const s = this.trellisCfg;
         if (!s) return;
         const text = serializeCfg(s.cfg);
-        if (!(await this.uploadChecked(TRELLIS_CFG, text, { keepOld: false }))) {
+        if (!(await this.writeDataFile(TRELLIS_CFG, text))) {
             alert(`${TRELLIS_CFG} wasn't written; the console says why.`);
             return;
         }
