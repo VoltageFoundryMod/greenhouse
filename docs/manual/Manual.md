@@ -210,8 +210,11 @@ saved give way to it (the console says so). Another number joins
 trellis's presets: load it on achene as usual (K15, choose it with E1,
 K2).
 
-The clock, the sync jacks, MIDI thru and the arpeggiator aren't in a
-preset (trellis keeps them in `trellis.cfg`), so they aren't here.
+The clock, the sync jacks, MIDI thru, the arpeggiator, the keys and the
+screensaver aren't in a preset: trellis keeps them in `trellis.cfg`, its
+setup pages. That file's **···** menu has **edit settings**, the same
+pages as a form; **save** (or Ctrl+S) writes it, and a running trellis
+uses the settings at once.
 
 <!-- end if -->
 

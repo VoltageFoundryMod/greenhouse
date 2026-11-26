@@ -7,6 +7,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
+    CFG_FIELDS,
     CHANCE_TOP,
     chanceName,
     defaultSlot,
@@ -14,9 +15,11 @@ import {
     laneAt,
     newTrack,
     parseLuaValue,
+    parseCfg,
     parseChance,
     parsePreset,
     patternOf,
+    serializeCfg,
     serializePreset,
     setLane,
     switchPattern
@@ -96,6 +99,21 @@ check('Lua literals', v[1] === 1 && v[2] === 2.5 && v[3] === null && v[4] === 'a
 check(
     'an older slot: missing fields take their defaults',
     parsePreset('return {slots = {{"cc", 1, 99}}}').slots[0].kvel === defaultSlot(1, 1).kvel
+);
+
+// trellis.cfg, as trellis wrote it in the simulator (trellis 1.14.0)
+const cfgText = fs.readFileSync(path.join(here, 'trellis-cfg-fixture.cfg'), 'utf8');
+const cfg = parseCfg(cfgText);
+check('trellis.cfg comes back byte for byte', serializeCfg(cfg) === cfgText, serializeCfg(cfg));
+check('its split and keys', cfg.split === 60 && cfg.klo === 'follow' && cfg.khi === 'ch 2' && cfg.preset === null);
+const old = parseCfg('{preset = 2, bpm = 500, src = "int", ain = 0, saver = 7}');
+check(
+    'an older one: defaults, ranges, its arp in off sends notes nowhere',
+    old.preset === 2 && old.bpm === 300 && old.saver === 5 && old.klo === 'off' && old.khi === 'off' && old.agate === 50
+);
+check(
+    'every setting has a default',
+    CFG_FIELDS.every((f) => f[1] !== undefined)
 );
 
 // trig conditions past 100 in the chance lanes, as trellis numbers them (Q.CONDS)

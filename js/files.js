@@ -3,7 +3,7 @@
 
 import { hasExactFiles, readDeviceFile } from './backup.js';
 import { disableStartupScript, onlyStartsScript, setStartupScript } from './init-lua.js';
-import { TRELLIS_PRESET } from './trellis-ui.js';
+import { TRELLIS_CFG, TRELLIS_PRESET } from './trellis-ui.js';
 
 /** Files scripts save their data in (presets, state); the list hides them unless asked. */
 const DATA_PREFIXES = ['pset_', 'data_', 'd_', 'state_'];
@@ -209,6 +209,9 @@ export const fileMethods = {
                     ]
                   : [
                         // a preset of achene's trellis script opens in its form
+                        ...(entry.name === TRELLIS_CFG
+                            ? [{ label: 'edit settings', fn: () => this.openTrellisCfg() }]
+                            : []),
                         ...(TRELLIS_PRESET.test(entry.name)
                             ? [{ label: 'edit preset', fn: () => this.openTrellisPreset(entry.name) }]
                             : []),

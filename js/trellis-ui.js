@@ -6,6 +6,7 @@
 
 import { hasExactFiles } from './backup.js';
 import {
+    CFG_FIELDS,
     CHANCE_TOP,
     KINDS,
     LETTERS,
@@ -24,9 +25,11 @@ import {
     laneAt,
     newTrack,
     noteName,
+    parseCfg,
     parseChance,
     parsePreset,
     patternOf,
+    serializeCfg,
     serializePreset,
     setLane,
     switchPattern
@@ -34,6 +37,19 @@ import {
 
 /** a preset of trellis: pset_trellis_<n>.lua */
 export const TRELLIS_PRESET = /^pset_trellis_(\d+)\.lua$/;
+/** trellis's settings file (setup's pages) */
+export const TRELLIS_CFG = 'trellis.cfg';
+
+const onOff = (/** @type {number} */ v) => (v === 1 ? 'on' : 'off');
+/** setup's pages as the settings dialog groups them: [key, label, as?] (CFG_FIELDS has the ranges) */
+const CFG_GROUPS = [
+    ['clock', [['bpm', 'bpm'], ['src', 'clock'], ['out', 'send clock', onOff], ['bpb', 'beats a bar']]],
+    ['sync jacks', [['oppqn', 'out', (v) => `${v} ppq`], ['oms', 'width', (v) => `${v} ms`], ['follow', 'out follows'], ['ippqn', 'in', (v) => `${v} ppq`]]],
+    ['MIDI thru', [['tut', 'USB › TRS', onOff], ['ttu', 'TRS › USB', onOff], ['ttt', 'TRS › TRS', onOff], ['tclk', 'clock too', onOff]]],
+    ['arpeggiator', [['arp', 'arp', onOff], ['amode', 'mode'], ['adiv', 'rate'], ['aoct', 'octaves'], ['agate', 'gate', (v) => `${v}%`], ['alatch', 'latch', onOff], ['ach', 'channel']]],
+    ['the keys (notes coming in)', [['split', 'split', (v) => (v < 0 ? 'off' : noteName(v))], ['klo', 'low (all, no split)'], ['khi', 'high'], ['kroot', 'follow root', noteName]]],
+    ['screensaver', [['saver', 'after', (v) => (v === 0 ? 'off' : `${v} min`)]]]
+]; // prettier-ignore
 
 // what trellis_reload(n) said after a save, for the console
 const RELOAD_SAYS = {
@@ -65,6 +81,7 @@ const TRACK_SETTINGS = [
     { id: 'tr', label: 'transpose', lo: -48, hi: 48, when: (t) => t.kind === 'melodic' },
     { id: 'scale', label: 'scale', list: SCALE_NAMES, when: (t) => t.kind === 'melodic' },
     { id: 'root', label: 'root', lo: 0, hi: 11, when: (t) => t.kind === 'melodic', as: (v) => 'C C# D D# E F F# G G# A A# B'.split(' ')[v] },
+    { id: 'kf', label: 'follow keys', lo: 0, hi: 1, when: (t) => t.kind === 'melodic', as: (v) => (v === 1 ? 'on' : 'off') },
     { id: 'lvl', label: 'level', lo: 0, hi: 100, as: (v) => `${v}%` },
     { id: 'mute', label: 'muted', lo: 0, hi: 1, as: (v) => (v === 1 ? 'yes' : 'no') },
     { id: 'rmode', label: 'rec', list: ['dub', 'repl'] },
@@ -234,6 +251,136 @@ export const trellisUiMethods = {
         this.trellis = { fileName, preset, view: 1, pattern: {}, page: {}, lane: {}, dirty: false };
         this.trellisModal().style.display = 'flex';
         this.renderTrellis();
+    },
+
+    /** "edit settings" in trellis.cfg's file menu: setup's pages as a form */
+    async openTrellisCfg() {
+        let text;
+        try {
+            text = await this.readRemoteFile(TRELLIS_CFG);
+        } catch (error) {
+            this.outputLine(`trellis: couldn't read ${TRELLIS_CFG}: ${error.message}`);
+            return;
+        }
+        let cfg;
+        try {
+            cfg = parseCfg(text);
+        } catch (error) {
+            this.outputLine(`trellis: ${TRELLIS_CFG} isn't settings trellis can read (${error.message})`);
+            return;
+        }
+        this.trellisCfg = { cfg, dirty: false };
+        this.trellisCfgModal().style.display = 'flex';
+        this.renderTrellisCfg();
+    },
+
+    trellisCfgModal() {
+        if (this.trellisCfgModalEl) return this.trellisCfgModalEl;
+        const modal = el('div', 'modal tp-modal tc-modal');
+        modal.setAttribute('role', 'dialog');
+        modal.setAttribute('aria-modal', 'true');
+        modal.setAttribute('aria-label', 'trellis settings');
+        modal.append(el('div', 'modal-content tp-content'));
+        modal.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') this.closeTrellisCfg();
+            if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') {
+                event.preventDefault();
+                this.saveTrellisCfg();
+            }
+        });
+        document.body.append(modal);
+        this.trellisCfgModalEl = modal;
+        return modal;
+    },
+
+    closeTrellisCfg() {
+        if (this.trellisCfg?.dirty && !confirm('Close without saving the changes to the settings?')) return;
+        this.trellisCfgModal().style.display = 'none';
+        this.trellisCfg = null;
+    },
+
+    renderTrellisCfg() {
+        const s = this.trellisCfg;
+        if (!s) return;
+        const content = this.trellisCfgModal().querySelector('.tp-content');
+        content.replaceChildren();
+        const save = el('button', 'repl-action-btn', 'save');
+        save.type = 'button';
+        save.title = 'write trellis.cfg; a running trellis takes the settings at once (Ctrl+S)';
+        save.addEventListener('click', () => this.saveTrellisCfg());
+        const close = el('button', 'editor-close-btn', '✕');
+        close.type = 'button';
+        close.title = 'close (Esc)';
+        close.setAttribute('aria-label', 'close');
+        close.addEventListener('click', () => this.closeTrellisCfg());
+        const dirty = el('span', 'tp-dirty', '● unsaved');
+        dirty.hidden = !s.dirty;
+        content.append(
+            el('div', 'reference-header tp-header', [
+                el('h2', 'firmware-title', `trellis · settings (${TRELLIS_CFG})`),
+                dirty,
+                el('div', 'repl-actions-spacer'),
+                save,
+                close
+            ])
+        );
+        const main = el('div', 'tp-main tc-main');
+        main.append(
+            el(
+                'p',
+                'tp-note',
+                'Setup’s pages (shift + K15 on achene): kept apart from the presets. ' +
+                    (s.cfg.preset === null
+                        ? 'No preset is loaded at power-up (the defaults).'
+                        : `Preset ${s.cfg.preset} is loaded at power-up: the one loaded or saved last on achene.`)
+            )
+        );
+        const spec = Object.fromEntries(CFG_FIELDS.map((f) => [f[0], f]));
+        for (const [title, fields] of CFG_GROUPS) {
+            const box = el('div', 'tp-group tp-track-settings', [el('div', 'tp-group-title', title)]);
+            for (const [key, label, as] of fields) {
+                const [, , a, b] = spec[key];
+                const list = Array.isArray(a) ? a : null;
+                box.append(
+                    field({ label, lo: list ? 0 : a, hi: list ? 0 : b, list, as }, s.cfg[key], (v) => {
+                        s.cfg[key] = v;
+                        s.dirty = true;
+                        dirty.hidden = false;
+                    })
+                );
+            }
+            main.append(box);
+        }
+        content.append(main);
+    },
+
+    async saveTrellisCfg() {
+        const s = this.trellisCfg;
+        if (!s) return;
+        const text = serializeCfg(s.cfg);
+        if (!(await this.uploadChecked(TRELLIS_CFG, text, { keepOld: false }))) {
+            alert(`${TRELLIS_CFG} wasn't written; the console says why.`);
+            return;
+        }
+        s.dirty = false;
+        // trellis 1.15.0 and later takes them at once
+        let did = 'none';
+        try {
+            const lines = await this.executeLuaCapture('print(trellis_cfg and trellis_cfg() or "none")');
+            did = lines.map((l) => String(l).trim()).find((l) => l === 'ok' || l === 'bad' || l === 'none') ?? 'none';
+        } catch {
+            did = 'none';
+        }
+        this.outputLine(
+            `trellis: saved ${TRELLIS_CFG}. ` +
+                (did === 'ok'
+                    ? 'trellis uses the settings now.'
+                    : did === 'bad'
+                      ? "trellis couldn't read it."
+                      : 'trellis takes them the next time it starts.')
+        );
+        this.refreshFileList?.();
+        this.renderTrellisCfg();
     },
 
     /** the editor's dialog, made the first time */

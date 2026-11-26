@@ -9,7 +9,8 @@
              tools/trellis-preset-fixture.lua (?file=trellis-preset-fixture-2.lua
              for the other) and, on save, prints the file it would write below.
              Serve the repo and open /tools/trellis-preview.html; ?view=3 opens
-             bank C, ?view=perform the scenes and song. -->
+             bank C, ?view=perform the scenes and song; ?cfg opens the settings
+             (tools/trellis-cfg-fixture.cfg) instead. -->
         <link rel="stylesheet" href="../style.css" />
         <link rel="stylesheet" href="../refresh.css" />
         <link rel="stylesheet" href="../trellis.css" />
@@ -38,7 +39,8 @@
             import { trellisUiMethods } from '../js/trellis-ui.js';
 
             const params = new URLSearchParams(location.search);
-            const file = params.get('file') || 'trellis-preset-fixture.lua';
+            const cfg = params.has('cfg');
+            const file = params.get('file') || (cfg ? 'trellis-cfg-fixture.cfg' : 'trellis-preset-fixture.lua');
             const text = await (await fetch(file)).text();
             const log = document.getElementById('log');
             const app = Object.assign(
@@ -49,11 +51,13 @@
                         log.textContent = `${name}:\n${out}`;
                         return true;
                     },
-                    outputLine: (line) => console.log(line)
+                    outputLine: (line) => console.log(line),
+                    executeLuaCapture: async () => ['none']
                 },
                 trellisUiMethods
             );
-            await app.openTrellisPreset('pset_trellis_3.lua');
+            if (cfg) await app.openTrellisCfg();
+            else await app.openTrellisPreset('pset_trellis_3.lua');
             const view = params.get('view');
             if (view) {
                 app.trellis.view = view === 'perform' ? 'perform' : Number(view);

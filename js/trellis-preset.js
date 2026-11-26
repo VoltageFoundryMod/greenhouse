@@ -18,8 +18,8 @@ export const SCENES = 16; // trellis's PF.NSC (8 until trellis 1.10.0)
 export const LETTERS = 'ABCDEFGH';
 export const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 
-/** a note number as trellis shows it (60: C3) */
-export const noteName = (/** @type {number} */ n) => `${NOTE_NAMES[n % 12]}${Math.floor(n / 12) - 2}`;
+/** a note number as trellis shows it (60: C4, its note_name) */
+export const noteName = (/** @type {number} */ n) => `${NOTE_NAMES[n % 12]}${Math.floor(n / 12) - 1}`;
 
 const offOn = (/** @type {number} */ v) => (v === 1 ? 'on' : 'off');
 const noYes = (/** @type {number} */ v) => (v === 1 ? 'yes' : 'no');
@@ -160,7 +160,7 @@ export const SCALE_NAMES = [
 ];
 /** the saved settings, in the file's order (Q.FIELDS) */
 export const TRACK_FIELDS = ['kind', 'ch', 'len', 'div', 'tr', 'scale', 'root', 'swing', 'rch', 'rdens', 'rrange',
-    'mute', 'lvl', 'rwhat', 'rleap', 'rmode', 'pat']; // prettier-ignore
+    'mute', 'lvl', 'rwhat', 'rleap', 'rmode', 'pat', 'kf']; // prettier-ignore
 /** the lanes, a byte a step (Q.LANES) */
 export const LANES = ['on', 'note', 'vel', 'gate', 'prob', 'd1', 'd2', 'd3', 'd4', 'd5', 'd6', 'd7', 'd8',
     'q1', 'q2', 'q3', 'q4', 'q5', 'q6', 'q7', 'q8']; // prettier-ignore
@@ -175,6 +175,58 @@ const KIT_DEF = /** @type {Record<string, number[]>} */ ({
     er: [0, 0, 0, 0, 0, 0, 0, 0]
 });
 export const RANDOM_WHAT = { melodic: ['steps', 'notes', 'vel', 'gate', 'chance'], drums: ['steps', 'vel', 'chance'] };
+
+// ------------------------------------------------------------------ trellis.cfg
+
+/** where notes coming in go (trellis's P.KDESTS) */
+export const KDESTS = ['arp', 'follow', 'off', ...Array.from({ length: 16 }, (_, c) => `ch ${c + 1}`)];
+export const SYNC_PPQN = [1, 2, 3, 4, 6, 8, 12, 24];
+export const WIDTHS = [1, 2, 5, 10, 15, 20, 30, 50, 100];
+export const FOLLOWS = ['auto', 'received', 'sent', 'off'];
+export const ARP_MODES = ['up', 'down', 'up-dn', 'rand', 'order'];
+export const SAVERS = [0, 1, 2, 5, 10, 30];
+
+/**
+ * trellis.cfg's settings in write_cfg's order, each with its default and
+ * what it may be: [key, default, lo, hi] for a number, [key, default, list]
+ * for one of a list. `preset` (the one loaded at power-up) comes first.
+ * @type {[string, string | number, ...any[]][]}
+ */
+export const CFG_FIELDS = [
+    ['bpm', 120, 40, 300], ['src', 'int', ['int', 'ext']], ['out', 1, 0, 1], ['bpb', 4, 2, 12],
+    ['oppqn', 2, SYNC_PPQN], ['oms', 15, WIDTHS], ['follow', 'auto', FOLLOWS], ['ippqn', 2, SYNC_PPQN],
+    ['tut', 0, 0, 1], ['ttu', 0, 0, 1], ['ttt', 0, 0, 1], ['tclk', 0, 0, 1],
+    ['arp', 0, 0, 1], ['amode', 'up', ARP_MODES], ['adiv', '1/16', STEP_DIVS], ['aoct', 1, 1, 4],
+    ['agate', 50, 5, 100], ['alatch', 0, 0, 1], ['ach', 1, 1, 16],
+    ['split', -1, -1, 127], ['klo', 'arp', KDESTS], ['khi', 'arp', KDESTS], ['kroot', 60, 0, 127],
+    ['saver', 5, SAVERS]
+]; // prettier-ignore
+
+/** trellis.cfg's text as settings; what's missing or out of range takes trellis's default */
+export function parseCfg(/** @type {string} */ text) {
+    const c = parseLuaValue(text);
+    if (!c || typeof c !== 'object') throw new Error('not a table');
+    /** @type {Record<string, any>} */
+    const out = { preset: typeof c.preset === 'number' ? c.preset : null };
+    for (const [key, def, a, b] of CFG_FIELDS) {
+        const v = c[key];
+        if (Array.isArray(a)) out[key] = a.includes(v) ? v : def;
+        else out[key] = typeof v === 'number' ? Math.min(b, Math.max(a, Math.round(v))) : def;
+    }
+    // before trellis 1.14.0 the arp's "in" said whether notes played it
+    if (c.klo === undefined && c.ain === 0) out.klo = out.khi = 'off';
+    return out;
+}
+
+/** settings as trellis.cfg's text, as trellis writes it (write_cfg) */
+export function serializeCfg(/** @type {Record<string, any>} */ c) {
+    const f = [`preset = ${c.preset === null ? 'nil' : c.preset}`];
+    for (const [key] of CFG_FIELDS) {
+        const v = c[key];
+        f.push(`${key} = ${typeof v === 'string' ? quote(v) : v}`);
+    }
+    return `{${f.join(', ')}}`;
+}
 
 /**
  * Trig conditions, in the chance lanes past 100 (trellis 1.12.0, Q.CONDS):
@@ -229,7 +281,7 @@ export function newTrack(/** @type {number} */ b) {
     /** @type {Track} */
     const t = {
         kind: 'slots', ch: b, len: 16, div: '1/16', tr: 0, scale: 'chrom', root: 0, swing: 50, rch: 100,
-        rdens: 50, rrange: 12, mute: 0, lvl: 100, rwhat: 'steps', rleap: 0, rmode: 'dub', pat: 1,
+        rdens: 50, rrange: 12, mute: 0, lvl: 100, rwhat: 'steps', rleap: 0, rmode: 'dub', pat: 1, kf: 0,
         lanes: {}, pats: {}, kit: {}
     }; // prettier-ignore
     for (const k of KIT) t.kit[k] = Uint8Array.from(KIT_DEF[k]);
@@ -529,6 +581,7 @@ function readTrack(/** @type {number} */ b, /** @type {any} */ x) {
     t.rleap = clamp(t.rleap, 0, 12);
     if (!RANDOM_WHAT.melodic.includes(t.rwhat)) t.rwhat = 'steps';
     if (t.rmode !== 'repl') t.rmode = 'dub';
+    t.kf = t.kf === 1 ? 1 : 0;
     t.ch = clamp(t.ch, 1, 16);
     t.len = clamp(t.len, 1, MAX_STEPS);
     t.tr = clamp(t.tr, -48, 48);
