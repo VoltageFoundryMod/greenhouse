@@ -23,6 +23,7 @@ import {
     chanceName,
     keyModes,
     laneAt,
+    emptyPreset,
     newTrack,
     noteName,
     parseCfg,
@@ -147,6 +148,49 @@ function field(spec, value, onChange, list = null) {
 const range = (/** @type {number} */ lo, /** @type {number} */ hi) =>
     Array.from({ length: hi - lo + 1 }, (_, k) => lo + k);
 
+// a step being painted: pressing one turns it on or off, and dragging over
+// others while the button's held sets them the same way; the change is
+// kept (and the editor drawn again) once it's let go
+/** @type {{ to: boolean, done: () => void } | null} */
+let painting = null;
+if (typeof window !== 'undefined')
+    window.addEventListener('pointerup', () => {
+        const p = painting;
+        painting = null;
+        p?.done();
+    });
+
+/** a step button that paints (above); `set` changes it, `done` keeps the strokes */
+function paintable(
+    /** @type {HTMLElement} */ btn,
+    /** @type {() => boolean} */ isOn,
+    /** @type {(on: boolean) => void} */ set,
+    /** @type {() => void} */ done
+) {
+    const put = (/** @type {boolean} */ on) => {
+        if (isOn() === on) return;
+        set(on);
+        btn.classList.toggle('on', on);
+    };
+    btn.addEventListener('pointerdown', (e) => {
+        if (e.button !== 0) return;
+        e.preventDefault();
+        // a touch captures the pointer: let go, so the next steps hear it
+        if (btn.hasPointerCapture(e.pointerId)) btn.releasePointerCapture(e.pointerId);
+        painting = { to: !isOn(), done };
+        put(painting.to);
+    });
+    btn.addEventListener('pointerenter', () => {
+        if (painting) put(painting.to);
+    });
+    // Enter or Space (a click with no pointer) toggles it
+    btn.addEventListener('click', (e) => {
+        if (e.detail !== 0) return;
+        set(!isOn());
+        done();
+    });
+}
+
 /** a small button: label, tooltip, what it does; disabled says why it can't */
 function button(/** @type {string} */ label, /** @type {string} */ title, /** @type {() => void} */ fn, disabled = '') {
     const b = el('button', 'repl-action-btn tp-small', label);
@@ -248,9 +292,7 @@ export const trellisUiMethods = {
             this.outputLine(`trellis: ${fileName} isn't a preset trellis can read (${error.message})`);
             return;
         }
-        this.trellis = { fileName, preset, view: 1, pattern: {}, page: {}, lane: {}, dirty: false };
-        this.trellisModal().style.display = 'flex';
-        this.renderTrellis();
+        this.trellisOpen(fileName, preset);
     },
 
     /** "edit settings" in trellis.cfg's file menu: setup's pages as a form */
@@ -281,7 +323,8 @@ export const trellisUiMethods = {
         modal.setAttribute('aria-modal', 'true');
         modal.setAttribute('aria-label', 'trellis settings');
         modal.append(el('div', 'modal-content tp-content'));
-        modal.addEventListener('keydown', (event) => {
+        document.addEventListener('keydown', (event) => {
+            if (modal.style.display !== 'flex') return;
             if (event.key === 'Escape') this.closeTrellisCfg();
             if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') {
                 event.preventDefault();
@@ -391,8 +434,24 @@ export const trellisUiMethods = {
         modal.setAttribute('aria-modal', 'true');
         modal.setAttribute('aria-label', 'trellis preset');
         modal.append(el('div', 'modal-content tp-content'));
-        modal.addEventListener('keydown', (event) => {
+        // the keys anywhere on the page while it's open (after a click on a
+        // step the focus isn't inside it)
+        document.addEventListener('keydown', (event) => {
+            if (modal.style.display !== 'flex') return;
             if (event.key === 'Escape') this.closeTrellisPreset();
+            if (!(event.ctrlKey || event.metaKey)) return;
+            const key = event.key.toLowerCase();
+            // a number or name being typed keeps its own undo
+            const target = /** @type {HTMLElement} */ (event.target);
+            const typing = target.tagName === 'INPUT' && /** @type {HTMLInputElement} */ (target).type !== 'button';
+            if (key === 's') {
+                event.preventDefault();
+                const to = /** @type {HTMLSelectElement | null} */ (modal.querySelector('.tp-save-to'));
+                if (to) this.saveTrellisPreset(`pset_trellis_${to.value}.lua`);
+            } else if (!typing && (key === 'z' || key === 'y')) {
+                event.preventDefault();
+                this.trellisUndo(key === 'y' || event.shiftKey ? 1 : -1);
+            }
         });
         document.body.append(modal);
         this.trellisModalEl = modal;
@@ -406,9 +465,71 @@ export const trellisUiMethods = {
     },
 
     trellisChanged() {
-        this.trellis.dirty = true;
+        const t = this.trellis;
+        t.dirty = true;
         const mark = this.trellisModalEl?.querySelector('.tp-dirty');
         if (mark) mark.hidden = false;
+        // the undo history: the preset as text after each change (the
+        // serializer is exact, so a step back is the file as it was)
+        const now = serializePreset(t.preset);
+        if (t.history[t.at] !== now) {
+            // the steps undone are dropped (and the saved one, if among them)
+            if (t.savedAt > t.at) t.savedAt = -1;
+            t.history.splice(t.at + 1);
+            t.history.push(now);
+            if (t.history.length > 200) {
+                t.history.shift();
+                t.savedAt--;
+            }
+            t.at = t.history.length - 1;
+        }
+        this.trellisUndoButtons();
+    },
+
+    /** a step back (-1) or forward (1) in the undo history */
+    trellisUndo(/** @type {number} */ d) {
+        const t = this.trellis;
+        const at = t?.at + d;
+        if (!t || at < 0 || at >= t.history.length) return;
+        t.at = at;
+        t.preset = parsePreset(t.history[at]);
+        t.dirty = at !== t.savedAt;
+        this.renderTrellis();
+    },
+
+    trellisUndoButtons() {
+        const t = this.trellis;
+        const m = this.trellisModalEl;
+        if (!t || !m) return;
+        const undo = /** @type {HTMLButtonElement | null} */ (m.querySelector('.tp-undo'));
+        const redo = /** @type {HTMLButtonElement | null} */ (m.querySelector('.tp-redo'));
+        if (undo) undo.disabled = t.at <= 0;
+        if (redo) redo.disabled = t.at >= t.history.length - 1;
+    },
+
+    /** a new preset, empty, as the first number with no preset on the device */
+    trellisNew() {
+        const t = this.trellis;
+        if (t?.dirty && !confirm('Start a new preset? The changes to this one aren’t saved.')) return;
+        const used = new Set(
+            (this.fileEntries ?? []).map((e) => Number(TRELLIS_PRESET.exec(e.name)?.[1] ?? 0)).filter(Boolean)
+        );
+        let n = 1;
+        while (used.has(n) && n < 16) n++;
+        const preset = emptyPreset();
+        if (t) preset.version = t.preset.version;
+        this.trellisOpen(`pset_trellis_${n}.lua`, preset, true);
+    },
+
+    /** the editor on a preset (fresh: not on the device yet) */
+    trellisOpen(/** @type {string} */ fileName, preset, fresh = false) {
+        const first = serializePreset(preset);
+        this.trellis = {
+            fileName, preset, fresh, view: 1, pattern: {}, page: {}, lane: {}, dirty: fresh,
+            history: [first], at: 0, savedAt: fresh ? -1 : 0
+        }; // prettier-ignore
+        this.trellisModal().style.display = 'flex';
+        this.renderTrellis();
     },
 
     async saveTrellisPreset(fileName) {
@@ -420,6 +541,8 @@ export const trellisUiMethods = {
         }
         this.trellis.fileName = fileName;
         this.trellis.dirty = false;
+        this.trellis.fresh = false;
+        this.trellis.savedAt = this.trellis.at;
         const n = TRELLIS_PRESET.exec(fileName)?.[1];
         // trellis 1.11.0 and later loads it again if it's the preset playing
         // (trellis_reload returns what it did); older or not running: "none"
@@ -465,8 +588,15 @@ export const trellisUiMethods = {
         }
         const save = el('button', 'repl-action-btn', 'save');
         save.type = 'button';
-        save.title = 'write the preset to the device, as the number picked';
+        save.title = 'write the preset to the device, as the number picked (Ctrl+S)';
         save.addEventListener('click', () => this.saveTrellisPreset(`pset_trellis_${slot.value}.lua`));
+        const undo = button('↶ undo', 'undo the last change (Ctrl+Z)', () => this.trellisUndo(-1));
+        undo.classList.add('tp-undo');
+        const redo = button('↷ redo', 'redo (Ctrl+Shift+Z or Ctrl+Y)', () => this.trellisUndo(1));
+        redo.classList.add('tp-redo');
+        undo.disabled = t.at <= 0;
+        redo.disabled = t.at >= t.history.length - 1;
+        const fresh = button('new', 'start a new preset, empty, as the first free number', () => this.trellisNew());
         const close = el('button', 'editor-close-btn', '✕');
         close.type = 'button';
         close.title = 'close (Esc)';
@@ -479,11 +609,14 @@ export const trellisUiMethods = {
         copied.title = 'what paste puts in';
         content.append(
             el('div', 'reference-header tp-header', [
-                el('h2', 'firmware-title', `trellis · ${t.fileName}`),
-                el('span', 'tp-version', `written by trellis ${t.preset.version}`),
+                el('h2', 'firmware-title', `trellis · ${t.fresh ? 'new preset' : t.fileName}`),
+                el('span', 'tp-version', t.fresh ? 'not on achene yet' : `written by trellis ${t.preset.version}`),
                 dirty,
                 el('div', 'repl-actions-spacer'),
                 copied,
+                undo,
+                redo,
+                fresh,
                 slot,
                 save,
                 close
@@ -810,11 +943,16 @@ export const trellisUiMethods = {
             const btn = el('button', `tp-cell${laneAt(pat, 'on', k) === 1 ? ' on' : ''}`);
             btn.type = 'button';
             btn.setAttribute('aria-label', `step ${k}`);
-            btn.addEventListener('click', () => {
-                setLane(pat, 'on', k, 1 - laneAt(pat, 'on', k));
-                this.trellisChanged();
-                redraw();
-            });
+            btn.title = 'click to turn on or off; drag across steps to paint them';
+            paintable(
+                btn,
+                () => laneAt(pat, 'on', k) === 1,
+                (v) => setLane(pat, 'on', k, v ? 1 : 0),
+                () => {
+                    this.trellisChanged();
+                    redraw();
+                }
+            );
             cell.append(btn);
             on.append(cell);
         }
@@ -875,11 +1013,16 @@ export const trellisUiMethods = {
                 btn.type = 'button';
                 if (v >= 128) btn.style.opacity = String(0.35 + (0.65 * (v - 128)) / 127);
                 btn.setAttribute('aria-label', `lane ${l} step ${k}`);
-                btn.addEventListener('click', () => {
-                    setLane(pat, `d${l}`, k, v ^ 128);
-                    this.trellisChanged();
-                    redraw();
-                });
+                btn.title = 'click for a hit or none; drag across steps to paint them';
+                paintable(
+                    btn,
+                    () => laneAt(pat, `d${l}`, k) >= 128,
+                    (on) => setLane(pat, `d${l}`, k, (laneAt(pat, `d${l}`, k) & 127) | (on ? 128 : 0)),
+                    () => {
+                        this.trellisChanged();
+                        redraw();
+                    }
+                );
                 tr.append(el('td', '', [btn]));
             }
             grid.append(tr);

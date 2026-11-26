@@ -179,7 +179,8 @@ and pick **edit preset**.
   its kit.
 - **Patterns:** P1 to P8 pick the one you see; ▶ marks the one playing.
   **make it the one playing** makes trellis load the preset on it.
-- **Steps:** click a step to turn it on or off. A melodic step's note,
+- **Steps:** click a step to turn it on or off, or press one and drag
+  across the others to paint them all the same way. A melodic step's note,
   velocity, gate and chance are under it; on a drums track, click a lane's
   name to set its hits' velocities and chances.
 - **scenes, song** at the bottom of the list has the scenes (each track's
@@ -200,10 +201,15 @@ and pick **edit preset**.
 - A chance can also be a **trig condition**, as on achene past 100%: type
   `1:2` (the first pass of every two) up to `8:8`, `1st` (the first pass
   only) or `!1st` (all but it), or drag past 100%.
+- **Undo:** **↶ undo** and **↷ redo** at the top (Ctrl+Z, and Ctrl+Shift+Z
+  or Ctrl+Y) step back and forth through your changes. While you're typing
+  in a field, Ctrl+Z undoes the typing instead.
+- **new** starts an empty preset, as the first number with no preset on
+  achene yet.
 - Names follow the device's rules: lowercase, and up to 8 characters for a
   slot, 10 for a bank.
 
-**save** writes the preset back, as the number picked beside it: keep it,
+**save** (or Ctrl+S) writes the preset back, as the number picked beside it: keep it,
 or pick another number to save a copy. If it's the preset trellis has
 loaded, achene plays it at once, in time; changes made on achene and not
 saved give way to it (the console says so). Another number joins
