@@ -218,7 +218,8 @@ K2).
 
 The clock, the sync jacks, MIDI thru, the arpeggiator, the keys and the
 screensaver aren't in a preset: trellis keeps them in `trellis.cfg`, its
-setup pages. That file's **···** menu has **edit settings**, the same
+setup pages. It's listed with the data files (show them at the bottom of
+the file list), and its **···** menu has **edit settings**, the same
 pages as a form; **save** (or Ctrl+S) writes it, and a running trellis
 uses the settings at once.
 

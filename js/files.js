@@ -9,8 +9,10 @@ import { TRELLIS_CFG, TRELLIS_PRESET } from './trellis-ui.js';
 const DATA_PREFIXES = ['pset_', 'data_', 'd_', 'state_'];
 const SHOW_DATA_KEY = 'webdiii.showDataFiles';
 
+/** a script's settings file (trellis.cfg): listed with the data files, not run */
+const isSettingsFile = (/** @type {string} */ name) => name.toLowerCase().endsWith('.cfg');
 /** @param {string} name */
-const isDataFile = (name) => DATA_PREFIXES.some((prefix) => name.startsWith(prefix));
+const isDataFile = (name) => DATA_PREFIXES.some((prefix) => name.startsWith(prefix)) || isSettingsFile(name);
 
 export const fileMethods = {
     formatSizeKb(bytes) {
@@ -143,7 +145,7 @@ export const fileMethods = {
             const isLibFile = entry.name === 'lib.lua';
             const isInitLuaFile = entry.name === 'init.lua';
 
-            if (!isLibFile && !isInitLuaFile) {
+            if (!isLibFile && !isInitLuaFile && !isSettingsFile(entry.name)) {
                 const playBtn = document.createElement('button');
                 playBtn.className = 'file-play-btn';
                 playBtn.type = 'button';
@@ -207,28 +209,37 @@ export const fileMethods = {
                         { label: 'download', fn: () => this.downloadFile(entry.name) },
                         { label: 'read', fn: () => this.showFile(entry.name) }
                     ]
-                  : [
-                        // a preset of achene's trellis script opens in its form
-                        ...(entry.name === TRELLIS_CFG
-                            ? [{ label: 'edit settings', fn: () => this.openTrellisCfg() }]
-                            : []),
-                        ...(TRELLIS_PRESET.test(entry.name)
-                            ? [{ label: 'edit preset', fn: () => this.openTrellisPreset(entry.name) }]
-                            : []),
-                        { label: 'run', fn: () => this.enqueueRunFile(entry.name) },
-                        { label: 'edit', fn: () => this.editFile(entry.name) },
-                        // a patch saved from the patch drawer opens back there
-                        ...(this.patchCaps && (isPatch || (!this.patchFileNames && entry.name.endsWith('.lua')))
-                            ? [{ label: 'edit patch', fn: () => this.openPatchFile(entry.name) }]
-                            : []),
-                        { label: 'rename', fn: () => this.renameFile(entry.name) },
-                        { label: 'download', fn: () => this.downloadFile(entry.name) },
-                        this.firstBadgeFileNames.has(entry.name)
-                            ? { label: 'not first', fn: () => this.clearFirst(entry.name) }
-                            : { label: 'first', fn: () => this.configureFirst(entry.name) },
-                        { label: 'read', fn: () => this.showFile(entry.name) },
-                        { label: 'delete', fn: () => this.deleteFile(entry.name) }
-                    ];
+                  : isSettingsFile(entry.name)
+                    ? [
+                          // trellis's settings open as setup's pages
+                          ...(entry.name === TRELLIS_CFG
+                              ? [{ label: 'edit settings', fn: () => this.openTrellisCfg() }]
+                              : []),
+                          { label: 'edit', fn: () => this.editFile(entry.name) },
+                          { label: 'read', fn: () => this.showFile(entry.name) },
+                          { label: 'download', fn: () => this.downloadFile(entry.name) },
+                          { label: 'rename', fn: () => this.renameFile(entry.name) },
+                          { label: 'delete', fn: () => this.deleteFile(entry.name) }
+                      ]
+                    : [
+                          // a preset of achene's trellis script opens in its form
+                          ...(TRELLIS_PRESET.test(entry.name)
+                              ? [{ label: 'edit preset', fn: () => this.openTrellisPreset(entry.name) }]
+                              : []),
+                          { label: 'run', fn: () => this.enqueueRunFile(entry.name) },
+                          { label: 'edit', fn: () => this.editFile(entry.name) },
+                          // a patch saved from the patch drawer opens back there
+                          ...(this.patchCaps && (isPatch || (!this.patchFileNames && entry.name.endsWith('.lua')))
+                              ? [{ label: 'edit patch', fn: () => this.openPatchFile(entry.name) }]
+                              : []),
+                          { label: 'rename', fn: () => this.renameFile(entry.name) },
+                          { label: 'download', fn: () => this.downloadFile(entry.name) },
+                          this.firstBadgeFileNames.has(entry.name)
+                              ? { label: 'not first', fn: () => this.clearFirst(entry.name) }
+                              : { label: 'first', fn: () => this.configureFirst(entry.name) },
+                          { label: 'read', fn: () => this.showFile(entry.name) },
+                          { label: 'delete', fn: () => this.deleteFile(entry.name) }
+                      ];
 
             for (const action of actions) {
                 const item = document.createElement('button');
@@ -388,7 +399,7 @@ export const fileMethods = {
             const name = String(parts[1] || '').trim();
             const isLua = name.toLowerCase().endsWith('.lua');
             const isInit = name === 'init';
-            if (!isLua && !isInit) continue;
+            if (!isLua && !isInit && !isSettingsFile(name)) continue;
             if (seenNames.has(name)) continue;
             seenNames.add(name);
 
