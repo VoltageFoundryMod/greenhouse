@@ -60,7 +60,8 @@ export const fileMethods = {
             const order = (name) => {
                 if (this.isInitFile(name)) return 0;
                 if (name === 'lib.lua') return 1;
-                return 2;
+                // scripts, then the data files (presets, settings) after them
+                return isDataFile(name) ? 3 : 2;
             };
 
             const rankDiff = order(a.name) - order(b.name);
@@ -267,7 +268,12 @@ export const fileMethods = {
             row.appendChild(menu);
             this.elements.fileList.appendChild(row);
 
-            if (pinnedCount > 0 && index === pinnedCount - 1 && index < sortedEntries.length - 1) {
+            // a line under init and lib, and one before the data files
+            const next = sortedEntries[index + 1];
+            if (
+                (pinnedCount > 0 && index === pinnedCount - 1 && next) ||
+                (next && isDataFile(next.name) && !isDataFile(entry.name))
+            ) {
                 const separator = document.createElement('div');
                 separator.className = 'file-list-separator';
                 this.elements.fileList.appendChild(separator);

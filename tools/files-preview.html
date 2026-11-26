@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <title>file list preview</title>
+        <!-- Development page (not published): the file list without a device,
+             on a made-up set of files (scripts, presets, settings). Serve the
+             repo and open /tools/files-preview.html; ?data shows the data files. -->
+        <link rel="stylesheet" href="../style.css" />
+        <link rel="stylesheet" href="../refresh.css" />
+        <style>
+            body {
+                margin: 0;
+                padding: 12px;
+                background: var(--bg-default);
+                color: var(--neutral-heavy);
+                font:
+                    13px/1.4 system-ui,
+                    sans-serif;
+            }
+            .file-list {
+                width: 280px;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="fileList" class="file-list"></div>
+        <script type="module">
+            import { fileMethods } from '../js/files.js';
+
+            const names = ['trellis.lua', 'pset_trellis_2.lua', 'init.lua', 'lib.lua', 'trellis.cfg',
+                'generic.lua', 'pset_trellis_1.lua', 'launcher.lua', 'state_x.lua', 'test.lua']; // prettier-ignore
+            const app = Object.assign(
+                {
+                    elements: { fileList: document.getElementById('fileList') },
+                    iiiDevice: { isConnected: true },
+                    fileEntries: names.map((name) => ({ name, size: 1024 })),
+                    firstBadgeFileNames: new Set(['trellis.lua']),
+                    patchFileNames: new Set(),
+                    formatSizeKb: (n) => `${(n / 1024).toFixed(1)} kb`
+                },
+                fileMethods
+            );
+            app.showDataFiles = () => new URLSearchParams(location.search).has('data');
+            app.renderFileList();
+        </script>
+    </body>
+</html>
