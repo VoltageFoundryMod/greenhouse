@@ -14,6 +14,7 @@ export const NS = 8; // slots a bank
 export const NP = 8; // patterns a track
 export const MAX_STEPS = 128;
 export const SONG_MAX = 32;
+export const SCENES = 16; // trellis's PF.NSC (8 until trellis 1.10.0)
 export const LETTERS = 'ABCDEFGH';
 export const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 
@@ -252,7 +253,7 @@ export function switchPattern(/** @type {Track} */ t, /** @type {number} */ n) {
  * @property {Slot[]} slots     64, bank by bank
  * @property {Record<number, Track>} tracks  the banks that have one (1-8)
  * @property {number[]} assign  the performance page's eight picks (1-64, 0: none)
- * @property {Record<number, Scene>} scenes  1-8
+ * @property {Record<number, Scene>} scenes  1-16
  * @property {[number, number][]} song  scene, bars
  * @property {number} son       the song on
  */
@@ -459,7 +460,7 @@ export function parsePreset(text) {
         p.assign[k] = Number.isInteger(x) && x >= 1 && x <= NB * NS ? x : 0;
     }
     const scenes = d.scenes && typeof d.scenes === 'object' ? d.scenes : {};
-    for (let k = 1; k <= NS; k++) {
+    for (let k = 1; k <= SCENES; k++) {
         const sc = scenes[k];
         if (!sc || typeof sc !== 'object' || typeof sc.pat !== 'object' || typeof sc.mute !== 'object') continue;
         const pat = list(sc.pat), mute = list(sc.mute); // prettier-ignore
@@ -471,7 +472,7 @@ export function parsePreset(text) {
     for (const e of list(d.song)) {
         const v = list(e);
         if (typeof v[0] === 'number' && typeof v[1] === 'number' && p.song.length < SONG_MAX)
-            p.song.push([clamp(v[0], 1, NS), clamp(v[1], 1, 99)]);
+            p.song.push([clamp(v[0], 1, SCENES), clamp(v[1], 1, 99)]);
     }
     p.son = d.son === 1 ? 1 : 0;
     return p;
@@ -611,7 +612,7 @@ export function serializePreset(p) {
         out.push(`[${b}] = {${f.join(', ')}},\n`);
     }
     out.push(`},\nassign = {${p.assign.join(', ')}},\nscenes = {`);
-    for (let k = 1; k <= NS; k++) {
+    for (let k = 1; k <= SCENES; k++) {
         const sc = p.scenes[k];
         if (sc) out.push(`[${k}] = {pat = {${sc.pat.join(', ')}}, mute = {${sc.mute.join(', ')}}}, `);
     }

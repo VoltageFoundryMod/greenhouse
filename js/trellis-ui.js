@@ -14,6 +14,7 @@ import {
     NS,
     RANDOM_WHAT,
     SCALE_NAMES,
+    SCENES,
     SLOT_FIELDS,
     SONG_MAX,
     STEP_DIVS,
@@ -786,7 +787,11 @@ export const trellisUiMethods = {
                     ...tracks.map((b) => el('th', '', `${LETTERS[b - 1]} ${p.names[b - 1]}`))
                 ])
             );
-            for (let k = 1; k <= NS; k++) {
+            // the first eight, and one empty row past the highest stored, so
+            // the list grows as scenes are stored
+            let rows = this.trellis.allScenes ? SCENES : 8;
+            for (let k = 1; k <= SCENES; k++) if (p.scenes[k]) rows = Math.max(rows, Math.min(SCENES, k + 1));
+            for (let k = 1; k <= rows; k++) {
                 const sc = p.scenes[k];
                 const stored = el('input');
                 stored.type = 'checkbox';
@@ -838,6 +843,17 @@ export const trellisUiMethods = {
                 table.append(tr);
             }
             scenes.append(table);
+            if (rows < SCENES)
+                scenes.append(
+                    button(
+                        `show S${rows + 1}–S${SCENES}`,
+                        'the scenes past these (achene: E1 on the scenes layer)',
+                        () => {
+                            this.trellis.allScenes = true;
+                            redraw();
+                        }
+                    )
+                );
         }
         main.append(scenes);
 
@@ -851,10 +867,22 @@ export const trellisUiMethods = {
             this.trellisChanged();
         });
         song.append(el('label', 'tp-field tp-check', [on, document.createTextNode(' on: plays while the clock does')]));
-        const list = el('ol', 'tp-song');
+        // a table: an entry a row, its scene and bars under one heading each
+        const list = el('table', 'tp-song');
+        if (p.song.length) {
+            const bars = p.song.reduce((n, e) => n + e[1], 0);
+            list.append(
+                el('tr', '', [
+                    el('th', '', '#'),
+                    el('th', '', 'scene'),
+                    el('th', '', 'bars'),
+                    el('th', 'tp-song-total', `${bars} bar${bars === 1 ? '' : 's'} in all`)
+                ])
+            );
+        }
         p.song.forEach((entry, j) => {
             const scene = field(
-                { label: 'scene', lo: 1, hi: NS, as: (v) => `S${v}${p.scenes[v] ? '' : ' (empty)'}` },
+                { label: '', lo: 1, hi: SCENES, as: (v) => `S${v}${p.scenes[v] ? '' : ' (empty)'}` },
                 entry[0],
                 (v) => {
                     entry[0] = v;
@@ -862,12 +890,14 @@ export const trellisUiMethods = {
                     redraw();
                 }
             );
-            const bars = field({ label: 'bars', lo: 1, hi: 99 }, entry[1], (v) => {
+            const bars = field({ label: '', lo: 1, hi: 99 }, entry[1], (v) => {
                 entry[1] = v;
                 this.trellisChanged();
+                redraw();
             });
-            const button = (/** @type {string} */ label, /** @type {string} */ title, /** @type {() => void} */ fn) => {
-                const b = el('button', 'repl-action-btn', label);
+            draggable(/** @type {HTMLInputElement} */ (bars.querySelector('input')));
+            const action = (/** @type {string} */ label, /** @type {string} */ title, /** @type {() => void} */ fn) => {
+                const b = el('button', 'repl-action-btn tp-small', label);
                 b.type = 'button';
                 b.title = title;
                 b.addEventListener('click', () => {
@@ -877,15 +907,20 @@ export const trellisUiMethods = {
                 });
                 return b;
             };
+            // (a gap where an arrow doesn't apply, so the rows line up)
+            const gap = () => el('span', 'tp-song-gap');
             list.append(
-                el('li', 'tp-song-entry', [
-                    scene,
-                    bars,
-                    j > 0 ? button('↑', 'earlier', () => p.song.splice(j - 1, 0, ...p.song.splice(j, 1))) : null,
-                    j < p.song.length - 1
-                        ? button('↓', 'later', () => p.song.splice(j + 1, 0, ...p.song.splice(j, 1)))
-                        : null,
-                    button('delete', 'take it out', () => p.song.splice(j, 1))
+                el('tr', 'tp-song-entry', [
+                    el('td', 'tp-song-n', String(j + 1)),
+                    el('td', '', [scene]),
+                    el('td', '', [bars]),
+                    el('td', 'tp-song-actions', [
+                        j > 0 ? action('↑', 'earlier', () => p.song.splice(j - 1, 0, ...p.song.splice(j, 1))) : gap(),
+                        j < p.song.length - 1
+                            ? action('↓', 'later', () => p.song.splice(j + 1, 0, ...p.song.splice(j, 1)))
+                            : gap(),
+                        action('delete', 'take it out', () => p.song.splice(j, 1))
+                    ])
                 ])
             );
         });

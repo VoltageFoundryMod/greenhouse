@@ -183,7 +183,10 @@ and pick **edit preset**.
   velocity, gate and chance are under it; on a drums track, click a lane's
   name to set its hits' velocities and chances.
 - **scenes, song** at the bottom of the list has the scenes (each track's
-  pattern and mute), the song and the performance page's assign.
+  pattern and mute: S1 to S8, and S9 to S16 with **show S9–S16** or once
+  one of them is stored), the song as a table (each entry's scene and
+  bars, the length in all, ↑ ↓ to move one) and the performance page's
+  assign.
 - **Copy and paste:** each slot has **copy** and **paste**, and so does each
   bank (its name, slots and track): copy one, go to another, paste. On a
   track, **copy P1** then pick P2 and **paste into P2** to start a pattern

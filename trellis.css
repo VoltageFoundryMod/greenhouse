@@ -354,16 +354,48 @@
 }
 
 .tp-song {
-    padding-left: 22px;
+    border-collapse: collapse;
     margin: 6px 0;
+    font-size: 0.8rem;
 }
 
-.tp-song-entry {
-    margin-bottom: 4px;
+.tp-song th {
+    font-weight: 400;
+    color: var(--neutral-medium);
+    text-align: left;
+    padding: 2px 8px 2px 0;
 }
 
-.tp-song-entry > * {
-    vertical-align: bottom;
+.tp-song td {
+    padding: 2px 8px 2px 0;
+    vertical-align: middle;
+}
+
+.tp-song .tp-field {
+    margin: 0;
+}
+
+.tp-song-n {
+    color: var(--neutral-medium);
+    text-align: right;
+}
+
+.tp-song-total {
+    font-style: italic;
+}
+
+.tp-song-actions {
+    display: flex;
+    gap: 4px;
+}
+
+/* the arrows and the gap where one doesn't apply: one width, so rows line up */
+.tp-song-actions .tp-small:not(:last-child),
+.tp-song-gap {
+    display: inline-block;
+    width: 24px;
+    padding: 2px 0;
+    text-align: center;
 }
 
 .tp-assign {

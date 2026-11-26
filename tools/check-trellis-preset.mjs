@@ -79,6 +79,14 @@ check(
     q2.tracks[3].pat === 1 && laneAt(q2.tracks[3], 'on', 1) === 1 && laneAt(q2.tracks[3].pats[2], 'on', 2) === 1
 );
 
+// 16 scenes (trellis 1.10.0): S12 and a song entry of S16 survive
+const sc = parsePreset(fixture);
+sc.scenes[12] = { pat: [0, 0, 1, 0, 1, 0, 0, 0], mute: [0, 0, 0, 0, 1, 0, 0, 0] };
+sc.song.push([16, 3]);
+const sc2 = parsePreset(serializePreset(sc));
+check('S12 kept', sc2.scenes[12]?.mute[4] === 1, JSON.stringify(sc2.scenes[12]));
+check('a song entry of S16 kept', sc2.song.at(-1)?.[0] === 16, JSON.stringify(sc2.song));
+
 // Lua literal details
 const v = parseLuaValue('return {1, 2.5, -3, "a\\"b\\\\c\\n", x = true, ["y z"] = {}, [3] = nil} -- end');
 check('Lua literals', v[1] === 1 && v[2] === 2.5 && v[3] === null && v[4] === 'a"b\\c\n' && v.x === true);
