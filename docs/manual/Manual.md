@@ -205,7 +205,8 @@ and pick **edit preset**.
   or Ctrl+Y) step back and forth through your changes. While you're typing
   in a field, Ctrl+Z undoes the typing instead.
 - **new** starts an empty preset, as the first number with no preset on
-  achene yet.
+  achene yet; so does **new trellis preset** at the bottom of the file
+  list, when achene has trellis, even with no preset to open.
 - Names follow the device's rules: lowercase, and up to 8 characters for a
   slot, 10 for a bank.
 

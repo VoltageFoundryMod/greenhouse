@@ -345,9 +345,12 @@ export function switchPattern(/** @type {Track} */ t, /** @type {number} */ n) {
  */
 
 /** an empty preset, as trellis's init (shift + K2 on the presets page) */
+/** the trellis whose preset format this file writes (1.14.0 added a track's kf) */
+export const FORMAT_VERSION = '1.14.0';
+
 export function emptyPreset() {
     /** @type {Preset} */
-    const p = { version: '1.7.0', names: Array(NB).fill(''), slots: [], tracks: {}, assign: Array(NS).fill(0), scenes: {}, song: [], son: 0 }; // prettier-ignore
+    const p = { version: FORMAT_VERSION, names: Array(NB).fill(''), slots: [], tracks: {}, assign: Array(NS).fill(0), scenes: {}, song: [], son: 0 }; // prettier-ignore
     for (let b = 1; b <= NB; b++) for (let i = 1; i <= NS; i++) p.slots.push(defaultSlot(b, i));
     return p;
 }

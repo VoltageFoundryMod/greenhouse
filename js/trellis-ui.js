@@ -516,9 +516,7 @@ export const trellisUiMethods = {
         );
         let n = 1;
         while (used.has(n) && n < 16) n++;
-        const preset = emptyPreset();
-        if (t) preset.version = t.preset.version;
-        this.trellisOpen(`pset_trellis_${n}.lua`, preset, true);
+        this.trellisOpen(`pset_trellis_${n}.lua`, emptyPreset(), true);
     },
 
     /** the editor on a preset (fresh: not on the device yet) */

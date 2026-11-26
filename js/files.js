@@ -282,6 +282,17 @@ export const fileMethods = {
             });
             this.elements.fileList.appendChild(toggle);
         }
+
+        // achene's trellis: a preset started here, in its editor
+        if (allEntries.some((entry) => entry.name === 'trellis.lua')) {
+            const fresh = document.createElement('button');
+            fresh.type = 'button';
+            fresh.className = 'file-data-toggle';
+            fresh.textContent = 'new trellis preset';
+            fresh.title = "an empty preset in trellis's editor, as the first number with no preset yet";
+            fresh.addEventListener('click', () => this.trellisNew());
+            this.elements.fileList.appendChild(fresh);
+        }
     },
 
     /** Whether the file list shows data files (remembered in this browser). */
