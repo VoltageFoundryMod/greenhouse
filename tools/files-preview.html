@@ -5,7 +5,8 @@
         <title>file list preview</title>
         <!-- Development page (not published): the file list without a device,
              on a made-up set of files (scripts, presets, settings). Serve the
-             repo and open /tools/files-preview.html; ?data shows the data files. -->
+             repo and open /tools/files-preview.html; ?data shows the data files,
+             ?other the others, ?select chooses two. -->
         <link rel="stylesheet" href="../style.css" />
         <link rel="stylesheet" href="../refresh.css" />
         <style>
@@ -29,7 +30,8 @@
             import { fileMethods } from '../js/files.js';
 
             const names = ['trellis.lua', 'pset_trellis_2.lua', 'init.lua', 'lib.lua', 'trellis.cfg',
-                'generic.lua', 'pset_trellis_1.lua', 'launcher.lua', 'state_x.lua', 'test.lua']; // prettier-ignore
+                'generic.lua', 'pset_trellis_1.lua', 'launcher.lua', 'state_x.lua', 'test.lua', 'trellis.luac',
+                'generic.lua.bak', 'bundle.ver']; // prettier-ignore
             const app = Object.assign(
                 {
                     elements: { fileList: document.getElementById('fileList') },
@@ -41,7 +43,10 @@
                 },
                 fileMethods
             );
-            app.showDataFiles = () => new URLSearchParams(location.search).has('data');
+            const q = new URLSearchParams(location.search);
+            app.showDataFiles = () => q.has('data');
+            app.showOtherFiles = () => q.has('other');
+            if (q.has('select')) app.filePicked = new Set(['trellis.luac', 'generic.lua.bak']);
             app.renderFileList();
         </script>
     </body>

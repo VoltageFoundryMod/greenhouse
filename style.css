@@ -317,6 +317,43 @@ body.is-resizing-explorer * {
     display: none;
 }
 
+/* choosing files to download or delete together */
+.file-select-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0 12px;
+    margin: 4px 8px 8px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--neutral-trim);
+    font-size: 0.78rem;
+    color: var(--neutral-heavy);
+}
+
+.file-select-bar .file-data-toggle {
+    display: inline;
+    margin: 0;
+}
+
+.file-select-bar .file-data-toggle:disabled {
+    opacity: 0.4;
+    cursor: default;
+    text-decoration: none;
+}
+
+.file-row-pickable {
+    cursor: pointer;
+}
+
+.file-pick {
+    margin: 0 8px 0 2px;
+    accent-color: var(--accent, #d8a040);
+}
+
+.file-explorer-pane.collapsed .file-select-bar {
+    display: none;
+}
+
 .file-list-separator {
     height: 1px;
     background-color: var(--neutral-trim);

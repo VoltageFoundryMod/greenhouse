@@ -2,6 +2,7 @@
 // Mixed into diiiApp (diii.js); `this` is the app.
 
 import { hasExactFiles, readDeviceFile } from './backup.js';
+import { createZip } from './zip.js';
 import { disableStartupScript, onlyStartsScript, setStartupScript } from './init-lua.js';
 import { TRELLIS_CFG, TRELLIS_PRESET } from './trellis-ui.js';
 
@@ -13,6 +14,23 @@ const SHOW_DATA_KEY = 'webdiii.showDataFiles';
 const isSettingsFile = (/** @type {string} */ name) => name.toLowerCase().endsWith('.cfg');
 /** @param {string} name */
 const isDataFile = (name) => DATA_PREFIXES.some((prefix) => name.startsWith(prefix)) || isSettingsFile(name);
+const SHOW_OTHER_KEY = 'webdiii.showOtherFiles';
+/** a script (or iii's init) */
+const isScript = (/** @type {string} */ name) => name.toLowerCase().endsWith('.lua') || name === 'init';
+/** neither a script nor a data file: what the firmware keeps (caches, copies), leftovers */
+const isOtherFile = (/** @type {string} */ name) => !isScript(name) && !isDataFile(name);
+
+/** what an other file is, for its tooltip */
+function otherFileNote(/** @type {string} */ name) {
+    if (name.endsWith('.luac'))
+        return 'a compiled copy the firmware keeps of a big script, so it loads faster; deleting it is harmless (it’s made again)';
+    if (name.endsWith('.bak')) return 'the copy from before a firmware update replaced it';
+    if (name.endsWith('.new')) return 'left by a firmware update that didn’t finish';
+    if (name === 'bundle.ver')
+        return 'which scripts this firmware installed; without it they’re installed again at the next boot';
+    if (name === '.upload.tmp') return 'left by an upload that didn’t finish';
+    return 'a file no script here runs';
+}
 
 export const fileMethods = {
     formatSizeKb(bytes) {
@@ -60,7 +78,8 @@ export const fileMethods = {
             const order = (name) => {
                 if (this.isInitFile(name)) return 0;
                 if (name === 'lib.lua') return 1;
-                // scripts, then the data files (presets, settings) after them
+                // scripts, then the data files (presets, settings), then the rest
+                if (isOtherFile(name)) return 4;
                 return isDataFile(name) ? 3 : 2;
             };
 
@@ -127,14 +146,19 @@ export const fileMethods = {
             return;
         }
 
-        // data files other scripts save (presets, state): hidden unless asked for
+        // data files other scripts save (presets, state) and the other files
+        // (caches, copies): hidden unless asked for
         const showData = this.showDataFiles();
+        const showOther = this.showOtherFiles();
         const allEntries = this.getSortedFileEntries();
-        const sortedEntries = showData ? allEntries : allEntries.filter((entry) => !isDataFile(entry.name));
-        const hiddenCount = allEntries.length - sortedEntries.length;
-        const pinnedCount = sortedEntries.filter(
-            (entry) => entry.name === 'lib.lua' || this.isInitFile(entry.name)
-        ).length;
+        const sortedEntries = allEntries.filter(
+            (entry) => (showData || !isDataFile(entry.name)) && (showOther || !isOtherFile(entry.name))
+        );
+        const group = (/** @type {string} */ name) =>
+            name === 'lib.lua' || this.isInitFile(name) ? 0 : isOtherFile(name) ? 3 : isDataFile(name) ? 2 : 1;
+        // choosing files to download or delete together
+        const picked = this.filePicked;
+        if (picked) this.elements.fileList.appendChild(this.fileSelectBar(sortedEntries));
 
         for (let index = 0; index < sortedEntries.length; index += 1) {
             const entry = sortedEntries[index];
@@ -145,9 +169,32 @@ export const fileMethods = {
             main.className = 'file-main';
             const isLibFile = entry.name === 'lib.lua';
             const isInitLuaFile = entry.name === 'init.lua';
+            const isOther = isOtherFile(entry.name);
+            if (isOther) row.title = otherFileNote(entry.name);
 
-            // data files (presets, settings) hold values: nothing to run
-            if (!isLibFile && !isInitLuaFile && !isDataFile(entry.name)) {
+            if (picked) {
+                // lib.lua is iii's own: it can't go
+                const box = document.createElement('input');
+                box.type = 'checkbox';
+                box.className = 'file-pick';
+                box.disabled = isLibFile;
+                box.checked = picked.has(entry.name);
+                box.setAttribute('aria-label', `choose ${entry.name}`);
+                const flip = () => {
+                    if (isLibFile) return;
+                    if (picked.has(entry.name)) picked.delete(entry.name);
+                    else picked.add(entry.name);
+                    this.renderFileList();
+                };
+                box.addEventListener('click', (event) => {
+                    event.stopPropagation();
+                    flip();
+                });
+                row.classList.add('file-row-pickable');
+                row.addEventListener('click', flip);
+                main.appendChild(box);
+            } else if (!isLibFile && !isInitLuaFile && isScript(entry.name) && !isDataFile(entry.name)) {
+                // only scripts run: data files hold values, the others aren't Lua
                 const playBtn = document.createElement('button');
                 playBtn.className = 'file-play-btn';
                 playBtn.type = 'button';
@@ -200,54 +247,60 @@ export const fileMethods = {
             const menu = document.createElement('div');
             menu.className = `file-menu${this.openMenuFile === entry.name ? ' open' : ''}`;
 
-            const actions = isInitLuaFile
+            const actions = isOther
                 ? [
-                      { label: 'edit', fn: () => this.editFile(entry.name) },
-                      { label: 'read', fn: () => this.showFile(entry.name) },
+                      { label: 'download', fn: () => this.downloadFile(entry.name) },
+                      ...(entry.name.endsWith('.luac') ? [] : [{ label: 'read', fn: () => this.showFile(entry.name) }]),
                       { label: 'delete', fn: () => this.deleteFile(entry.name) }
                   ]
-                : isLibFile
+                : isInitLuaFile
                   ? [
-                        { label: 'download', fn: () => this.downloadFile(entry.name) },
-                        { label: 'read', fn: () => this.showFile(entry.name) }
+                        { label: 'edit', fn: () => this.editFile(entry.name) },
+                        { label: 'read', fn: () => this.showFile(entry.name) },
+                        { label: 'delete', fn: () => this.deleteFile(entry.name) }
                     ]
-                  : isSettingsFile(entry.name)
+                  : isLibFile
                     ? [
-                          // trellis's settings open as setup's pages
-                          ...(entry.name === TRELLIS_CFG
-                              ? [{ label: 'edit settings', fn: () => this.openTrellisCfg() }]
-                              : []),
-                          { label: 'edit', fn: () => this.editFile(entry.name) },
-                          { label: 'read', fn: () => this.showFile(entry.name) },
                           { label: 'download', fn: () => this.downloadFile(entry.name) },
-                          { label: 'rename', fn: () => this.renameFile(entry.name) },
-                          { label: 'delete', fn: () => this.deleteFile(entry.name) }
+                          { label: 'read', fn: () => this.showFile(entry.name) }
                       ]
-                    : [
-                          // a preset of achene's trellis script opens in its form
-                          ...(TRELLIS_PRESET.test(entry.name)
-                              ? [{ label: 'edit preset', fn: () => this.openTrellisPreset(entry.name) }]
-                              : []),
-                          ...(isDataFile(entry.name)
-                              ? []
-                              : [{ label: 'run', fn: () => this.enqueueRunFile(entry.name) }]),
-                          { label: 'edit', fn: () => this.editFile(entry.name) },
-                          // a patch saved from the patch drawer opens back there
-                          ...(this.patchCaps && (isPatch || (!this.patchFileNames && entry.name.endsWith('.lua')))
-                              ? [{ label: 'edit patch', fn: () => this.openPatchFile(entry.name) }]
-                              : []),
-                          { label: 'rename', fn: () => this.renameFile(entry.name) },
-                          { label: 'download', fn: () => this.downloadFile(entry.name) },
-                          ...(isDataFile(entry.name)
-                              ? []
-                              : [
-                                    this.firstBadgeFileNames.has(entry.name)
-                                        ? { label: 'not first', fn: () => this.clearFirst(entry.name) }
-                                        : { label: 'first', fn: () => this.configureFirst(entry.name) }
-                                ]),
-                          { label: 'read', fn: () => this.showFile(entry.name) },
-                          { label: 'delete', fn: () => this.deleteFile(entry.name) }
-                      ];
+                    : isSettingsFile(entry.name)
+                      ? [
+                            // trellis's settings open as setup's pages
+                            ...(entry.name === TRELLIS_CFG
+                                ? [{ label: 'edit settings', fn: () => this.openTrellisCfg() }]
+                                : []),
+                            { label: 'edit', fn: () => this.editFile(entry.name) },
+                            { label: 'read', fn: () => this.showFile(entry.name) },
+                            { label: 'download', fn: () => this.downloadFile(entry.name) },
+                            { label: 'rename', fn: () => this.renameFile(entry.name) },
+                            { label: 'delete', fn: () => this.deleteFile(entry.name) }
+                        ]
+                      : [
+                            // a preset of achene's trellis script opens in its form
+                            ...(TRELLIS_PRESET.test(entry.name)
+                                ? [{ label: 'edit preset', fn: () => this.openTrellisPreset(entry.name) }]
+                                : []),
+                            ...(isDataFile(entry.name)
+                                ? []
+                                : [{ label: 'run', fn: () => this.enqueueRunFile(entry.name) }]),
+                            { label: 'edit', fn: () => this.editFile(entry.name) },
+                            // a patch saved from the patch drawer opens back there
+                            ...(this.patchCaps && (isPatch || (!this.patchFileNames && entry.name.endsWith('.lua')))
+                                ? [{ label: 'edit patch', fn: () => this.openPatchFile(entry.name) }]
+                                : []),
+                            { label: 'rename', fn: () => this.renameFile(entry.name) },
+                            { label: 'download', fn: () => this.downloadFile(entry.name) },
+                            ...(isDataFile(entry.name)
+                                ? []
+                                : [
+                                      this.firstBadgeFileNames.has(entry.name)
+                                          ? { label: 'not first', fn: () => this.clearFirst(entry.name) }
+                                          : { label: 'first', fn: () => this.configureFirst(entry.name) }
+                                  ]),
+                            { label: 'read', fn: () => this.showFile(entry.name) },
+                            { label: 'delete', fn: () => this.deleteFile(entry.name) }
+                        ];
 
             for (const action of actions) {
                 const item = document.createElement('button');
@@ -264,37 +317,58 @@ export const fileMethods = {
             }
 
             row.appendChild(main);
-            row.appendChild(menuBtn);
-            row.appendChild(menu);
+            if (!picked) {
+                row.appendChild(menuBtn);
+                row.appendChild(menu);
+            }
             this.elements.fileList.appendChild(row);
 
-            // a line under init and lib, and one before the data files
+            // a line between the groups: init and lib, scripts, data, others
             const next = sortedEntries[index + 1];
-            if (
-                (pinnedCount > 0 && index === pinnedCount - 1 && next) ||
-                (next && isDataFile(next.name) && !isDataFile(entry.name))
-            ) {
+            if (next && group(next.name) !== group(entry.name)) {
                 const separator = document.createElement('div');
                 separator.className = 'file-list-separator';
                 this.elements.fileList.appendChild(separator);
             }
         }
 
-        const dataCount = showData ? allEntries.filter((entry) => isDataFile(entry.name)).length : hiddenCount;
-        if (dataCount > 0) {
-            const toggle = document.createElement('button');
-            toggle.type = 'button';
-            toggle.className = 'file-data-toggle';
-            toggle.textContent = showData
-                ? `hide ${dataCount} data file${dataCount === 1 ? '' : 's'}`
-                : `${dataCount} data file${dataCount === 1 ? '' : 's'} hidden: show`;
-            toggle.title = `files scripts save their presets and state in (${DATA_PREFIXES.map((p) => `${p}…`).join(', ')})`;
-            toggle.addEventListener('click', () => {
-                this.setShowDataFiles(!showData);
+        const footer = (/** @type {string} */ text, /** @type {string} */ title, /** @type {() => void} */ fn) => {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'file-data-toggle';
+            button.textContent = text;
+            button.title = title;
+            button.addEventListener('click', fn);
+            this.elements.fileList.appendChild(button);
+        };
+        const plural = (/** @type {number} */ n, /** @type {string} */ what) =>
+            `${n} ${what} file${n === 1 ? '' : 's'}`;
+        const dataCount = allEntries.filter((entry) => isDataFile(entry.name)).length;
+        if (dataCount > 0)
+            footer(
+                showData ? `hide ${plural(dataCount, 'data')}` : `${plural(dataCount, 'data')} hidden: show`,
+                `files scripts save their presets and settings in (${DATA_PREFIXES.map((p) => `${p}…`).join(', ')}, .cfg)`,
+                () => {
+                    this.setShowDataFiles(!showData);
+                    this.renderFileList();
+                }
+            );
+        const otherCount = allEntries.filter((entry) => isOtherFile(entry.name)).length;
+        if (otherCount > 0)
+            footer(
+                showOther ? `hide ${plural(otherCount, 'other')}` : `${plural(otherCount, 'other')} hidden: show`,
+                'what the firmware keeps (compiled caches .luac, copies from before an update .bak) and leftovers',
+                () => {
+                    this.setShowOtherFiles(!showOther);
+                    this.renderFileList();
+                }
+            );
+        if (!picked)
+            footer('select', 'choose files to download or delete together', () => {
+                this.filePicked = new Set();
+                this.openMenuFile = null;
                 this.renderFileList();
             });
-            this.elements.fileList.appendChild(toggle);
-        }
 
         // achene's trellis: a preset started here, in its editor
         if (allEntries.some((entry) => entry.name === 'trellis.lua')) {
@@ -315,6 +389,121 @@ export const fileMethods = {
         } catch {
             return false;
         }
+    },
+
+    /** Whether the file list shows the other files (caches, copies; remembered in this browser). */
+    showOtherFiles() {
+        try {
+            return localStorage.getItem(SHOW_OTHER_KEY) === '1';
+        } catch {
+            return false;
+        }
+    },
+
+    /** @param {boolean} on */
+    setShowOtherFiles(on) {
+        try {
+            localStorage.setItem(SHOW_OTHER_KEY, on ? '1' : '0');
+        } catch {
+            // private window: it lasts until the next render only
+        }
+    },
+
+    /** the bar over the list while choosing files: how many, all, download, delete, done */
+    fileSelectBar(/** @type {{ name: string }[]} */ shown) {
+        const picked = this.filePicked;
+        const bar = document.createElement('div');
+        bar.className = 'file-select-bar';
+        const count = document.createElement('span');
+        count.textContent = `${picked.size} chosen`;
+        bar.appendChild(count);
+        const names = () => [...picked].sort();
+        const choosable = shown.map((e) => e.name).filter((n) => n !== 'lib.lua');
+        for (const [label, title, fn, off] of /** @type {[string, string, () => void, boolean][]} */ ([
+            [
+                'all',
+                'choose every file shown (again: none)',
+                () => {
+                    const every = choosable.every((n) => picked.has(n));
+                    for (const n of choosable) every ? picked.delete(n) : picked.add(n);
+                    this.renderFileList();
+                },
+                false
+            ],
+            ['download', 'one file as it is, several as a zip', () => this.downloadFiles(names()), picked.size === 0],
+            ['delete', 'delete the chosen files from the device', () => this.deleteFiles(names()), picked.size === 0],
+            [
+                'done',
+                'back to the list',
+                () => {
+                    this.filePicked = null;
+                    this.renderFileList();
+                },
+                false
+            ]
+        ])) {
+            // prettier-ignore
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'file-data-toggle';
+            button.textContent = label;
+            button.title = title;
+            button.disabled = off;
+            button.addEventListener('click', fn);
+            bar.appendChild(button);
+        }
+        return bar;
+    },
+
+    /** files from the device, as they are (binary too) */
+    async readDeviceFiles(/** @type {string[]} */ names) {
+        const api = this.backupApi();
+        const exact = await hasExactFiles(api);
+        const out = [];
+        for (const name of names) out.push({ name, data: await readDeviceFile(api, name, exact) });
+        return out;
+    },
+
+    /** several files: one as it is, more as a zip */
+    async downloadFiles(/** @type {string[]} */ names) {
+        if (names.length === 1) return this.downloadFile(names[0]);
+        try {
+            this.outputLine(`reading ${names.length} files...`);
+            const zip = createZip(await this.readDeviceFiles(names));
+            const stamp = new Date().toISOString().slice(0, 16).replace('T', '-').replace(':', '');
+            const device = String(this.connectedDeviceLabel || 'iii').replace(/[^a-z0-9_-]+/gi, '-');
+            this.saveBlob(new Blob([zip], { type: 'application/zip' }), `${device}-files-${stamp}.zip`);
+            this.outputLine(`Downloaded ${names.length} files as a zip`);
+        } catch (error) {
+            this.outputLine(`Download error: ${error.message}`);
+        }
+    },
+
+    /** several files deleted, after one question naming them */
+    async deleteFiles(/** @type {string[]} */ names) {
+        if (names.length === 0) return;
+        const list = names.slice(0, 12).join('\n') + (names.length > 12 ? `\n…and ${names.length - 12} more` : '');
+        if (!window.confirm(`Delete ${names.length} file${names.length === 1 ? '' : 's'}?\n\n${list}`)) return;
+        try {
+            for (const name of names) await this.executeLuaCapture(`fs_remove_file(${this.luaQuote(name)})`);
+            this.outputLine(`Deleted ${names.join(', ')}`);
+        } catch (error) {
+            this.outputLine(`Delete error: ${error.message}`);
+        }
+        this.filePicked = null;
+        await this.requestFileListRefresh();
+    },
+
+    /** a download of a blob, as a file named `name` */
+    saveBlob(/** @type {Blob} */ blob, /** @type {string} */ name) {
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = name;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
     },
 
     /** @param {boolean} on */
@@ -421,10 +610,7 @@ export const fileMethods = {
             if (parts.length < 3) continue;
 
             const name = String(parts[1] || '').trim();
-            const isLua = name.toLowerCase().endsWith('.lua');
-            const isInit = name === 'init';
-            if (!isLua && !isInit && !isSettingsFile(name)) continue;
-            if (seenNames.has(name)) continue;
+            if (!name || seenNames.has(name)) continue;
             seenNames.add(name);
 
             const parsedSize = Number.parseInt(parts[2], 10);
@@ -575,16 +761,11 @@ export const fileMethods = {
 
     async downloadFile(fileName) {
         try {
-            const content = await this.readRemoteFile(fileName);
-            const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = fileName;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            URL.revokeObjectURL(url);
+            // byte for byte: a compiled .luac is binary
+            const [{ data }] = await this.readDeviceFiles([fileName]);
+            const type =
+                isScript(fileName) || isDataFile(fileName) ? 'text/plain;charset=utf-8' : 'application/octet-stream';
+            this.saveBlob(new Blob([data], { type }), fileName);
             this.outputLine(`Downloaded ${fileName}`);
         } catch (error) {
             this.outputLine(`Download error: ${error.message}`);

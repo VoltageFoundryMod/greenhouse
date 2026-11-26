@@ -86,6 +86,20 @@ rest:
 `.lua` files to the device (several at once). Uploading doesn't run a
 script. **+** at the top of the list makes a new, empty one.
 
+The list comes in groups, each in alphabetical order, with a line between
+them: `init.lua` and `lib.lua`, then the scripts, then the **data files**
+scripts save (presets, settings: `pset_…`, `trellis.cfg`), then the
+**other files** the firmware keeps (a big script's compiled copy,
+`name.luac`; the copy from before an update, `name.lua.bak`) and anything
+left over. Data and other files have no arrow, as they don't run, and are
+hidden until you press **… hidden: show** at the bottom; hover over an
+other file to see what it is. Deleting a `.luac` is harmless: it's made
+again.
+
+**select**, at the bottom, puts a box beside each file: tick some (or
+**all**), then **download** them (several come as a zip) or **delete**
+them in one go; **done** goes back. `lib.lua` can't be chosen.
+
 ### The device menu
 
 **device ▾** in the header:
