@@ -1,5 +1,10 @@
 /* trellis's preset editor (js/trellis-ui.js) */
 
+/* dark spinners, dropdowns and scrollbars, like the rest of the page */
+.tp-modal {
+    color-scheme: dark;
+}
+
 .tp-content {
     display: flex;
     flex-direction: column;
