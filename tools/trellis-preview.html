@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>trellis preset preview</title>
+        <!-- Development page (not published): trellis's preset editor without a
+             device. js/trellis-ui.js runs on a stand-in app that reads
+             tools/trellis-preset-fixture.lua (?file=trellis-preset-fixture-2.lua
+             for the other) and, on save, prints the file it would write below.
+             Serve the repo and open /tools/trellis-preview.html; ?view=3 opens
+             bank C, ?view=perform the scenes and song. -->
+        <link rel="stylesheet" href="../style.css" />
+        <link rel="stylesheet" href="../refresh.css" />
+        <link rel="stylesheet" href="../trellis.css" />
+        <style>
+            body {
+                margin: 0;
+                background: var(--bg-default);
+                color: var(--neutral-heavy);
+                font:
+                    13px/1.4 system-ui,
+                    sans-serif;
+            }
+            #log {
+                margin: 8px 12px;
+                white-space: pre-wrap;
+                font:
+                    11px ui-monospace,
+                    monospace;
+                color: #9aa1a8;
+            }
+        </style>
+    </head>
+    <body>
+        <pre id="log">(the file a save would write shows here)</pre>
+        <script type="module">
+            import { trellisUiMethods } from '../js/trellis-ui.js';
+
+            const params = new URLSearchParams(location.search);
+            const file = params.get('file') || 'trellis-preset-fixture.lua';
+            const text = await (await fetch(file)).text();
+            const log = document.getElementById('log');
+            const app = Object.assign(
+                {
+                    readRemoteFile: async () => text,
+                    backupApi: () => ({ capture: async () => [] }),
+                    uploadChecked: async (name, out) => {
+                        log.textContent = `${name}:\n${out}`;
+                        return true;
+                    },
+                    outputLine: (line) => console.log(line)
+                },
+                trellisUiMethods
+            );
+            await app.openTrellisPreset('pset_trellis_3.lua');
+            const view = params.get('view');
+            if (view) {
+                app.trellis.view = view === 'perform' ? 'perform' : Number(view);
+                app.renderTrellis();
+            }
+            window.app = app;
+        </script>
+    </body>
+</html>

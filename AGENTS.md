@@ -75,6 +75,18 @@ runtime changes. `tools/patch-preview.html` runs the drawer without a device. De
   lines out. Nothing is shared at build time with the firmware repos, so document every
   message on both sides.
 
+## trellis's preset editor
+
+`js/trellis-preset.js` reads and writes the preset files of achene's trellis script
+(`pset_trellis_N.lua`): a small parser for the Lua table literal they hold, and a writer that
+reproduces trellis's `save_preset()` byte for byte. Its field lists, ranges and defaults follow
+`../achene/scripts/trellis.lua` (`FILE`, `default_slot`, `SLOT_MT`, `PARAMS`, `Q.FIELDS`, `Q.LANES`,
+`Q.DEF`): when trellis's preset format changes, change it here and regenerate the fixtures
+(`tools/trellis-preset-fixture*.lua`, saved by trellis in achene's PC simulator), which
+`tools/check-trellis-preset.mjs` (in `make test`) reads and writes back. `js/trellis-ui.js` is the form
+(a modal, made in JS; "edit preset" in a preset's file menu), `trellis.css` its look, and
+`tools/trellis-preview.html` runs it on the fixture without a device.
+
 ## The virtual grid
 
 `js/virtual-device.js`: a 16×8 grid in the page (**device ▾ → virtual grid**), for trying

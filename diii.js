@@ -17,6 +17,7 @@ import { fileMethods } from './js/files.js';
 import { gridMethods } from './js/grid.js';
 import { acheneMethods } from './js/achene.js';
 import { patchMethods } from './js/patch.js';
+import { trellisUiMethods } from './js/trellis-ui.js';
 import { patchScreenMethods } from './js/patch-screen.js';
 import { patchGridMethods } from './js/patch-grid.js';
 import { backupUiMethods } from './js/backup-ui.js';
@@ -398,6 +399,7 @@ Object.assign(
     gridMethods,
     acheneMethods,
     patchMethods,
+    trellisUiMethods,
     patchScreenMethods,
     patchGridMethods,
     backupUiMethods,

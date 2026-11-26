@@ -160,6 +160,42 @@ as on the panel:
 to your OLED module (white, blue, yellow or green), and **full screen**
 shows the panel alone, for playing (Esc to leave).
 
+### trellis presets
+
+trellis's presets can be edited here too, with the whole preset in front of
+you instead of four settings at a time. It's the quickest way to set up a
+new preset's slots, name everything, or tidy a song.
+
+trellis saves its presets as `pset_trellis_1.lua` to `pset_trellis_16.lua`.
+The file list hides them with the other data files: press **data files
+hidden: show** at the bottom of the list. Then open a preset's **···** menu
+and pick **edit preset**.
+
+- **The banks** are down the left, A to H in their colours. A slots bank
+  shows its eight slots, each with its encoder, its key and, when it has
+  one, its LFO or motion. Only the settings that apply show: pick a key
+  type and its own settings appear. A track shows its settings, its eight
+  patterns and its steps, a page of 16 at a time; a drums track also shows
+  its kit.
+- **Patterns:** P1 to P8 pick the one you see; ▶ marks the one playing.
+  **make it the one playing** makes trellis load the preset on it.
+- **Steps:** click a step to turn it on or off. A melodic step's note,
+  velocity, gate and chance are under it; on a drums track, click a lane's
+  name to set its hits' velocities and chances.
+- **scenes, song** at the bottom of the list has the scenes (each track's
+  pattern and mute), the song and the performance page's assign.
+- Names follow the device's rules: lowercase, and up to 8 characters for a
+  slot, 10 for a bank.
+
+**save** writes the preset back, as the number picked beside it: keep it,
+or pick another number to save a copy. Then load it on achene as usual
+(K15, choose it with E1, K2). If trellis has that preset loaded, load it
+again before saving from trellis, or trellis writes its own copy over
+your edits.
+
+The clock, the sync jacks, MIDI thru and the arpeggiator aren't in a
+preset (trellis keeps them in `trellis.cfg`), so they aren't here.
+
 <!-- end if -->
 
 <!-- if: grid -->
