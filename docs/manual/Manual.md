@@ -201,10 +201,11 @@ and pick **edit preset**.
   slot, 10 for a bank.
 
 **save** writes the preset back, as the number picked beside it: keep it,
-or pick another number to save a copy. Then load it on achene as usual
-(K15, choose it with E1, K2). If trellis has that preset loaded, load it
-again before saving from trellis, or trellis writes its own copy over
-your edits.
+or pick another number to save a copy. If it's the preset trellis has
+loaded, achene plays it at once, in time; changes made on achene and not
+saved give way to it (the console says so). Another number joins
+trellis's presets: load it on achene as usual (K15, choose it with E1,
+K2).
 
 The clock, the sync jacks, MIDI thru and the arpeggiator aren't in a
 preset (trellis keeps them in `trellis.cfg`), so they aren't here.

@@ -32,6 +32,17 @@ import {
 /** a preset of trellis: pset_trellis_<n>.lua */
 export const TRELLIS_PRESET = /^pset_trellis_(\d+)\.lua$/;
 
+// what trellis_reload(n) said after a save, for the console
+const RELOAD_SAYS = {
+    loaded: () => 'achene plays it now.',
+    replaced: () => "achene plays it now, in place of changes made on achene that weren't saved.",
+    listed: (n) => `To play it, load preset ${n} on achene (K15, E1 to ${n}, K2).`,
+    bad: () => "trellis couldn't load it; it plays what it had.",
+    none: (n) =>
+        `On achene, load preset ${n} (K15, E1 to ${n}, K2) to play it; if trellis has it loaded now, ` +
+        'load it again before saving from trellis, or trellis writes its own over it.'
+};
+
 // as trellis draws them (COLOURS)
 const COLOURS = ['#ff7800', '#008cff', '#28dc3c', '#e628a0', '#ffdc00', '#00dcc8', '#963cff', '#ff281e'];
 // what names may hold on the device (trellis's N.CHARS), and how long
@@ -255,10 +266,18 @@ export const trellisUiMethods = {
         this.trellis.fileName = fileName;
         this.trellis.dirty = false;
         const n = TRELLIS_PRESET.exec(fileName)?.[1];
-        this.outputLine(
-            `trellis: saved ${fileName}. On achene, load preset ${n} (K15, E1 to ${n}, K2) to play it; ` +
-                'if trellis has it loaded now, load it again before saving from trellis, or trellis writes its own over it.'
-        );
+        // trellis 1.11.0 and later loads it again if it's the preset playing
+        // (trellis_reload returns what it did); older or not running: "none"
+        let did = 'none';
+        try {
+            const lines = await this.executeLuaCapture(
+                `print(trellis_reload and trellis_reload(${Number(n)}) or "none")`
+            );
+            did = lines.map((l) => String(l).trim()).find((l) => Object.hasOwn(RELOAD_SAYS, l)) ?? 'none';
+        } catch {
+            did = 'none';
+        }
+        this.outputLine(`trellis: saved ${fileName}. ${RELOAD_SAYS[did](n)}`);
         this.refreshFileList?.();
         this.renderTrellis();
     },
