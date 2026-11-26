@@ -1,6 +1,10 @@
 // Uploading scripts: file picker, drag and drop, the r shortcut.
 // Mixed into diiiApp (diii.js); `this` is the app.
 
+// longer than this, a line may not fit the console's 512-byte buffer (a
+// little room kept)
+const LONG_LINE = 500;
+
 export const uploadMethods = {
     getUploadLines(text) {
         return String(text)
@@ -40,8 +44,14 @@ export const uploadMethods = {
     },
 
     // Uploads a script and reports whether the device wrote it ("-- file
-    // written: <name>"; a compile error doesn't print that).
+    // written: <name>"; a compile error doesn't print that). iii's console
+    // drops a line longer than its 512-byte buffer, uploads included, so a
+    // file with one (trellis's presets: a track a line) goes another way:
+    // writeDataFile, checked by load() when it's Lua.
     async uploadChecked(fileName, text, options = {}) {
+        if (this.getUploadLines(text).some((line) => line.length > LONG_LINE)) {
+            return this.writeDataFile(fileName, text, { check: fileName.toLowerCase().endsWith('.lua') });
+        }
         let written = false;
         const observe = (line) => {
             if (line === `-- file written: ${fileName}`) written = true;
@@ -56,6 +66,47 @@ export const uploadMethods = {
             this.outputObservers.delete(observe);
         }
         return written;
+    },
+
+    /**
+     * A file written as a script writes one, with fs_write_file: built on
+     * the device from pieces short enough for the console's lines (a table
+     * joined at the end), then read back. `check`: it must compile (load())
+     * first, as an upload must. For trellis.cfg (a bare table, which an
+     * upload's compile refuses) and files with lines too long to upload.
+     * Whether it's on the device as given.
+     */
+    async writeDataFile(/** @type {string} */ name, /** @type {string} */ text, { check = false } = {}) {
+        const body = String(text).replace(/\r\n?/g, '\n');
+        const q = (/** @type {string} */ s) => this.luaQuote(s);
+        const lines = ['__gh_w = {}'];
+        // pieces of 400 characters, fewer where quoting makes them too long
+        for (let i = 0; i < body.length; ) {
+            let n = 400;
+            while (n > 1 && q(body.slice(i, i + n)).length > 460) n >>= 1;
+            lines.push(`__gh_w[#__gh_w + 1] = ${q(body.slice(i, i + n))}`);
+            i += n;
+        }
+        lines.push(
+            `do local s = table.concat(__gh_w) __gh_w = nil ` +
+                (check
+                    ? `local f, e = load(s, ${q(`=${name}`)}) if not f then print('not written: ' .. e) else `
+                    : '') +
+                `fs_write_file(${q(name)}, s) print(fs_read_file(${q(name)}) == s and 'written' or 'not written')` +
+                (check ? ' end' : '') +
+                ' end'
+        );
+        try {
+            const out = (await this.executeLuaCapture(lines)).map((l) => String(l).trim());
+            if (out.includes('written')) {
+                this.outputLine(`-- file written: ${name}`);
+                return true;
+            }
+            this.outputLine(`${name} wasn't written: ${out.find((l) => l.startsWith('not written')) ?? out.join(' ')}`);
+        } catch (error) {
+            this.outputLine(`${name} wasn't written: ${error.message}`);
+        }
+        return false;
     },
 
     // keepOld: the firmware replaces the file only once the new one compiles
